@@ -147,8 +147,11 @@ async def _resolve_model_configuration(
     if model_config_id is None:
         raise RoutingError("Model configuration ID is None.")
     
+    from sqlalchemy.orm import selectinload
+    
     result = await db.execute(
         select(ModelConfiguration)
+        .options(selectinload(ModelConfiguration.provider))
         .join(ModelProvider)
         .where(
             ModelConfiguration.id == model_config_id,

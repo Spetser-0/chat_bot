@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.db.session import Base, get_db
 from app.main import create_app
+from app.models import *  # Import all models so Base.metadata knows about them
 from app.models.student import Student
 from app.services.auth import hash_password, create_session_token, SESSION_COOKIE_NAME
 
