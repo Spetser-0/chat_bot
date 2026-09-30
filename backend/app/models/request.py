@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, ForeignKey, Text, DateTime
+from sqlalchemy import String, ForeignKey, Text, DateTime, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -36,6 +36,10 @@ class RequestStatus:
 
 class Request(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "requests"
+    __table_args__ = (
+        # Ensure a student can't have duplicate idempotency keys
+        UniqueConstraint("student_id", "idempotency_key", name="uq_request_student_idempotency"),
+    )
 
     student_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

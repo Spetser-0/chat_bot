@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.errors import AuthenticationError, AuthorizationError
+from app.core.errors import AuthenticationError, AuthorizationError, NotFoundError
 from app.db.session import get_db
 from app.models.student import Student
 from app.services.auth import (
@@ -152,15 +152,23 @@ async def verify_deliverable_ownership(
     Returns the Deliverable if owned, raises 403/404 otherwise.
     """
     from app.models.deliverable import Deliverable as DeliverableModel
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"verify_deliverable_ownership: looking for deliverable_id={deliverable_id}, student.id={student.id}")
     result = await db.execute(
         select(DeliverableModel).where(DeliverableModel.id == deliverable_id)
     )
     deliverable = result.scalar_one_or_none()
+    logger.info(f"verify_deliverable_ownership: deliverable found: {deliverable is not None}")
+    if deliverable:
+        logger.info(f"  deliverable.student_id={deliverable.student_id}, student.id={student.id}")
     
     if deliverable is None:
-        raise AuthorizationError("المورد المطلوب غير موجود.")
+        logger.warning(f"Deliverable not found: {deliverable_id}")
+        raise NotFoundError("المورد المطلوب غير موجود.")
     
     if deliverable.student_id != student.id:
+        logger.warning(f"Ownership mismatch: deliverable.student_id={deliverable.student_id}, student.id={student.id}")
         raise AuthorizationError("ليس لديك إذن للوصول إلى هذا المورد.")
     
     return deliverable

@@ -6,9 +6,10 @@ Authenticated platform user (student or developer).
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Enum as SAEnum
+from sqlalchemy import String, Enum as SAEnum, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -47,7 +48,10 @@ class Student(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         String(20), nullable=False, default="student", index=True
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
-    credit_balance: Mapped[float] = mapped_column(default=100.0, nullable=False)
+    # Use Decimal for monetary values — never FLOAT
+    credit_balance: Mapped[Decimal] = mapped_column(
+        Numeric(precision=18, scale=4), nullable=False, default=Decimal("100.0")
+    )
 
     requests: Mapped[list["Request"]] = relationship(
         "Request", back_populates="student", lazy="select"

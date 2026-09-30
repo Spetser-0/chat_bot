@@ -9,6 +9,8 @@ GET    /api/v1/deliverables/{deliverable_id}/download — Secure download
 """
 from __future__ import annotations
 
+import logging
+import re
 import uuid
 from typing import Annotated
 
@@ -23,9 +25,9 @@ from app.api.deps import (
     verify_deliverable_ownership,
     verify_request_ownership,
 )
-from app.core.errors import NotFoundError
-from app.models.deliverable import Deliverable
-from app.models.request import Request, RequestStatus
+from app.core.errors import NotFoundError, ValidationError
+from app.models.deliverable import Deliverable, DeliverableStatus
+from app.models.request import Request as RequestModel, Request as Request, RequestStatus
 from app.schemas.presentation import (
     PresentationRequest,
     PresentationRequestResponse,
@@ -67,6 +69,7 @@ async def create_presentation(
     body: PresentationCreateRequest,
     response: Response,
     presentation_service: PresentationService = Depends(get_presentation_service),
+    db: AsyncSession = Depends(get_db),
     idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
 ) -> dict:
     """
@@ -78,7 +81,84 @@ async def create_presentation(
     - Returns request_id for polling
     
     Idempotency: Provide Idempotency-Key header to safely retry.
+    - If a request with the same key exists for the same student:
+      * If completed: returns the existing request
+      * If processing: returns the existing request with current status
+      * If failed: allows retry (creates new request)
+    - Another student using the same key gets 409 Conflict
     """
+    # Validate idempotency key
+    if idempotency_key:
+        if len(idempotency_key) > 255:
+            raise ValidationError(
+                "Idempotency-Key exceeds maximum length of 255 characters",
+                error_code="IDEMPOTENCY_KEY_TOO_LONG",
+            )
+        if not idempotency_key:
+            raise ValidationError(
+                "Idempotency-Key cannot be empty",
+                error_code="IDEMPOTENCY_KEY_EMPTY",
+            )
+        if not re.match(r"^[a-zA-Z0-9\-_]+$", idempotency_key):
+            raise ValidationError(
+                "Idempotency-Key contains invalid characters. "
+                "Allowed: alphanumeric, hyphen, underscore",
+                error_code="IDEMPOTENCY_KEY_INVALID_FORMAT",
+            )
+    
+    # Check for existing request with same idempotency key
+    if idempotency_key:
+        student = presentation_service._student
+        existing_result = await db.execute(
+            select(Request).where(
+                Request.student_id == student.id,
+                Request.idempotency_key == idempotency_key,
+            )
+        )
+        existing_request = existing_result.scalar_one_or_none()
+        
+        if existing_request:
+            if existing_request.status == RequestStatus.READY:
+                # Return existing completed request
+                return {
+                    "data": {
+                        "request_id": existing_request.id,
+                        "status": existing_request.status,
+                        "estimated_credits": 0.0,
+                        "message": "Request already completed with this idempotency key",
+                    },
+                    "error": None,
+                }
+            elif existing_request.status in (
+                RequestStatus.PROCESSING,
+                RequestStatus.GENERATING,
+                RequestStatus.VALIDATING,
+            ):
+                # Return existing in-progress request
+                return {
+                    "data": {
+                        "request_id": existing_request.id,
+                        "status": existing_request.status,
+                        "estimated_credits": 0.0,
+                        "message": "Request is currently being processed",
+                    },
+                    "error": None,
+                }
+            elif existing_request.status == RequestStatus.FAILED:
+                # Allow retry of failed request - create new request
+                pass  # Fall through to create new request
+            else:
+                # PENDING or other - return existing
+                return {
+                    "data": {
+                        "request_id": existing_request.id,
+                        "status": existing_request.status,
+                        "estimated_credits": 0.0,
+                        "message": "Request with this idempotency key already exists",
+                    },
+                    "error": None,
+                }
+    
     request_data = PresentationRequest(
         topic=body.topic,
         language=body.language,
@@ -198,6 +278,17 @@ async def download_deliverable(
     
     The URL is short-lived (1 hour) and can only be used by the owner.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Download requested for deliverable {deliverable.id}, status: {deliverable.status}, status_value: {deliverable.status.value if hasattr(deliverable.status, 'value') else deliverable.status}")
+    
+    if deliverable.status != DeliverableStatus.READY:
+        logger.warning(f"Deliverable {deliverable.id} not ready for download, status: {deliverable.status}")
+        raise HTTPException(
+            status_code=400,
+            detail={"error": {"code": "NOT_READY", "message": "Request is not yet completed"}}
+        )
+    
     from app.services.storage import get_storage_service
     
     storage = get_storage_service()

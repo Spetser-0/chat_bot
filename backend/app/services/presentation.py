@@ -42,6 +42,7 @@ from app.core.errors import (
     InsufficientCreditsError,
     FeatureDisabledError,
     RoutingError,
+    ConflictError,
 )
 from app.models.request import Request, RequestStatus
 from app.models.deliverable import Deliverable, DeliverableStatus
@@ -127,6 +128,17 @@ class PresentationService:
                 f"Estimated cost: {estimated_cost} credits, "
                 f"available: {self._student.credit_balance}"
             )
+        
+        # 2.5. Check for cross-student idempotency key reuse
+        if idempotency_key:
+            existing_result = await self._db.execute(
+                select(Request).where(
+                    Request.idempotency_key == idempotency_key,
+                    Request.student_id != self._student.id,
+                )
+            )
+            if existing_result.scalar_one_or_none():
+                raise ConflictError("Another student has already used this idempotency key.")
         
         # 3. Resolve routing
         routing = await resolve_routing(
