@@ -1,8 +1,10 @@
 """
 app/services/auth.py
 ─────────────────────
-Session-based authentication service.
+Session-based authentication service (local implementation).
 Uses itsdangerous signed cookies.
+
+Implements the AuthProvider protocol for abstraction.
 Designed to be replaceable with Supabase Auth without rewriting feature services.
 
 Key invariants:
@@ -12,6 +14,7 @@ Key invariants:
 """
 from __future__ import annotations
 
+import os
 import uuid
 from typing import Any
 
@@ -27,6 +30,15 @@ from app.core.errors import (
     SessionExpiredError,
 )
 from app.models.student import Student
+from app.services.auth_abstraction import (
+    AuthIdentity,
+    AuthProvider,
+    AuthError,
+    InvalidCredentialsError,
+    TokenExpiredError,
+    TokenInvalidError,
+    AccountDisabledError,
+)
 
 
 SESSION_COOKIE_NAME = "spetser_session"
@@ -39,15 +51,15 @@ def _get_serializer() -> URLSafeTimedSerializer:
 
 def hash_password(plain: str) -> str:
     salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(plain.encode('utf-8'), salt)
-    return hashed.decode('utf-8')
+    hashed = bcrypt.hashpw(plain.encode("utf-8"), salt)
+    return hashed.decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     if not plain or not hashed:
         return False
     try:
-        return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
+        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
     except ValueError:
         return False
 
@@ -110,3 +122,123 @@ async def get_student_by_id(
     if student is None:
         raise AuthenticationError()
     return student
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# AuthProvider Implementation (Local Session Auth)
+# ──────────────────────────────────────────────────────────────────────────────
+
+class LocalAuthProvider:
+    """
+    Local session-based authentication provider.
+    Implements the AuthProvider protocol for abstraction.
+    """
+
+    async def verify_credentials(
+        self,
+        *,
+        email: str,
+        password: str,
+    ) -> AuthIdentity:
+        # This requires a DB session; in practice we'd use a service method
+        # For now, this is a placeholder — the actual verification happens
+        # in authenticate_student which takes a db session
+        raise NotImplementedError("Use authenticate_student service with DB session")
+
+    async def verify_token(self, token: str) -> AuthIdentity:
+        data = decode_session_token(token)
+        try:
+            student_id = uuid.UUID(data["sub"])
+            role = data["role"]
+        except (KeyError, ValueError):
+            raise TokenInvalidError()
+        return AuthIdentity(student_id=student_id, role=role)
+
+    async def create_session(self, identity: AuthIdentity) -> str:
+        return create_session_token(identity.student_id, identity.role)
+
+    async def revoke_session(self, token: str) -> None:
+        # With stateless signed cookies, revocation requires a blocklist
+        # or short expiry. For now, we rely on short session_max_age.
+        pass
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Development Authentication Mode
+# ──────────────────────────────────────────────────────────────────────────────
+
+class DevAuthProvider:
+    """
+    Development-only authentication provider.
+    
+    WARNING: Only enabled when APP_ENV=development.
+    Allows authentication without real credentials for local testing.
+    
+    Usage:
+        - Set DEV_AUTH_ENABLED=true in .env (development only)
+        - Set DEV_AUTH_STUDENT_ID to a valid student UUID
+        - Requests with X-Dev-Auth header will authenticate as that student
+    """
+
+    def __init__(self):
+        self._enabled = False
+        self._student_id: uuid.UUID | None = None
+        self._configure()
+
+    def _configure(self) -> None:
+        settings = get_settings()
+        # Only allow in development
+        if settings.is_development:
+            enabled = os.getenv("DEV_AUTH_ENABLED", "false").lower() == "true"
+            student_id_str = os.getenv("DEV_AUTH_STUDENT_ID")
+            if enabled and student_id_str:
+                try:
+                    self._student_id = uuid.UUID(student_id_str)
+                    self._enabled = True
+                except ValueError:
+                    pass
+
+    @property
+    def is_enabled(self) -> bool:
+        return self._enabled
+
+    def get_dev_identity(self) -> AuthIdentity | None:
+        if not self._enabled or not self._student_id:
+            return None
+        return AuthIdentity(
+            student_id=self._student_id,
+            role="student",
+            email="dev@local.test",
+            display_name="Development User",
+        )
+
+
+# Singleton instance
+_dev_auth_provider = DevAuthProvider()
+
+
+def get_dev_auth_provider() -> DevAuthProvider:
+    return _dev_auth_provider
+
+
+def is_dev_auth_enabled() -> bool:
+    return _dev_auth_provider.is_enabled
+
+
+async def get_dev_student_identity() -> AuthIdentity | None:
+    """Get development auth identity if enabled, else None."""
+    return _dev_auth_provider.get_dev_identity()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# AuthProvider Factory (for future Supabase Auth integration)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def get_auth_provider() -> AuthProvider:
+    """
+    Factory returning the configured AuthProvider implementation.
+    
+    Currently returns LocalAuthProvider.
+    Future: can return SupabaseAuthProvider based on config.
+    """
+    return LocalAuthProvider()
