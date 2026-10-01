@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import structlog
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
@@ -58,6 +58,8 @@ def create_app() -> FastAPI:
     )
 
     # ── Exception handlers ─────────────────────────────────────────────────
+    from fastapi import HTTPException
+
     @app.exception_handler(SpetserError)
     async def spetser_error_handler(request: Request, exc: SpetserError) -> ORJSONResponse:
         logger = structlog.get_logger("spetser.errors")
@@ -74,6 +76,34 @@ def create_app() -> FastAPI:
                 "error": {
                     "code": exc.error_code,
                     "message": exc.safe_message,
+                },
+                "request_id": request.headers.get("X-Request-ID"),
+            },
+        )
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException) -> ORJSONResponse:
+        logger = structlog.get_logger("spetser.errors")
+        logger.warning("HTTP exception", status_code=exc.status_code, detail=exc.detail)
+        detail = exc.detail
+        error_code = "HTTP_ERROR"
+        message = "An error occurred"
+        if isinstance(detail, dict) and "error" in detail:
+            error_info = detail["error"]
+            error_code = error_info.get("code", "HTTP_ERROR")
+            message = error_info.get("message", "An error occurred")
+        elif isinstance(detail, str):
+            message = detail
+        else:
+            error_code = "HTTP_ERROR"
+            message = str(detail)
+        return ORJSONResponse(
+            status_code=exc.status_code,
+            content={
+                "data": None,
+                "error": {
+                    "code": error_code,
+                    "message": message,
                 },
                 "request_id": request.headers.get("X-Request-ID"),
             },
@@ -96,6 +126,8 @@ def create_app() -> FastAPI:
         )
 
     # ── Routes ─────────────────────────────────────────────────────────────
+    from app.api.v1.router import api_v1_router
+
     app.include_router(api_v1_router)
 
     @app.get("/", include_in_schema=False)

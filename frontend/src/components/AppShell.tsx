@@ -3,7 +3,7 @@
  * ─────────────────────────
  * Main layout shell with right-side sidebar (RTL-first) and top bar.
  */
-import React, { type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 

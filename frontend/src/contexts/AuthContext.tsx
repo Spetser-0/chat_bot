@@ -4,7 +4,7 @@
  * React context for authentication state.
  * Wraps the app with session management via /auth/me.
  */
-import React, {
+import {
   createContext,
   useContext,
   useCallback,
@@ -92,3 +92,5 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
+
+export { AuthContext };

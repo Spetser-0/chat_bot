@@ -5,6 +5,7 @@ Presentation Generator API endpoints.
 
 POST   /api/v1/presentations          — Create presentation request
 GET    /api/v1/presentations/{request_id} — Get request status
+GET    /api/v1/presentations/{request_id}/deliverable — Get deliverable metadata
 GET    /api/v1/deliverables/{deliverable_id}/download — Secure download
 """
 from __future__ import annotations
@@ -88,7 +89,7 @@ async def create_presentation(
     - Another student using the same key gets 409 Conflict
     """
     # Validate idempotency key
-    if idempotency_key:
+    if idempotency_key is not None:
         if len(idempotency_key) > 255:
             raise ValidationError(
                 "Idempotency-Key exceeds maximum length of 255 characters",
@@ -107,7 +108,7 @@ async def create_presentation(
             )
     
     # Check for existing request with same idempotency key
-    if idempotency_key:
+    if idempotency_key is not None:
         student = presentation_service._student
         existing_result = await db.execute(
             select(Request).where(
@@ -190,6 +191,42 @@ async def create_presentation(
     }
 
 
+@router.get("/deliverables/{deliverable_id}/download")
+async def download_deliverable(
+    deliverable: Deliverable = Depends(verify_deliverable_ownership),
+) -> dict:
+    """
+    Get a signed download URL for a deliverable.
+    
+    The URL is short-lived (1 hour) and can only be used by the owner.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Download requested for deliverable {deliverable.id}, status: {deliverable.status}, status_value: {deliverable.status.value if hasattr(deliverable.status, 'value') else deliverable.status}")
+    
+    if deliverable.status != DeliverableStatus.READY:
+        logger.warning(f"Deliverable {deliverable.id} not ready for download, status: {deliverable.status}")
+        raise HTTPException(
+            status_code=400,
+            detail={"error": {"code": "NOT_READY", "message": "Request is not yet completed"}}
+        )
+    
+    from app.services.storage import get_storage_service
+    
+    storage = get_storage_service()
+    download_url = await storage.create_download_url(deliverable.storage_object_key)
+    
+    return {
+        "data": {
+            "download_url": download_url,
+            "expires_in_seconds": 3600,
+            "file_type": deliverable.file_type,
+            "file_size": deliverable.file_size,
+        },
+        "error": None,
+    }
+
+
 @router.get("/{request_id}")
 async def get_presentation_status(
     request: Request = Depends(verify_request_ownership),
@@ -265,41 +302,5 @@ async def get_deliverable(
             created_at=deliverable.created_at.isoformat() if deliverable.created_at else "",
             download_url=download_url,
         ),
-        "error": None,
-    }
-
-
-@router.get("/deliverables/{deliverable_id}/download")
-async def download_deliverable(
-    deliverable: Deliverable = Depends(verify_deliverable_ownership),
-) -> dict:
-    """
-    Get a signed download URL for a deliverable.
-    
-    The URL is short-lived (1 hour) and can only be used by the owner.
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"Download requested for deliverable {deliverable.id}, status: {deliverable.status}, status_value: {deliverable.status.value if hasattr(deliverable.status, 'value') else deliverable.status}")
-    
-    if deliverable.status != DeliverableStatus.READY:
-        logger.warning(f"Deliverable {deliverable.id} not ready for download, status: {deliverable.status}")
-        raise HTTPException(
-            status_code=400,
-            detail={"error": {"code": "NOT_READY", "message": "Request is not yet completed"}}
-        )
-    
-    from app.services.storage import get_storage_service
-    
-    storage = get_storage_service()
-    download_url = await storage.create_download_url(deliverable.storage_object_key)
-    
-    return {
-        "data": {
-            "download_url": download_url,
-            "expires_in_seconds": 3600,
-            "file_type": deliverable.file_type,
-            "file_size": deliverable.file_size,
-        },
         "error": None,
     }

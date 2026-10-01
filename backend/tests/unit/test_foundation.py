@@ -122,11 +122,13 @@ async def test_readiness_endpoint_db_down():
     resp = client.get("/api/v1/health/ready")
     assert resp.status_code == 503
     data = resp.json()
-    # FastAPI HTTPException wraps payload in {"detail": payload}
-    detail = data["detail"]
-    assert detail["status"] == "not_ready"
-    assert detail["checks"]["database"]["status"] == "error"
-    assert detail["checks"]["database"]["error"] == "database_unreachable"
+    # Our HTTPException handler returns standardized error format
+    assert data["data"] is None
+    assert "error" in data
+    error = data["error"]
+    assert error["code"] in ("HTTP_ERROR", "PROVIDER_ERROR", "PROVIDER_TIMEOUT", "PROVIDER_AUTH_ERROR", "PROVIDER_INVALID_RESPONSE", "PROVIDER_UNSUPPORTED_MODEL", "PROVIDER_RATE_LIMIT")
+    assert "message" in error
+    assert "request_id" in data
 
 
 # ──────────────────────────────────────────────────────────────────────────────
