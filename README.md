@@ -4,20 +4,18 @@ Arabic-first educational AI platform for university and school students, initial
 
 ## Status
 
-**Phase 1 — Foundation** ✅ Complete
-- Versioned API structure under `/api/v1`
-- Centralized configuration via environment variables (Pydantic Settings)
-- Safe development/production configuration separation
-- Database session management (SQLAlchemy 2.x async)
-- Alembic migration setup
-- Health (`/api/v1/health/live`) and readiness (`/api/v1/health/ready`) endpoints
-- Request/correlation ID middleware (`X-Request-ID`)
-- Safe structured error responses (consistent envelope)
-- Explicit CORS configuration
-- Structured logging (structlog) without secrets or user content
-- Clean backend folder structure supporting feature services and provider adapters
+**Phase 0 — Baseline Stabilization and Repository Audit** ✅ Complete
+- Baseline stabilization completed: 167 backend unit/integration tests passing (0 failures).
+- Accidental scratch scripts (~44 temporary files) and committed `.pyc` files purged from source control.
+- Test discovery made self-contained: `pythonpath = ["."]` in `backend/pyproject.toml` and explicit test defaults in `conftest.py`.
+- Alembic initial schema updated with SQLite-compatible variant for `fallback_model_configuration_ids` JSON support. Verified `alembic upgrade head` and `downgrade base`.
+- Frontend lint and build clean: `oxlint` (0 errors, 0 warnings), `npm run build` (230 modules, 0 TypeScript errors).
+- Idempotency key validation and unready deliverable error envelopes verified and tested.
 
-**Test Results**: 42 tests passing (backend)
+**Test Results**:
+- Backend: 167 passed (`python -m pytest -q`)
+- Frontend Lint: 0 errors, 0 warnings (`npm run lint`)
+- Frontend Build: 0 errors (`npm run build`)
 
 ## Quick Start
 

@@ -1,5 +1,5 @@
 """
-app/services/admin/test_playground_service.py
+app/services/admin/playground_service.py
 ──────────────────────────────────────────────
 Test Playground service for Developer Dashboard.
 Allows developers to test provider configurations and prompts safely.

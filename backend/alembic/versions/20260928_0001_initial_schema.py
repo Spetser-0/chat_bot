@@ -203,7 +203,7 @@ def upgrade() -> None:
         sa.Column("feature_key", sa.String(50), nullable=False),
         sa.Column("tier", sa.String(20), nullable=False),
         sa.Column("primary_model_configuration_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("model_configurations.id", ondelete="SET NULL"), nullable=True),
-        sa.Column("fallback_model_configuration_ids", postgresql.ARRAY(postgresql.UUID(as_uuid=True)), nullable=True),
+        sa.Column("fallback_model_configuration_ids", postgresql.ARRAY(postgresql.UUID(as_uuid=True)).with_variant(sa.JSON, "sqlite"), nullable=True),
         sa.Column("max_retries", sa.Integer, nullable=False, server_default="1"),
         sa.Column("timeout_seconds", sa.Integer, nullable=False, server_default="60"),
         sa.Column("temperature", sa.Float, nullable=True),

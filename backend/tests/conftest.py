@@ -6,6 +6,14 @@ Uses an in-memory SQLite database for speed and isolation.
 """
 from __future__ import annotations
 
+import os
+
+# Set explicit test environment variables so test execution is independent of machine environment
+os.environ.setdefault("APP_ENV", "development")
+os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-32-chars-long-min!!")
+os.environ.setdefault("SESSION_SECRET_KEY", "test-session-secret-key-32-chars!!")
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+
 import asyncio
 import uuid
 from typing import AsyncGenerator
