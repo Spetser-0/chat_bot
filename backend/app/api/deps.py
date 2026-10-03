@@ -10,29 +10,27 @@ Route handlers must never extract student identity from request body/query param
 from __future__ import annotations
 
 import uuid
-from typing import Annotated, TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
-from fastapi import Cookie, Depends, Header, Request
+from fastapi import Depends, Header, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
 from app.core.errors import AuthenticationError, AuthorizationError, NotFoundError
 from app.db.session import get_db
 from app.models.student import Student
 from app.services.auth import (
     SESSION_COOKIE_NAME,
     decode_session_token,
-    get_student_by_id,
     get_dev_student_identity,
+    get_student_by_id,
     is_dev_auth_enabled,
 )
 from app.services.auth_abstraction import AuthIdentity
 
 if TYPE_CHECKING:
-    from app.models.request import Request
     from app.models.deliverable import Deliverable
-    from app.models.credit_ledger import CreditLedger
+    from app.models.request import Request
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -122,7 +120,7 @@ async def verify_request_ownership(
     request_id: uuid.UUID,
     student: Student = Depends(get_current_student),
     db: AsyncSession = Depends(get_db),
-) -> "Request":
+) -> Request:
     """
     Dependency: Verify that the authenticated student owns the request.
     Returns the Request if owned, raises 403/404 otherwise.
@@ -146,13 +144,14 @@ async def verify_deliverable_ownership(
     deliverable_id: uuid.UUID,
     student: Student = Depends(get_current_student),
     db: AsyncSession = Depends(get_db),
-) -> "Deliverable":
+) -> Deliverable:
     """
     Dependency: Verify that the authenticated student owns the deliverable.
     Returns the Deliverable if owned, raises 403/404 otherwise.
     """
-    from app.models.deliverable import Deliverable as DeliverableModel
     import logging
+
+    from app.models.deliverable import Deliverable as DeliverableModel
     logger = logging.getLogger(__name__)
     logger.info(f"verify_deliverable_ownership: looking for deliverable_id={deliverable_id}, student.id={student.id}")
     result = await db.execute(

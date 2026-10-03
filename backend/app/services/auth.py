@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import os
 import uuid
-from typing import Any
 
 import bcrypt
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
@@ -33,13 +32,8 @@ from app.models.student import Student
 from app.services.auth_abstraction import (
     AuthIdentity,
     AuthProvider,
-    AuthError,
-    InvalidCredentialsError,
-    TokenExpiredError,
     TokenInvalidError,
-    AccountDisabledError,
 )
-
 
 SESSION_COOKIE_NAME = "spetser_session"
 
@@ -222,6 +216,10 @@ def get_dev_auth_provider() -> DevAuthProvider:
 
 
 def is_dev_auth_enabled() -> bool:
+    # Never allow the dev auth bypass outside local development.
+    from app.core.config import get_settings
+    if get_settings().app_env != "development":
+        return False
     return _dev_auth_provider.is_enabled
 
 

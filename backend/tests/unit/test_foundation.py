@@ -14,12 +14,11 @@ import os
 from unittest.mock import patch
 
 import pytest
-from httpx import AsyncClient, ASGITransport
 from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
 
+from app.core.config import get_settings
 from app.main import create_app
-from app.core.config import get_settings, Settings
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Application Startup
@@ -57,10 +56,10 @@ async def test_liveness_endpoint():
 @pytest.mark.asyncio
 async def test_readiness_endpoint_ok(monkeypatch):
     """Readiness probe returns 200 with db status ok when database reachable."""
-    from app.db.session import get_db
-    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
     from sqlalchemy.pool import StaticPool
-    from app.db.session import Base
+
+    from app.db.session import Base, get_db
 
     # Create a test engine for this test
     test_engine = create_async_engine(
@@ -96,8 +95,8 @@ async def test_readiness_endpoint_ok(monkeypatch):
 @pytest.mark.asyncio
 async def test_readiness_endpoint_db_down():
     """Readiness probe returns 503 with error payload when database unreachable."""
+
     from app.db.session import get_db
-    from sqlalchemy import text
 
     async def failing_db():
         """Yield a session that fails on execute."""
@@ -207,9 +206,10 @@ def test_settings_production_flag():
 @pytest.mark.asyncio
 async def test_spetser_error_envelope():
     """SpetserError produces consistent envelope: data/error/request_id."""
-    from app.core.errors import SpetserError, ValidationError
-    from app.main import create_app
     from starlette.testclient import TestClient
+
+    from app.core.errors import ValidationError
+    from app.main import create_app
 
     app = create_app()
 
@@ -232,8 +232,9 @@ async def test_spetser_error_envelope():
 @pytest.mark.asyncio
 async def test_unhandled_exception_envelope():
     """Unhandled exceptions produce safe envelope with INTERNAL_ERROR."""
-    from app.main import create_app
     from starlette.testclient import TestClient
+
+    from app.main import create_app
 
     app = create_app()
 
@@ -254,8 +255,9 @@ async def test_unhandled_exception_envelope():
 @pytest.mark.asyncio
 async def test_404_envelope():
     """404 returns envelope (FastAPI default, but should be consistent)."""
-    from app.main import create_app
     from starlette.testclient import TestClient
+
+    from app.main import create_app
 
     app = create_app()
     client = TestClient(app, raise_server_exceptions=False)
@@ -318,17 +320,13 @@ async def test_request_id_in_error_envelope():
 @pytest.mark.asyncio
 async def test_request_id_bound_to_logs(caplog):
     """Request ID is bound to structlog context (integration check)."""
-    import structlog
-    from app.middleware.request_id import REQUEST_ID_HEADER
+    from starlette.testclient import TestClient
 
     # This test verifies middleware binds request_id to contextvars
     # by checking that the logger can access it. Since structlog uses
     # contextvars, we can't easily inspect from outside. Instead we
     # verify the middleware imports and sets contextvars correctly.
-    from app.middleware.request_id import RequestIDMiddleware
-    from starlette.requests import Request
-    from starlette.responses import Response
-    from starlette.testclient import TestClient
+    from app.middleware.request_id import REQUEST_ID_HEADER
 
     app = create_app()
     client = TestClient(app)
@@ -344,7 +342,6 @@ async def test_request_id_bound_to_logs(caplog):
 
 def test_cors_middleware_configured():
     """CORS middleware is added with explicit origins."""
-    from app.core.config import Settings
     from app.main import create_app
 
     with patch.dict(os.environ, {

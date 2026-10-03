@@ -13,19 +13,17 @@ Integration tests for authentication and authorization:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.request import Request, RequestStatus
-from app.models.deliverable import Deliverable, DeliverableStatus
 from app.models.credit_ledger import CreditLedger, LedgerEntryType
-from app.models.student import Student, StudentRole
-from app.services.auth import hash_password, create_session_token, SESSION_COOKIE_NAME
-
+from app.models.deliverable import Deliverable, DeliverableStatus
+from app.models.request import Request, RequestStatus
+from app.models.student import Student
+from app.services.auth import SESSION_COOKIE_NAME, create_session_token, hash_password
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Fixtures
@@ -59,8 +57,9 @@ async def other_student(db: AsyncSession, another_student: dict) -> Student:
 @pytest_asyncio.fixture
 async def other_student_client(app, other_student: Student) -> AsyncClient:
     """Authenticated client for the other student."""
-    from app.services.auth import create_session_token, SESSION_COOKIE_NAME
     from httpx import ASGITransport
+
+    from app.services.auth import SESSION_COOKIE_NAME
     token = create_session_token(other_student.id, other_student.role)
     async with AsyncClient(
         transport=ASGITransport(app=app),
@@ -187,7 +186,6 @@ class TestMissingCredentials:
         """Any protected route without cookie returns 401."""
         # We'll test with a future protected route
         # For now, /auth/me is the only protected route
-        pass
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -379,7 +377,6 @@ class TestDeveloperAuthorization:
         """Regular student gets 403 on developer-only endpoint."""
         # Placeholder for future /api/v1/developer/* endpoints
         # Currently no developer endpoints exist, but the dependency exists
-        pass
 
     @pytest.mark.asyncio
     async def test_developer_can_access_developer_routes(self, developer_client: AsyncClient):
@@ -402,7 +399,6 @@ class TestIdentityMismatch:
         """Any endpoint that takes student_id in body should use token identity instead."""
         # The current auth endpoints don't accept student_id in body
         # This test documents the invariant for future endpoints
-        pass
 
     @pytest.mark.asyncio
     async def test_me_returns_token_identity_not_body(self, authenticated_client: AsyncClient, student: Student):
@@ -448,8 +444,6 @@ class TestDevAuthMode:
         student: Student
     ):
         """Dev auth works when DEV_AUTH_ENABLED=true and DEV_AUTH_STUDENT_ID set."""
-        import os
-        from app.services.auth import is_dev_auth_enabled, get_dev_student_identity
         
         # Enable dev auth
         monkeypatch.setenv("DEV_AUTH_ENABLED", "true")
@@ -457,6 +451,7 @@ class TestDevAuthMode:
         
         # Reload the dev auth provider
         from importlib import reload
+
         import app.services.auth as auth_module
         reload(auth_module)
         

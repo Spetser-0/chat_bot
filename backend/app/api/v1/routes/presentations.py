@@ -21,19 +21,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
-    get_current_student,
     get_db,
     verify_deliverable_ownership,
     verify_request_ownership,
 )
 from app.core.errors import NotFoundError, ValidationError
 from app.models.deliverable import Deliverable, DeliverableStatus
-from app.models.request import Request as RequestModel, Request as Request, RequestStatus
+from app.models.request import Request as Request
+from app.models.request import RequestStatus
 from app.schemas.presentation import (
-    PresentationRequest,
-    PresentationRequestResponse,
-    RequestStatusResponse,
     DeliverableResponse,
+    PresentationRequest,
+    RequestStatusResponse,
 )
 from app.services.presentation import PresentationService, get_presentation_service
 
@@ -200,7 +199,6 @@ async def download_deliverable(
     
     The URL is short-lived (1 hour) and can only be used by the owner.
     """
-    import logging
     logger = logging.getLogger(__name__)
     logger.info(f"Download requested for deliverable {deliverable.id}, status: {deliverable.status}, status_value: {deliverable.status.value if hasattr(deliverable.status, 'value') else deliverable.status}")
     
@@ -238,9 +236,6 @@ async def get_presentation_status(
     """
     deliverable_id = None
     if request.status == RequestStatus.READY:
-        from app.models.deliverable import Deliverable
-        from sqlalchemy import select
-        from app.api.deps import get_db
         # This would need a db session - for now return None
         pass
     

@@ -5,20 +5,18 @@ Authenticated platform user (student or developer).
 """
 from __future__ import annotations
 
-import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Enum as SAEnum, Numeric
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
-from app.models.mixins import UUIDPrimaryKeyMixin, TimestampMixin
+from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
-    from app.models.request import Request
     from app.models.credit_ledger import CreditLedger
+    from app.models.request import Request
 
 
 class StudentRole(str):
@@ -53,10 +51,10 @@ class Student(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Numeric(precision=18, scale=4), nullable=False, default=Decimal("100.0")
     )
 
-    requests: Mapped[list["Request"]] = relationship(
+    requests: Mapped[list[Request]] = relationship(
         "Request", back_populates="student", lazy="select"
     )
-    credit_ledger_entries: Mapped[list["CreditLedger"]] = relationship(
+    credit_ledger_entries: Mapped[list[CreditLedger]] = relationship(
         "CreditLedger", back_populates="student", lazy="select"
     )
 

@@ -15,15 +15,16 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass
+from datetime import UTC
 from typing import TYPE_CHECKING
 
 from app.core.errors import (
     ProviderAuthError,
+    ProviderError,
+    ProviderInvalidResponseError,
     ProviderRateLimitError,
     ProviderTimeoutError,
-    ProviderInvalidResponseError,
     ProviderUnsupportedModelError,
-    ProviderError,
     SpetserError,
 )
 from app.services.providers.base import AIProvider, ProviderResponse
@@ -39,12 +40,10 @@ if TYPE_CHECKING:
 
 class RecoverableProviderError(Exception):
     """Base for provider errors that are safe to retry."""
-    pass
 
 
 class NonRecoverableProviderError(Exception):
     """Base for provider errors that should NOT be retried."""
-    pass
 
 
 def classify_provider_error(exc: Exception) -> tuple[type[Exception], bool]:
@@ -289,15 +288,17 @@ class ProviderHealth:
 
 
 async def check_provider_health(
-    db: "AsyncSession",
+    db: AsyncSession,
 ) -> list[ProviderHealth]:
     """
     Check health of all enabled providers.
     Updates DB with last check time and error.
     """
-    from app.models.provider import ModelProvider
+    from datetime import datetime
+
     from sqlalchemy import select
-    from datetime import datetime, timezone
+
+    from app.models.provider import ModelProvider
     
     result = await db.execute(
         select(ModelProvider).where(ModelProvider.enabled.is_(True))
@@ -312,7 +313,7 @@ async def check_provider_health(
             healthy = await adapter.health_check()
             
             provider.health_status = "healthy" if healthy else "unhealthy"
-            provider.last_health_check_at = datetime.now(timezone.utc)
+            provider.last_health_check_at = datetime.now(UTC)
             if not healthy:
                 provider.last_error_message = "Health check failed"
             else:
@@ -328,7 +329,7 @@ async def check_provider_health(
             
         except Exception as exc:
             provider.health_status = "error"
-            provider.last_health_check_at = datetime.now(timezone.utc)
+            provider.last_health_check_at = datetime.now(UTC)
             provider.last_error_message = str(exc)[:200]
             
             health_results.append(ProviderHealth(

@@ -4,12 +4,12 @@ from __future__ import annotations
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import String, ForeignKey, Boolean, Integer, Numeric
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
-from app.models.mixins import UUIDPrimaryKeyMixin, TimestampMixin
+from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class ModelConfiguration(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -26,10 +26,10 @@ class ModelConfiguration(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # JSON list: ["json", "vision", "reasoning", "streaming"]
     capabilities_json: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     input_price_per_1k_tokens: Mapped[Decimal] = mapped_column(
-        Numeric(precision=18, scale=8), nullable=False, default=Decimal("0")
+        Numeric(precision=18, scale=8), nullable=False, default=Decimal(0)
     )
     output_price_per_1k_tokens: Mapped[Decimal] = mapped_column(
-        Numeric(precision=18, scale=8), nullable=False, default=Decimal("0")
+        Numeric(precision=18, scale=8), nullable=False, default=Decimal(0)
     )
     pricing_version: Mapped[str | None] = mapped_column(String(50), nullable=True)
     max_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)

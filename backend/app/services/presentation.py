@@ -27,52 +27,49 @@ import json
 import logging
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_student, get_db
 from app.core.config import get_settings
 from app.core.errors import (
-    SchemaValidationError,
-    ProviderInvalidResponseError,
-    InsufficientCreditsError,
-    FeatureDisabledError,
-    RoutingError,
     ConflictError,
+    FeatureDisabledError,
+    InsufficientCreditsError,
+    ProviderInvalidResponseError,
+    RoutingError,
+    SchemaValidationError,
 )
-from app.models.request import Request, RequestStatus
-from app.models.deliverable import Deliverable, DeliverableStatus
 from app.models.credit_ledger import CreditLedger, LedgerEntryType
-from app.models.student import Student
-from app.models.source_record import SourceRecord
-from app.models.model_configuration import ModelConfiguration
+from app.models.deliverable import Deliverable, DeliverableStatus
 from app.models.feature_configuration import FeatureConfiguration
-from app.models.prompt_version import PromptVersion, PromptStatus
-from app.api.deps import get_current_student, get_db
-from fastapi import Depends
-from app.services.routing import (
-    resolve_routing,
-    resolve_prompt_version,
-    enrich_resolved_model,
-    RoutingResolution,
-    ResolvedModel,
-)
-from app.services.provider_executor import ProviderExecutor, ExecutionResult
-from app.services.source_checker import get_source_checker, VerificationResult
-from app.services.renderer import get_renderer, RenderResult
-from app.services.storage import get_storage_service
+from app.models.model_configuration import ModelConfiguration
+from app.models.prompt_version import PromptVersion
+from app.models.request import Request, RequestStatus
+from app.models.source_record import SourceRecord
+from app.models.student import Student
 from app.schemas.presentation import (
-    PresentationDocument,
-    PresentationRequest,
     PRESENTATION_SCHEMA_VERSION,
     RENDERER_VERSION,
-    Language,
+    PresentationDocument,
+    PresentationRequest,
     RenderResult,
 )
+from app.services.provider_executor import ExecutionResult, ProviderExecutor
+from app.services.renderer import RenderResult, get_renderer
+from app.services.routing import (
+    enrich_resolved_model,
+    resolve_prompt_version,
+    resolve_routing,
+)
+from app.services.source_checker import VerificationResult, get_source_checker
+from app.services.storage import get_storage_service
 
 if TYPE_CHECKING:
     from app.models.student import Student
@@ -309,7 +306,7 @@ class PresentationService:
             await self._update_request_status(
                 request,
                 RequestStatus.READY,
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(UTC),
             )
             
             _logger.info(
@@ -422,8 +419,8 @@ Requirements:
         # For now, use request metadata
         parts = [
             f"Topic: {request.display_title or 'غير محدد'}",
-            f"Language: Arabic",  # Default to Arabic
-            f"Target slides: 10",  # Default
+            "Language: Arabic",  # Default to Arabic
+            "Target slides: 10",  # Default
         ]
         return "\n".join(parts)
     
@@ -557,7 +554,6 @@ Requirements:
         exec_result: ExecutionResult,
     ) -> None:
         """Charge credits for the generation (idempotent)."""
-        from app.services.routing import ResolvedModel
         
         # Calculate cost based on tokens and model pricing
         model_config = await self._get_model_config(exec_result.model_used.model_configuration_id)

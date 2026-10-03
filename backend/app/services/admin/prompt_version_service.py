@@ -7,14 +7,14 @@ CRUD operations for prompt versions with versioning and activation.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ConflictError, NotFoundError
-from app.models.prompt_version import PromptVersion, PromptStatus
+from app.models.prompt_version import PromptStatus, PromptVersion
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -152,8 +152,8 @@ class PromptVersionService:
 
         # Activate the new prompt
         prompt.status = PromptStatus.ACTIVE
-        prompt.activated_at = datetime.now()
-        prompt.activated_at = datetime.now()
+        prompt.activated_at = datetime.now(UTC)
+        prompt.activated_at = datetime.now(UTC)
 
         await self._db.commit()
         await self._db.refresh(prompt)

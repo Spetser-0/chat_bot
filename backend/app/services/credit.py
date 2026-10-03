@@ -17,14 +17,12 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
 
 from app.core.errors import InsufficientCreditsError
 from app.models.credit_ledger import CreditLedger, LedgerEntryType
 from app.models.student import Student
 
 if TYPE_CHECKING:
-    from app.models.request import Request
     from app.models.model_configuration import ModelConfiguration
 
 
@@ -93,7 +91,7 @@ class CreditService:
             model=None,
             input_tokens=0,
             output_tokens=0,
-            computed_usd_cost=Decimal("0"),
+            computed_usd_cost=Decimal(0),
             pricing_version=None,
             credits_charged=estimated_credits,
             entry_type=LedgerEntryType.RESERVATION,
@@ -357,7 +355,7 @@ class CreditService:
                 CreditLedger.entry_type == LedgerEntryType.RESERVATION,
             )
         )
-        reserved = sum((row[0] for row in result), Decimal("0"))
+        reserved = sum((row[0] for row in result), Decimal(0))
         return self._student.credit_balance - reserved
     
     async def _get_model_config(self, model_config_id: uuid.UUID):

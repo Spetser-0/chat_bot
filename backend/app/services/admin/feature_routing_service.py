@@ -7,7 +7,6 @@ CRUD operations for feature routing rules with tier-based model selection.
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,12 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import ConflictError, NotFoundError
 from app.models.feature_configuration import FeatureConfiguration
 from app.models.routing_rule import RoutingRule
-from app.models.model_configuration import ModelConfiguration
 from app.services.admin.model_config_service import ModelConfigService
-from app.services.routing import resolve_routing
-
-if TYPE_CHECKING:
-    from app.services.providers.base import AIProvider
 
 
 class FeatureRoutingService:

@@ -9,19 +9,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import TYPE_CHECKING
 
-from sqlalchemy import select, func, desc
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import desc, func, select
 
-from app.core.errors import NotFoundError
-from app.models.credit_ledger import CreditLedger, LedgerEntryType
-from app.models.request import Request, RequestStatus
-from app.models.student import Student
-from app.models.deliverable import Deliverable, DeliverableStatus
-
-if TYPE_CHECKING:
-    from app.models.student import Student
+from app.models.credit_ledger import CreditLedger
+from app.models.request import Request
 
 
 class UsageOverviewService:
@@ -65,7 +57,7 @@ class UsageOverviewService:
                 CreditLedger.entry_type == "charge",
             )
         )
-        total_credits = credits_result.scalar() or Decimal("0")
+        total_credits = credits_result.scalar() or Decimal(0)
 
         # Total USD cost
         cost_result = await self._db.execute(
@@ -74,7 +66,7 @@ class UsageOverviewService:
                 CreditLedger.entry_type == "charge",
             )
         )
-        total_usd = cost_result.scalar() or Decimal("0")
+        total_usd = cost_result.scalar() or Decimal(0)
 
         # Active students
         active_students_result = await self._db.execute(
@@ -113,7 +105,7 @@ class UsageOverviewService:
         daily_chart = [
             {"date": row[0].isoformat() if hasattr(row[0], 'isoformat') else str(row[0]), "count": row[1]}
             for row in daily_stats
-        )
+        ]
 
         return {
             "period_days": days,
@@ -150,7 +142,7 @@ class UsageOverviewService:
                 CreditLedger.entry_type == "charge",
             )
         )
-        credits = credits_result.scalar() or Decimal("0")
+        credits = credits_result.scalar() or Decimal(0)
 
         # USD cost
         cost_result = await self._db.execute(
@@ -160,7 +152,7 @@ class UsageOverviewService:
                 CreditLedger.entry_type == "charge",
             )
         )
-        usd_cost = cost_result.scalar() or Decimal("0")
+        usd_cost = cost_result.scalar() or Decimal(0)
 
         # Requests by status
         status_stats = await self._db.execute(
@@ -175,7 +167,7 @@ class UsageOverviewService:
             "period_days": days,
             "total_requests": total_requests,
             "credits_consumed": float(credits),
-            "usd_cost": float(cost_result.scalar() or Decimal("0")),
+            "usd_cost": float(cost_result.scalar() or Decimal(0)),
             "status_breakdown": status_breakdown,
         }
 

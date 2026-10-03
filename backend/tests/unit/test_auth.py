@@ -9,7 +9,7 @@ import uuid
 
 import pytest
 
-from app.core.errors import AuthenticationError, SessionExpiredError
+from app.core.errors import AuthenticationError
 from app.services.auth import (
     create_session_token,
     decode_session_token,

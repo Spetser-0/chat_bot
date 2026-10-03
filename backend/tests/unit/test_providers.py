@@ -8,8 +8,8 @@ from __future__ import annotations
 import pytest
 
 from app.core.errors import ProviderError
-from app.services.providers.mock_provider import MockProvider
 from app.services.providers.base import ProviderResponse
+from app.services.providers.mock_provider import MockProvider
 
 
 class TestMockProvider:

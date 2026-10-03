@@ -2,19 +2,21 @@
 # Tests: Idempotency
 # ──────────────────────────────────────────────────────────────────────────────
 
+import uuid
+
 import pytest
 import pytest_asyncio
-import uuid
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.request import Request, RequestStatus
-from app.models.student import Student
-from app.models.provider import ModelProvider
-from app.models.model_configuration import ModelConfiguration
+
 from app.models.feature_configuration import FeatureConfiguration
+from app.models.model_configuration import ModelConfiguration
+from app.models.provider import ModelProvider
+from app.models.request import Request, RequestStatus
 from app.models.routing_rule import RoutingRule
-from app.services.auth import create_session_token, SESSION_COOKIE_NAME, hash_password
+from app.models.student import Student
+from app.services.auth import SESSION_COOKIE_NAME, create_session_token, hash_password
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Fixtures (copied from test_presentation.py)
@@ -229,8 +231,9 @@ class TestIdempotency:
         idempotency_key = "idem-cross-student-123"
         
         # First student creates a request via app
-        from httpx import AsyncClient, ASGITransport
-        from app.services.auth import create_session_token, SESSION_COOKIE_NAME
+        from httpx import ASGITransport, AsyncClient
+
+        from app.services.auth import SESSION_COOKIE_NAME, create_session_token
         
         token1 = create_session_token(presentation_student.id, presentation_student.role)
         async with AsyncClient(
@@ -246,7 +249,7 @@ class TestIdempotency:
             assert response1.status_code == 201
         
         # Second student tries to use the SAME idempotency key
-        from app.services.auth import create_session_token, SESSION_COOKIE_NAME
+        from app.services.auth import SESSION_COOKIE_NAME, create_session_token
         token2 = create_session_token(other_student.id, other_student.role)
         
         async with AsyncClient(
@@ -281,8 +284,9 @@ class TestIdempotency:
         self, app, presentation_student: Student, setup_routing_config: None
     ):
         """Invalid idempotency key format returns 422."""
-        from httpx import AsyncClient, ASGITransport
-        from app.services.auth import create_session_token, SESSION_COOKIE_NAME
+        from httpx import ASGITransport, AsyncClient
+
+        from app.services.auth import SESSION_COOKIE_NAME, create_session_token
         
         token = create_session_token(presentation_student.id, presentation_student.role)
         async with AsyncClient(
@@ -315,7 +319,7 @@ class TestIdempotency:
                 json={"topic": "Test", "language": "ar"},
                 headers=[("Idempotency-Key", "")],
             )
-            assert response.status_code == 422, f"Empty string key should return 422"
+            assert response.status_code == 422, "Empty string key should return 422"
             data = response.json()
             assert "error" in data
             assert data["error"]["code"] == "IDEMPOTENCY_KEY_EMPTY"

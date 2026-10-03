@@ -5,12 +5,12 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, ForeignKey, BigInteger, DateTime
+from sqlalchemy import BigInteger, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
-from app.models.mixins import UUIDPrimaryKeyMixin, TimestampMixin
+from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from app.models.request import Request
@@ -53,7 +53,7 @@ class Deliverable(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         DateTime(timezone=True), nullable=True
     )
 
-    request: Mapped["Request"] = relationship("Request", back_populates="deliverables")
-    sources: Mapped[list["SourceRecord"]] = relationship(
+    request: Mapped[Request] = relationship("Request", back_populates="deliverables")
+    sources: Mapped[list[SourceRecord]] = relationship(
         "SourceRecord", back_populates="deliverable", lazy="select"
     )
