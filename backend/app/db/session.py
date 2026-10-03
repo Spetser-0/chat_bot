@@ -25,14 +25,15 @@ class Base(DeclarativeBase):
 
 def _make_engine():
     settings = get_settings()
-    is_sqlite = settings.database_url.startswith("sqlite")
+    db_url = settings.async_database_url
+    is_sqlite = db_url.startswith("sqlite")
     kwargs = {
         "echo": settings.is_development,
         "pool_pre_ping": not is_sqlite,
     }
     if not is_sqlite:
         kwargs.update(pool_size=5, max_overflow=10)
-    return create_async_engine(settings.database_url, **kwargs)
+    return create_async_engine(db_url, **kwargs)
 
 
 # Module-level singletons created lazily on first import

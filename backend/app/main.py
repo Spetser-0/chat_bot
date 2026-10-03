@@ -29,6 +29,18 @@ async def lifespan(app: FastAPI):
     logger = structlog.get_logger("spetser.startup")
     settings = get_settings()
     logger.info("Spetser AI starting", env=settings.app_env, version=settings.app_version)
+    
+    # Ensure database schema is created in development
+    try:
+        from app.db.session import get_engine, Base
+        import app.models  # noqa
+        engine = get_engine()
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database schema initialized successfully")
+    except Exception as exc:
+        logger.warning("Database initialization check skipped/failed", error=str(exc))
+        
     yield
     logger.info("Spetser AI shutting down")
 

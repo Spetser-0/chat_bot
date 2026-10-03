@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     # ── Database ─────────────────────────────────────────
     database_url: str
 
+    @property
+    def async_database_url(self) -> str:
+        """Ensure postgres URLs use asyncpg driver."""
+        url = self.database_url
+        if url.startswith("postgres://"):
+            return "postgresql+asyncpg://" + url[len("postgres://"):]
+        elif url.startswith("postgresql://"):
+            return "postgresql+asyncpg://" + url[len("postgresql://"):]
+        return url
+
     # ── Session ──────────────────────────────────────────
     session_secret_key: str = Field(min_length=32)
     session_max_age_seconds: int = 86_400
