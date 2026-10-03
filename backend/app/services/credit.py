@@ -15,7 +15,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import InsufficientCreditsError
@@ -211,8 +211,14 @@ class CreditService:
         )
         self._db.add(charge_entry)
         
-        # Update student balance atomically
-        self._student.credit_balance -= credits_charged
+        result = await self._db.execute(
+            update(Student)
+            .where(Student.id == self._student.id, Student.credit_balance >= credits_charged)
+            .values(credit_balance=Student.credit_balance - credits_charged)
+        )
+        if result.rowcount != 1:
+            await self._db.rollback()
+            raise InsufficientCreditsError("Insufficient credits")
         
         await self._db.commit()
         return credits_charged
@@ -313,8 +319,14 @@ class CreditService:
         )
         self._db.add(charge_entry)
         
-        # Atomic balance update
-        self._student.credit_balance -= credits_charged
+        result = await self._db.execute(
+            update(Student)
+            .where(Student.id == self._student.id, Student.credit_balance >= credits_charged)
+            .values(credit_balance=Student.credit_balance - credits_charged)
+        )
+        if result.rowcount != 1:
+            await self._db.rollback()
+            raise InsufficientCreditsError("Insufficient credits")
         
         await self._db.commit()
         return credits_charged

@@ -46,6 +46,8 @@ class Student(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         String(20), nullable=False, default="student", index=True
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
+    # Incrementing this value revokes every previously issued session token.
+    session_version: Mapped[int] = mapped_column(nullable=False, default=1, server_default="1")
     # Use Decimal for monetary values — never FLOAT
     credit_balance: Mapped[Decimal] = mapped_column(
         Numeric(precision=18, scale=4), nullable=False, default=Decimal("100.0")

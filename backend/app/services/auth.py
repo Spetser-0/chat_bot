@@ -36,6 +36,7 @@ from app.services.auth_abstraction import (
 )
 
 SESSION_COOKIE_NAME = "spetser_session"
+_DUMMY_PASSWORD_HASH = bcrypt.hashpw(b"invalid-login-password", bcrypt.gensalt()).decode("utf-8")
 
 
 def _get_serializer() -> URLSafeTimedSerializer:
@@ -44,6 +45,8 @@ def _get_serializer() -> URLSafeTimedSerializer:
 
 
 def hash_password(plain: str) -> str:
+    if len(plain.encode("utf-8")) > 72:
+        raise ValueError("Password must be at most 72 UTF-8 bytes")
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(plain.encode("utf-8"), salt)
     return hashed.decode("utf-8")
@@ -53,15 +56,17 @@ def verify_password(plain: str, hashed: str) -> bool:
     if not plain or not hashed:
         return False
     try:
+        if len(plain.encode("utf-8")) > 72:
+            return False
         return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
     except ValueError:
         return False
 
 
-def create_session_token(student_id: uuid.UUID, role: str) -> str:
+def create_session_token(student_id: uuid.UUID, role: str, session_version: int = 1) -> str:
     """Create a signed, time-limited session token."""
     serializer = _get_serializer()
-    return serializer.dumps({"sub": str(student_id), "role": role})
+    return serializer.dumps({"sub": str(student_id), "role": role, "sv": session_version})
 
 
 def decode_session_token(token: str) -> dict[str, str]:
@@ -93,7 +98,10 @@ async def authenticate_student(
     )
     student = result.scalar_one_or_none()
 
+    # Always run bcrypt, including for unknown emails, to prevent timing-based
+    # account enumeration.
     if student is None or not student.password_hash:
+        verify_password(password, _DUMMY_PASSWORD_HASH)
         raise AuthenticationError("البريد الإلكتروني أو كلمة المرور غير صحيحة.")
 
     if not verify_password(password, student.password_hash):

@@ -18,6 +18,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
+from itsdangerous import URLSafeTimedSerializer
 
 
 @dataclass(frozen=True)
@@ -115,6 +116,12 @@ class LocalStorageService(StorageService):
         self._root = Path(root_dir).resolve()
         self._root.mkdir(parents=True, exist_ok=True)
         self._base_url = base_url.rstrip("/")
+
+    def _safe_path(self, object_key: str) -> Path:
+        candidate = (self._root / object_key).resolve()
+        if candidate != self._root and self._root not in candidate.parents:
+            raise ValueError("Invalid storage object key")
+        return candidate
     
     async def upload(
         self,
@@ -132,7 +139,7 @@ class LocalStorageService(StorageService):
             raise ValueError("File exceeds 100MB limit")
         
         # Copy to storage with UUID-based name
-        dest = self._root / object_key
+        dest = self._safe_path(object_key)
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dest)
         
@@ -152,20 +159,40 @@ class LocalStorageService(StorageService):
         object_key: str,
         expires_in_seconds: int = 3600,
     ) -> str:
-        # In local dev, return a direct URL to the file
-        # In production, this would be a signed URL (Supabase, S3, etc.)
-        return f"{self._base_url}/api/v1/deliverables/download/{object_key}"
+        self._safe_path(object_key)
+        from app.core.config import get_settings
+        serializer = URLSafeTimedSerializer(
+            get_settings().session_secret_key, salt="local-download"
+        )
+        token = serializer.dumps({"key": object_key})
+        return f"{self._base_url}/api/v1/deliverables/download/{object_key}?token={token}"
+
+    def resolve_signed_download(self, object_key: str, token: str, max_age: int = 3600) -> Path:
+        from app.core.config import get_settings
+        serializer = URLSafeTimedSerializer(
+            get_settings().session_secret_key, salt="local-download"
+        )
+        try:
+            payload = serializer.loads(token, max_age=max_age)
+        except Exception as exc:
+            raise ValueError("Invalid or expired download token") from exc
+        if payload.get("key") != object_key:
+            raise ValueError("Download token does not match object")
+        path = self._safe_path(object_key)
+        if not path.is_file():
+            raise FileNotFoundError("Stored object not found")
+        return path
     
     async def delete(self, object_key: str) -> None:
-        dest = self._root / object_key
+        dest = self._safe_path(object_key)
         if dest.exists():
             dest.unlink()
     
     async def exists(self, object_key: str) -> bool:
-        return (self._root / object_key).exists()
+        return self._safe_path(object_key).exists()
     
     async def get_metadata(self, object_key: str) -> StoredObject | None:
-        dest = self._root / object_key
+        dest = self._safe_path(object_key)
         if not dest.exists():
             return None
         

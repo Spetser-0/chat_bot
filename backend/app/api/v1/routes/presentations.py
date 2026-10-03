@@ -13,10 +13,10 @@ from __future__ import annotations
 import logging
 import re
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,11 +45,11 @@ router = APIRouter(prefix="/presentations", tags=["Presentations"])
 
 class PresentationCreateRequest(BaseModel):
     """Request body for creating a presentation."""
-    topic: str
-    language: str = "ar"
-    slide_count: int = 10
-    model_tier: str = "default"
-    custom_instructions: str | None = None
+    topic: str = Field(min_length=3, max_length=500)
+    language: Literal["ar", "en"] = "ar"
+    slide_count: int = Field(default=10, ge=3, le=30)
+    model_tier: Literal["fast", "default", "thinker"] = "default"
+    custom_instructions: str | None = Field(default=None, max_length=2000)
 
 
 class PresentationCreateResponse(BaseModel):
@@ -199,11 +199,8 @@ async def download_deliverable(
     
     The URL is short-lived (1 hour) and can only be used by the owner.
     """
-    logger = logging.getLogger(__name__)
-    logger.info(f"Download requested for deliverable {deliverable.id}, status: {deliverable.status}, status_value: {deliverable.status.value if hasattr(deliverable.status, 'value') else deliverable.status}")
-    
     if deliverable.status != DeliverableStatus.READY:
-        logger.warning(f"Deliverable {deliverable.id} not ready for download, status: {deliverable.status}")
+        logging.getLogger(__name__).warning("Download requested before deliverable was ready")
         raise HTTPException(
             status_code=400,
             detail={"error": {"code": "NOT_READY", "message": "Request is not yet completed"}}

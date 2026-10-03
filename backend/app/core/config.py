@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     # ── Session ──────────────────────────────────────────
     session_secret_key: str = Field(min_length=32)
     session_max_age_seconds: int = 86_400
+    session_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
 
     # ── Supabase Storage ─────────────────────────────────
     supabase_url: str = ""
@@ -66,6 +67,7 @@ class Settings(BaseSettings):
     # ── Rate Limits ──────────────────────────────────────
     rate_limit_requests_per_minute: int = 60
     rate_limit_burst: int = 10
+    auth_rate_limit_per_minute: int = 5
 
     # ── Logging ──────────────────────────────────────────
     log_level: str = "INFO"

@@ -66,7 +66,14 @@ async def get_current_student(
     except (KeyError, ValueError):
         raise AuthenticationError()
 
-    return await get_student_by_id(student_id, db)
+    student = await get_student_by_id(student_id, db)
+    token_version = data.get("sv", 1)
+    try:
+        if int(token_version) != int(student.session_version):
+            raise AuthenticationError()
+    except (TypeError, ValueError):
+        raise AuthenticationError()
+    return student
 
 
 async def get_current_student_id(
@@ -92,7 +99,7 @@ async def get_active_student(
 # ──────────────────────────────────────────────────────────────────────────────
 
 async def get_developer(
-    student: Student = Depends(get_current_student),
+    student: Student = Depends(get_active_student),
 ) -> Student:
     """
     Dependency: Verify the current user has developer or admin role.
@@ -118,7 +125,7 @@ async def get_admin(
 
 async def verify_request_ownership(
     request_id: uuid.UUID,
-    student: Student = Depends(get_current_student),
+    student: Student = Depends(get_active_student),
     db: AsyncSession = Depends(get_db),
 ) -> Request:
     """
@@ -142,32 +149,23 @@ async def verify_request_ownership(
 
 async def verify_deliverable_ownership(
     deliverable_id: uuid.UUID,
-    student: Student = Depends(get_current_student),
+    student: Student = Depends(get_active_student),
     db: AsyncSession = Depends(get_db),
 ) -> Deliverable:
     """
     Dependency: Verify that the authenticated student owns the deliverable.
     Returns the Deliverable if owned, raises 403/404 otherwise.
     """
-    import logging
-
     from app.models.deliverable import Deliverable as DeliverableModel
-    logger = logging.getLogger(__name__)
-    logger.info(f"verify_deliverable_ownership: looking for deliverable_id={deliverable_id}, student.id={student.id}")
     result = await db.execute(
         select(DeliverableModel).where(DeliverableModel.id == deliverable_id)
     )
     deliverable = result.scalar_one_or_none()
-    logger.info(f"verify_deliverable_ownership: deliverable found: {deliverable is not None}")
-    if deliverable:
-        logger.info(f"  deliverable.student_id={deliverable.student_id}, student.id={student.id}")
     
     if deliverable is None:
-        logger.warning(f"Deliverable not found: {deliverable_id}")
         raise NotFoundError("المورد المطلوب غير موجود.")
     
     if deliverable.student_id != student.id:
-        logger.warning(f"Ownership mismatch: deliverable.student_id={deliverable.student_id}, student.id={student.id}")
         raise AuthorizationError("ليس لديك إذن للوصول إلى هذا المورد.")
     
     return deliverable

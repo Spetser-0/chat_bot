@@ -33,10 +33,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fastapi import Depends
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_student, get_db
+from app.api.deps import get_active_student, get_db
 from app.core.config import get_settings
 from app.core.errors import (
     ConflictError,
@@ -180,8 +180,6 @@ class PresentationService:
         
         _logger.info(
             "Presentation request created",
-            request_id=str(request.id),
-            student_id=str(self._student.id),
             model_tier=request_data.model_tier,
         )
         
@@ -311,15 +309,13 @@ class PresentationService:
             
             _logger.info(
                 "Presentation generation completed",
-                request_id=str(request.id),
-                deliverable_id=str(deliverable.id),
                 slide_count=render_result.slide_count,
             )
             
             return deliverable
             
         except Exception as e:
-            _logger.exception("Presentation generation failed", request_id=str(request_id))
+            _logger.exception("Presentation generation failed")
             await self._update_request_status(
                 request,
                 RequestStatus.FAILED,
@@ -573,7 +569,7 @@ Requirements:
             select(CreditLedger).where(CreditLedger.idempotency_key == idempotency_key)
         )
         if existing.scalar_one_or_none():
-            _logger.info("Credit already charged for request", request_id=str(request.id))
+            _logger.info("Credit already charged for request")
             return
         
         # Create ledger entry
@@ -591,11 +587,21 @@ Requirements:
             idempotency_key=idempotency_key,
         )
         
+        # Atomic conditional update prevents concurrent requests from spending
+        # the same balance. The database row is locked for the duration of it.
+        result = await self._db.execute(
+            update(Student)
+            .where(
+                Student.id == self._student.id,
+                Student.credit_balance >= credits_charged,
+            )
+            .values(credit_balance=Student.credit_balance - credits_charged)
+        )
+        if result.rowcount != 1:
+            await self._db.rollback()
+            raise InsufficientCreditsError("Insufficient credits")
+
         self._db.add(ledger_entry)
-        
-        # Update student balance
-        self._student.credit_balance -= credits_charged
-        
         await self._db.commit()
     
     async def _get_model_config(self, model_config_id: uuid.UUID):
@@ -616,7 +622,7 @@ Requirements:
 # ──────────────────────────────────────────────────────────────────────────────
 
 async def get_presentation_service(
-    student: Student = Depends(get_current_student),
+    student: Student = Depends(get_active_student),
     db: AsyncSession = Depends(get_db),
 ) -> PresentationService:
     """FastAPI dependency for PresentationService."""

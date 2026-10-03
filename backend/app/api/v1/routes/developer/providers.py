@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_student, get_db
+from app.api.deps import get_developer, get_db
 from app.core.errors import ConflictError, NotFoundError
 from app.models.student import Student
 from app.services.admin.provider_service import ProviderService
@@ -59,12 +59,10 @@ class ProviderTestResponse(BaseModel):
 
 @router.get("", response_model=list[ProviderResponse])
 async def list_providers(
-    current_student: Student = Depends(get_current_student),
+    current_student: Student = Depends(get_developer),
     db: AsyncSession = Depends(get_db),
 ):
     """List all providers (developer only)."""
-    if current_student.role not in ("developer", "admin"):
-        raise HTTPException(status_code=403, detail="Developer access required")
 
     service = ProviderService(db)
     providers = await service.list_providers()
@@ -87,12 +85,10 @@ async def list_providers(
 @router.get("/{provider_id}", response_model=ProviderResponse)
 async def get_provider(
     provider_id: uuid.UUID,
-    current_student: Student = Depends(get_current_student),
+    current_student: Student = Depends(get_developer),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a provider by ID."""
-    if current_student.role not in ("developer", "admin"):
-        raise HTTPException(status_code=403, detail="Developer access required")
 
     service = ProviderService(db)
     provider = await service.get_provider(provider_id)
@@ -112,12 +108,10 @@ async def get_provider(
 @router.post("", status_code=201, response_model=ProviderResponse)
 async def create_provider(
     body: ProviderCreate,
-    current_student: Student = Depends(get_current_student),
+    current_student: Student = Depends(get_developer),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new provider."""
-    if current_student.role not in ("developer", "admin"):
-        raise HTTPException(status_code=403, detail="Developer access required")
 
     service = ProviderService(db)
     try:
@@ -147,12 +141,10 @@ async def create_provider(
 async def update_provider(
     provider_id: uuid.UUID,
     body: ProviderUpdate,
-    current_student: Student = Depends(get_current_student),
+    current_student: Student = Depends(get_developer),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a provider."""
-    if current_student.role not in ("developer", "admin"):
-        raise HTTPException(status_code=403, detail="Developer access required")
 
     service = ProviderService(db)
     try:
@@ -181,12 +173,10 @@ async def update_provider(
 @router.delete("/{provider_id}", status_code=204)
 async def delete_provider(
     provider_id: uuid.UUID,
-    current_student: Student = Depends(get_current_student),
+    current_student: Student = Depends(get_developer),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a provider."""
-    if current_student.role not in ("developer", "admin"):
-        raise HTTPException(status_code=403, detail="Developer access required")
 
     service = ProviderService(db)
     try:
@@ -198,12 +188,10 @@ async def delete_provider(
 @router.post("/{provider_id}/test", response_model=ProviderTestResponse)
 async def test_provider(
     provider_id: uuid.UUID,
-    current_student: Student = Depends(get_current_student),
+    current_student: Student = Depends(get_developer),
     db: AsyncSession = Depends(get_db),
 ):
     """Test provider connectivity."""
-    if current_student.role not in ("developer", "admin"):
-        raise HTTPException(status_code=403, detail="Developer access required")
 
     service = ProviderService(db)
     try:
@@ -220,12 +208,10 @@ async def test_provider(
 async def rotate_provider_key(
     provider_id: uuid.UUID,
     body: dict,
-    current_student: Student = Depends(get_current_student),
+    current_student: Student = Depends(get_developer),
     db: AsyncSession = Depends(get_db),
 ):
     """Rotate provider API key."""
-    if current_student.role not in ("developer", "admin"):
-        raise HTTPException(status_code=403, detail="Developer access required")
 
     new_key = body.get("api_key")
     if not new_key:

@@ -12,8 +12,13 @@ import structlog
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
 from app.api.v1.router import api_v1_router
+from app.api.v1.routes.auth import limiter as auth_limiter
 from app.core.config import get_settings
 from app.core.errors import SpetserError
 from app.core.logging import configure_logging
@@ -28,16 +33,17 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     logger.info("Spetser AI starting", env=settings.app_env, version=settings.app_version)
     
-    # Ensure database schema is created in development
-    try:
-        import app.models  # noqa
-        from app.db.session import Base, get_engine
-        engine = get_engine()
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        logger.info("Database schema initialized successfully")
-    except Exception as exc:
-        logger.warning("Database initialization check skipped/failed", error=str(exc))
+    # Schema changes are applied by Alembic; create_all is development-only.
+    if settings.is_development:
+        try:
+            import app.models  # noqa
+            from app.db.session import Base, get_engine
+            engine = get_engine()
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("Development database schema initialized")
+        except Exception:
+            logger.warning("Development database initialization skipped")
         
     yield
     logger.info("Spetser AI shutting down")
@@ -56,9 +62,32 @@ def create_app() -> FastAPI:
         default_response_class=ORJSONResponse,
         lifespan=lifespan,
     )
+    app.state.limiter = auth_limiter
+    app.add_exception_handler(
+        RateLimitExceeded,
+        lambda request, exc: ORJSONResponse(
+            status_code=429,
+            content={
+                "data": None,
+                "error": {"code": "RATE_LIMITED", "message": "محاولات كثيرة. حاول لاحقاً."},
+            },
+            headers={"Retry-After": "60"},
+        ),
+    )
+    app.add_middleware(SlowAPIMiddleware)
 
     # ── Middleware ─────────────────────────────────────────────────────────
     app.add_middleware(RequestIDMiddleware)
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'")
+        if settings.is_production:
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return response
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins_list,
@@ -94,7 +123,7 @@ def create_app() -> FastAPI:
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> ORJSONResponse:
         logger = structlog.get_logger("spetser.errors")
-        logger.warning("HTTP exception", status_code=exc.status_code, detail=exc.detail)
+        logger.warning("HTTP exception", status_code=exc.status_code)
         detail = exc.detail
         error_code = "HTTP_ERROR"
         message = "An error occurred"
