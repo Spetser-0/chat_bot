@@ -9,17 +9,17 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, ForeignKey, Text, DateTime, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
-from app.models.mixins import UUIDPrimaryKeyMixin, TimestampMixin
+from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
-    from app.models.student import Student
     from app.models.deliverable import Deliverable
     from app.models.prompt_version import PromptVersion
+    from app.models.student import Student
 
 
 class RequestStatus:
@@ -73,11 +73,11 @@ class Request(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         DateTime(timezone=True), nullable=True
     )
 
-    student: Mapped["Student"] = relationship("Student", back_populates="requests")
-    deliverables: Mapped[list["Deliverable"]] = relationship(
+    student: Mapped[Student] = relationship("Student", back_populates="requests")
+    deliverables: Mapped[list[Deliverable]] = relationship(
         "Deliverable", back_populates="request", lazy="select"
     )
-    prompt_version: Mapped["PromptVersion | None"] = relationship(
+    prompt_version: Mapped[PromptVersion | None] = relationship(
         "PromptVersion", lazy="select", foreign_keys=[prompt_version_id]
     )
 

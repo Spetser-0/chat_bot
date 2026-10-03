@@ -16,25 +16,23 @@ from __future__ import annotations
 import tempfile
 import uuid
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import NotFoundError
 from app.models.deliverable import Deliverable, DeliverableStatus
 from app.models.request import Request, RequestStatus
 from app.models.student import Student
-from app.services.auth import hash_password, create_session_token, SESSION_COOKIE_NAME
+from app.services.auth import SESSION_COOKIE_NAME, create_session_token, hash_password
 from app.services.storage import (
     LocalStorageService,
     StorageService,
-    get_storage_service,
     StoredObject,
+    get_storage_service,
 )
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Fixtures
@@ -62,7 +60,6 @@ async def storage_student(db: AsyncSession) -> Student:
 @pytest_asyncio.fixture
 async def storage_client(app, storage_student: Student) -> AsyncClient:
     """Authenticated client for storage tests."""
-    from app.services.auth import create_session_token, SESSION_COOKIE_NAME
     token = create_session_token(storage_student.id, storage_student.role)
     async with AsyncClient(
         transport=ASGITransport(app=app),

@@ -8,16 +8,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
 
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import NotFoundError
 from app.models.audit_log import AuditLog
-
-if TYPE_CHECKING:
-    from app.models.student import Student
 
 
 class AuditLogService:

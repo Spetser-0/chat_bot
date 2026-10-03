@@ -5,38 +5,35 @@ Unit tests for routing, intent classification, and provider execution.
 """
 from __future__ import annotations
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.services.routing import (
-    resolve_routing,
-    resolve_prompt_version,
-    enrich_resolved_model,
-    ResolvedModel,
+import pytest
+
+from app.core.errors import (
+    ProviderAuthError,
+    ProviderError,
+    ProviderInvalidResponseError,
+    ProviderRateLimitError,
+    ProviderTimeoutError,
+    ProviderUnsupportedModelError,
+    RoutingError,
 )
 from app.services.intent_router import (
     classify_intent,
-    IntentResult,
     is_ambiguous,
 )
 from app.services.provider_executor import (
-    ProviderExecutor,
     ExecutionResult,
-    classify_provider_error,
-    RecoverableProviderError,
     NonRecoverableProviderError,
-    DEFAULT_RETRY_POLICY,
+    ProviderExecutor,
+    RecoverableProviderError,
+    classify_provider_error,
 )
-from app.core.errors import (
-    ProviderAuthError,
-    ProviderRateLimitError,
-    ProviderTimeoutError,
-    ProviderInvalidResponseError,
-    ProviderUnsupportedModelError,
-    ProviderError,
-    RoutingError,
+from app.services.routing import (
+    ResolvedModel,
+    enrich_resolved_model,
+    resolve_routing,
 )
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Fixtures
@@ -209,6 +206,7 @@ class TestProviderErrorClassification:
 
 from app.services.provider_executor import RetryPolicy
 
+
 class TestProviderExecutor:
     """Tests for bounded retries and fallback behavior."""
 
@@ -369,8 +367,9 @@ class TestRoutingResolution:
     @pytest.mark.asyncio
     async def test_resolve_routing_missing_feature_raises(self):
         """Missing feature raises RoutingError."""
-        from sqlalchemy.ext.asyncio import AsyncSession
         from unittest.mock import AsyncMock, MagicMock
+
+        from sqlalchemy.ext.asyncio import AsyncSession
         
         db = AsyncMock(spec=AsyncSession)
         mock_result = MagicMock()
@@ -383,8 +382,10 @@ class TestRoutingResolution:
     @pytest.mark.asyncio
     async def test_resolve_routing_disabled_feature_raises(self):
         """Disabled feature raises RoutingError."""
-        from sqlalchemy.ext.asyncio import AsyncSession
         from unittest.mock import AsyncMock, MagicMock
+
+        from sqlalchemy.ext.asyncio import AsyncSession
+
         from app.models.feature_configuration import FeatureConfiguration
         
         db = AsyncMock(spec=AsyncSession)
@@ -401,4 +402,3 @@ class TestRoutingResolution:
 # Import for retry policy test
 # ──────────────────────────────────────────────────────────────────────────────
 
-from app.services.provider_executor import RetryPolicy

@@ -121,7 +121,7 @@ class ProviderService:
         await self._db.refresh(provider)
         return provider
 
-    def get_provider_instance(self, provider_key: str) -> "AIProvider":
+    def get_provider_instance(self, provider_key: str) -> AIProvider:
         """Get provider adapter instance."""
         from app.services.providers.registry import get_provider
         return get_provider(provider_key)

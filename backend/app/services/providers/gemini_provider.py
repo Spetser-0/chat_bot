@@ -11,10 +11,10 @@ import time
 
 from app.core.errors import (
     ProviderAuthError,
+    ProviderError,
     ProviderInvalidResponseError,
     ProviderRateLimitError,
     ProviderTimeoutError,
-    ProviderError,
 )
 from app.services.providers.base import ProviderResponse
 

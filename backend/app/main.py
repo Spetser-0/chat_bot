@@ -6,12 +6,10 @@ Configures middleware, exception handlers, CORS, and mounts the API router.
 """
 from __future__ import annotations
 
-import uuid
 from contextlib import asynccontextmanager
-from typing import Any
 
 import structlog
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
@@ -32,8 +30,8 @@ async def lifespan(app: FastAPI):
     
     # Ensure database schema is created in development
     try:
-        from app.db.session import get_engine, Base
         import app.models  # noqa
+        from app.db.session import Base, get_engine
         engine = get_engine()
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
@@ -138,7 +136,6 @@ def create_app() -> FastAPI:
         )
 
     # ── Routes ─────────────────────────────────────────────────────────────
-    from app.api.v1.router import api_v1_router
 
     app.include_router(api_v1_router)
 

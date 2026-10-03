@@ -12,7 +12,7 @@ Feature services depend ONLY on this abstraction, not on concrete implementation
 """
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Protocol
 from uuid import UUID
@@ -68,24 +68,19 @@ class AuthProvider(Protocol):
 
 class AuthError(Exception):
     """Base exception for authentication failures."""
-    pass
 
 
 class InvalidCredentialsError(AuthError):
     """Raised when credentials are invalid."""
-    pass
 
 
 class TokenExpiredError(AuthError):
     """Raised when token/session has expired."""
-    pass
 
 
 class TokenInvalidError(AuthError):
     """Raised when token is malformed or tampered."""
-    pass
 
 
 class AccountDisabledError(AuthError):
     """Raised when account is suspended/disabled."""
-    pass

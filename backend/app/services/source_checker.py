@@ -58,7 +58,7 @@ class SourceChecker(ABC):
     @abstractmethod
     async def verify_sources(
         self,
-        sources: list["SourceCitation"],
+        sources: list[SourceCitation],
         *,
         deliverable_id: UUID | None = None,
     ) -> VerificationResult:
@@ -104,11 +104,11 @@ class MockSourceChecker(SourceChecker):
         self._default_status = default_status
         self._raise = raise_on_verify
         self.call_count = 0
-        self.last_sources: list["SourceCitation"] | None = None
+        self.last_sources: list[SourceCitation] | None = None
 
     async def verify_sources(
         self,
-        sources: list["SourceCitation"],
+        sources: list[SourceCitation],
         *,
         deliverable_id: UUID | None = None,
     ) -> VerificationResult:

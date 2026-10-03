@@ -7,19 +7,16 @@ Maps Anthropic errors to typed SpetserErrors.
 """
 from __future__ import annotations
 
-import json
 import time
-
-import httpx
 
 from app.core.errors import (
     ProviderAuthError,
+    ProviderError,
     ProviderInvalidResponseError,
     ProviderRateLimitError,
     ProviderTimeoutError,
-    ProviderError,
 )
-from app.services.providers.base import AIProvider, ProviderResponse
+from app.services.providers.base import ProviderResponse
 
 try:
     import anthropic

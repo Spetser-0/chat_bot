@@ -6,14 +6,15 @@ Uses session cookies — no JWT returned to client.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request, Response
+import uuid
+
+from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-import uuid
 
 from app.api.deps import get_current_student
-from app.core.errors import ConflictError, ValidationError
+from app.core.errors import ConflictError
 from app.db.session import get_db
 from app.models.student import Student
 from app.services.auth import (

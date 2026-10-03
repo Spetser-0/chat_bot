@@ -14,26 +14,23 @@ os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-32-chars-long-min!!")
 os.environ.setdefault("SESSION_SECRET_KEY", "test-session-secret-key-32-chars!!")
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 
-import asyncio
 import uuid
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+# ── Test database ─────────────────────────────────────────────────────────────
+from sqlalchemy.pool import StaticPool
 
 from app.db.session import Base, get_db
 from app.main import create_app
 from app.models import *  # Import all models so Base.metadata knows about them
 from app.models.student import Student
-from app.services.auth import hash_password, create_session_token, SESSION_COOKIE_NAME
-
-
-# ── Test database ─────────────────────────────────────────────────────────────
-
-from sqlalchemy.pool import StaticPool
+from app.services.auth import SESSION_COOKIE_NAME, create_session_token, hash_password
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 

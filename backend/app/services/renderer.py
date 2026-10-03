@@ -14,27 +14,23 @@ Key principles:
 """
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 import tempfile
-import uuid
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pptx import Presentation
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
+from pptx.enum.text import PP_ALIGN
+from pptx.util import Inches, Pt
 
 from app.schemas.presentation import RenderResult
 
 if TYPE_CHECKING:
     from app.schemas.presentation import (
+        Language,
         PresentationDocument,
         Slide,
-        SlideLayout,
-        Language,
     )
 
 
@@ -145,7 +141,7 @@ def _split_arabic_english_text(text: str, max_words: int) -> list[str]:
     return chunks
 
 
-def _split_slide_content(slide: "Slide", max_words: int = WORDS_PER_SLIDE_MAX) -> list["Slide"]:
+def _split_slide_content(slide: Slide, max_words: int = WORDS_PER_SLIDE_MAX) -> list[Slide]:
     """
     Split a slide that exceeds word limit into multiple slides.
     Preserves all claims and sources.
@@ -181,7 +177,7 @@ def _split_slide_content(slide: "Slide", max_words: int = WORDS_PER_SLIDE_MAX) -
     return result
 
 
-def _split_bullets_slide(slide: "Slide", num_slides: int, max_words: int) -> list["Slide"]:
+def _split_bullets_slide(slide: Slide, num_slides: int, max_words: int) -> list[Slide]:
     """Split a bullets slide by distributing bullets."""
     from app.schemas.presentation import Slide, SlideLayout
     
@@ -280,13 +276,13 @@ class PPTXRenderer:
                         for run in paragraph.runs:
                             _set_font(run, ARABIC_FONT_NAME, BULLET_FONT_SIZE)
     
-    def render(self, document: "PresentationDocument") -> "RenderResult":
+    def render(self, document: PresentationDocument) -> RenderResult:
         """
         Render a PresentationDocument to PPTX.
         
         Returns RenderResult with file path and metadata.
         """
-        from app.schemas.presentation import RenderResult, SlideLayout
+        from app.schemas.presentation import RenderResult
         
         prs = self._get_prs()
         warnings = []
@@ -340,7 +336,7 @@ class PPTXRenderer:
                 warnings=warnings,
             )
     
-    def _render_slide(self, prs: Presentation, slide: "Slide", language: "Language") -> None:
+    def _render_slide(self, prs: Presentation, slide: Slide, language: Language) -> None:
         """Render a single slide."""
         from app.schemas.presentation import SlideLayout
         

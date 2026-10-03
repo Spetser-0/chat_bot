@@ -8,16 +8,12 @@ from __future__ import annotations
 
 import uuid
 from decimal import Decimal
-from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import ConflictError, NotFoundError
+from app.core.errors import NotFoundError
 from app.models.model_configuration import ModelConfiguration
-
-if TYPE_CHECKING:
-    from app.services.providers.base import AIProvider
 
 
 class ModelConfigService:

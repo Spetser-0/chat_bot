@@ -6,10 +6,7 @@ Returns configurable fixed responses without hitting any external API.
 """
 from __future__ import annotations
 
-import json
-import time
-
-from app.services.providers.base import AIProvider, ProviderResponse
+from app.services.providers.base import ProviderResponse
 
 
 class MockProvider:

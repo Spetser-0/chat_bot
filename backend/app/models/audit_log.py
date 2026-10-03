@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import String, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
-from app.models.mixins import UUIDPrimaryKeyMixin, TimestampMixin
+from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class AuditLog(UUIDPrimaryKeyMixin, TimestampMixin, Base):

@@ -21,41 +21,35 @@ from __future__ import annotations
 
 import json
 import uuid
-from decimal import Decimal
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import SchemaValidationError, ProviderInvalidResponseError
-from app.models.deliverable import Deliverable, DeliverableStatus
+from app.core.errors import ProviderInvalidResponseError, SchemaValidationError
 from app.models.request import Request, RequestStatus
 from app.models.student import Student
 from app.schemas.presentation import (
+    PRESENTATION_SCHEMA_VERSION,
+    Language,
     PresentationDocument,
     PresentationRequest,
     Slide,
     SlideLayout,
-    Language,
     SourceCitation,
-    PRESENTATION_SCHEMA_VERSION,
 )
-from app.services.auth import hash_password, create_session_token, SESSION_COOKIE_NAME
+from app.services.auth import SESSION_COOKIE_NAME, create_session_token, hash_password
 from app.services.renderer import (
-    get_renderer,
-    RenderResult,
     _count_words,
     _split_arabic_english_text,
     _split_slide_content,
-    _split_bullets_slide,
+    get_renderer,
 )
-from app.services.source_checker import get_source_checker, VerificationResult
-from app.services.storage import LocalStorageService
-
+from app.services.source_checker import VerificationResult, get_source_checker
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Fixtures
@@ -83,10 +77,9 @@ async def presentation_student(db: AsyncSession) -> Student:
 @pytest_asyncio.fixture
 async def setup_routing_config(db: AsyncSession) -> None:
     """Create routing configuration for presentation tests (per-test)."""
-    from sqlalchemy import select
-    from app.models.provider import ModelProvider
-    from app.models.model_configuration import ModelConfiguration
     from app.models.feature_configuration import FeatureConfiguration
+    from app.models.model_configuration import ModelConfiguration
+    from app.models.provider import ModelProvider
     from app.models.routing_rule import RoutingRule
     
     # Check if already exists
@@ -315,7 +308,6 @@ class TestProviderJSONHandling:
     async def test_malformed_json_raises(self):
         """Malformed JSON raises ProviderInvalidResponseError."""
         from app.services.presentation import PresentationService
-        from app.core.errors import ProviderInvalidResponseError
         
         service = PresentationService(db=AsyncMock(), student=AsyncMock())
         with pytest.raises(ProviderInvalidResponseError):
@@ -328,7 +320,6 @@ class TestProviderJSONHandling:
     async def test_malformed_json_triggers_retry(self):
         """Malformed JSON is classified as recoverable for retry."""
         from app.services.provider_executor import classify_provider_error
-        from app.core.errors import ProviderInvalidResponseError
         
         exc = ProviderInvalidResponseError("Invalid JSON")
         _, recoverable = classify_provider_error(exc)
@@ -338,7 +329,6 @@ class TestProviderJSONHandling:
     async def test_unknown_fields_rejected(self):
         """Unknown fields in provider output are rejected."""
         from app.services.presentation import PresentationService
-        from app.core.errors import SchemaValidationError
         
         service = PresentationService(db=AsyncMock(), student=AsyncMock())
         with pytest.raises(SchemaValidationError):
@@ -357,7 +347,6 @@ class TestProviderJSONHandling:
     async def test_empty_output_rejected(self):
         """Empty provider output is rejected."""
         from app.services.presentation import PresentationService
-        from app.core.errors import ProviderInvalidResponseError
         
         service = PresentationService(db=AsyncMock(), student=AsyncMock())
         with pytest.raises(ProviderInvalidResponseError):
@@ -429,7 +418,6 @@ class TestPPTXRenderer:
 
     def test_valid_render(self, valid_presentation_document):
         """Valid document renders to PPTX successfully."""
-        from app.services.renderer import get_renderer
         renderer = get_renderer()
         result = renderer.render(valid_presentation_document)
         
@@ -442,7 +430,6 @@ class TestPPTXRenderer:
         """Same input produces identical PPTX content (ignoring ZIP timestamps)."""
         import hashlib
         import zipfile
-        from app.services.renderer import get_renderer
         
         renderer = get_renderer()
         result1 = renderer.render(valid_presentation_document)
@@ -464,14 +451,12 @@ class TestPPTXRenderer:
 
     def test_missing_template_fallback(self, valid_presentation_document):
         """Renderer works without template file."""
-        from app.services.renderer import get_renderer
         renderer = get_renderer(template_path="/nonexistent/path.pptx")
         result = renderer.render(valid_presentation_document)
         assert result.success is True
 
     def test_renderer_failure_handling(self, valid_presentation_document):
         """Renderer handles errors gracefully."""
-        from app.services.renderer import get_renderer
         
         renderer = get_renderer()
         # Create a document with no slides by bypassing validation
@@ -490,7 +475,6 @@ class TestPPTXRenderer:
 
     def test_structural_validation(self, valid_presentation_document):
         """Renderer validates structural integrity of output."""
-        from app.services.renderer import get_renderer
         renderer = get_renderer()
         result = renderer.render(valid_presentation_document)
         
@@ -599,8 +583,8 @@ class TestRequestLifecycle:
         setup_routing_config: None,
     ):
         """Request goes through all status transitions."""
-        from app.services.presentation import PresentationService
         from app.models.request import RequestStatus
+        from app.services.presentation import PresentationService
         
         service = PresentationService(db=db, student=presentation_student)
         
@@ -623,8 +607,7 @@ class TestRequestLifecycle:
         
         # Verify status can transition to ready
         request.status = RequestStatus.READY
-        from datetime import datetime, timezone
-        request.completed_at = datetime.now(timezone.utc)
+        request.completed_at = datetime.now(UTC)
         await db.commit()
         await db.refresh(request)
         assert request.status == RequestStatus.READY

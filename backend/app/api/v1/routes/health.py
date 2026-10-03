@@ -39,7 +39,7 @@ async def readiness(db: AsyncSession = Depends(get_db)) -> dict:
     try:
         await db.execute(text("SELECT 1"))
         db_ok = True
-    except Exception as exc:
+    except Exception:
         db_error = "database_unreachable"
 
     latency_ms = round((time.monotonic() - start) * 1000, 2)

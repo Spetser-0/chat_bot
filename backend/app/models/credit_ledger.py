@@ -4,12 +4,12 @@ from __future__ import annotations
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import String, ForeignKey, Integer, Numeric
+from sqlalchemy import ForeignKey, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
-from app.models.mixins import UUIDPrimaryKeyMixin, TimestampMixin
+from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class LedgerEntryType:
@@ -41,11 +41,11 @@ class CreditLedger(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     # Use NUMERIC for monetary values — never FLOAT
     computed_usd_cost: Mapped[Decimal] = mapped_column(
-        Numeric(precision=18, scale=8), nullable=False, default=Decimal("0")
+        Numeric(precision=18, scale=8), nullable=False, default=Decimal(0)
     )
     pricing_version: Mapped[str | None] = mapped_column(String(50), nullable=True)
     credits_charged: Mapped[Decimal] = mapped_column(
-        Numeric(precision=18, scale=4), nullable=False, default=Decimal("0")
+        Numeric(precision=18, scale=4), nullable=False, default=Decimal(0)
     )
     entry_type: Mapped[str] = mapped_column(String(20), nullable=False)
     # Idempotency key prevents double-charging on retry

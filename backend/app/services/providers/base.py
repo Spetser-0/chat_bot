@@ -7,7 +7,7 @@ Route handlers MUST NOT import provider adapters directly.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
 

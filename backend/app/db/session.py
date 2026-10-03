@@ -20,7 +20,6 @@ from app.core.config import get_settings
 
 class Base(DeclarativeBase):
     """Base class for all SQLAlchemy ORM models."""
-    pass
 
 
 def _make_engine():

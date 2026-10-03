@@ -16,11 +16,11 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import RoutingError, ProviderUnsupportedModelError
+from app.core.errors import RoutingError
 from app.models.feature_configuration import FeatureConfiguration
 from app.models.model_configuration import ModelConfiguration
-from app.models.provider import ModelProvider
 from app.models.prompt_version import PromptVersion
+from app.models.provider import ModelProvider
 from app.models.routing_rule import RoutingRule
 
 if TYPE_CHECKING:
@@ -211,7 +211,7 @@ async def resolve_prompt_version(
 
 async def get_provider_instance(
     provider_key: str,
-) -> "AIProvider":
+) -> AIProvider:
     """
     Get a provider adapter instance by provider key.
     Delegates to the registry.

@@ -7,21 +7,12 @@ Allows developers to test provider configurations and prompts safely.
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.errors import NotFoundError
-from app.services.presentation import PresentationService
-from app.services.routing import resolve_routing, resolve_prompt_version, enrich_resolved_model
 from app.services.provider_executor import ProviderExecutor
-from app.services.routing import resolve_routing, enrich_resolved_model
-from app.schemas.presentation import PresentationDocument, PresentationRequest, PRESENTATION_SCHEMA_VERSION
-from app.schemas.presentation import RenderResult
-
-if TYPE_CHECKING:
-    from app.models.student import Student
-    from app.services.presentation import PresentationService
+from app.services.routing import resolve_prompt_version, resolve_routing
 
 
 class TestPlaygroundService:
@@ -47,13 +38,8 @@ class TestPlaygroundService:
         Run a test generation with specified configuration.
         Uses mock provider if no model_config_id provided.
         """
-        from app.services.providers.registry import get_provider
         from app.services.providers.mock_provider import MockProvider
-        from app.services.provider_executor import ProviderExecutor
-        from app.services.routing import resolve_routing, resolve_prompt_version, enrich_resolved_model
-        from app.services.provider_executor import ProviderExecutor
-        from app.services.source_checker import get_source_checker
-        from app.services.renderer import get_renderer
+        from app.services.providers.registry import get_provider
 
         if feature_key not in ("presentation", "chat", "research", "question_solver"):
             raise ValueError(f"Unknown feature: {feature_key}")
@@ -104,8 +90,6 @@ class TestPlaygroundService:
         executor = ProviderExecutor(models=[model_config])
         
         # We need to create a mock execution result for testing
-        from app.services.provider_executor import ExecutionResult
-        from app.services.providers.base import ProviderResponse
         
         # For testing, we'll use mock provider
         mock_provider = MockProvider(fixed_text="Test response", input_tokens=10, output_tokens=20)
