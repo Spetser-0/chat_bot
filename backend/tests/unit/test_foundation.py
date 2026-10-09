@@ -186,7 +186,8 @@ def test_settings_production_flag(monkeypatch):
         "CRYPTO_PAYMENT_WEBHOOK_SECRET": "prod-test-wh-secret",
     }
     get_settings.cache_clear()
-    monkeypatch.setenv(**common)
+    for key, value in common.items():
+        monkeypatch.setenv(key, value)
     settings = get_settings()
     assert settings.is_production is True
     assert settings.is_development is False

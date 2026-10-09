@@ -126,7 +126,12 @@ class TestStudentPremiumFields:
         await db.refresh(student)
         assert student.is_premium is True
         assert student.premium_expires_at is not None
-        assert (student.premium_expires_at - expiry).total_seconds() < 1
+        # SQLite returns naive datetimes even for DateTime(timezone=True);
+        # normalize both sides to UTC-aware before comparing.
+        stored = student.premium_expires_at
+        if stored.tzinfo is None:
+            stored = stored.replace(tzinfo=timezone.utc)
+        assert (stored - expiry).total_seconds() < 1
 
     async def test_premium_expiration_can_be_null(self, db):
         """Test premium can have no expiration (lifetime)."""

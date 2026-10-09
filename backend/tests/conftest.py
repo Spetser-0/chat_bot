@@ -44,12 +44,23 @@ TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 @pytest_asyncio.fixture(scope="session")
 async def engine():
     """Create the SQLite in-memory engine once per test session."""
+    from sqlalchemy import event
+
     engine = create_async_engine(
         TEST_DATABASE_URL,
         echo=False,
         poolclass=StaticPool,
         connect_args={"check_same_thread": False},
     )
+
+    # SQLite does not enforce FK actions (e.g. ON DELETE SET NULL) unless
+    # PRAGMA foreign_keys=ON — required for referral deletion tests.
+    @event.listens_for(engine.sync_engine, "connect")
+    def _enable_sqlite_fk(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine
@@ -58,11 +69,21 @@ async def engine():
 
 @pytest_asyncio.fixture
 async def db(engine) -> AsyncGenerator[AsyncSession, None]:
-    """Provide a fresh database session with transaction rollback per test."""
+    """Provide a fresh database session with per-test data isolation.
+
+    The engine is session-scoped (StaticPool, shared in-memory DB), so a
+    rollback after commit is a no-op — committed rows would leak into the
+    next test and trip UNIQUE constraints. Empty all tables on teardown
+    instead; never touch application logic.
+    """
     factory = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with factory() as session:
         yield session
+        # Clear failed/aborted state first (e.g. IntegrityError tests).
         await session.rollback()
+        for table in reversed(Base.metadata.sorted_tables):
+            await session.execute(table.delete())
+        await session.commit()
 
 
 @pytest.fixture(autouse=True)
