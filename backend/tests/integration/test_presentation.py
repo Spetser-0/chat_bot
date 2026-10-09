@@ -125,7 +125,6 @@ async def setup_routing_config(db: AsyncSession) -> None:
     await db.flush()
     
     # Get the model configs we just created
-    from sqlalchemy import select
     result = await db.execute(
         select(ModelConfiguration).where(ModelConfiguration.provider_id == provider.id)
     )
