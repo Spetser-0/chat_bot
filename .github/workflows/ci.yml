@@ -72,6 +72,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create env files for validation
+        run: cp backend/.env.example backend/.env
+
       - name: Validate compose file
         run: |
           # Dummy password so required env interpolates for config validation
