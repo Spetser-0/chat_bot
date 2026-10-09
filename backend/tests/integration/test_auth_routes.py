@@ -81,6 +81,8 @@ class TestMe:
         assert response.status_code == 200
         data = response.json()["data"]
         assert data["email"] == student.email
+        # Lesson 9.5: frontend premium lock needs this flag.
+        assert data["is_premium"] is False
 
     @pytest.mark.asyncio
     async def test_me_unauthenticated(self, client: AsyncClient):

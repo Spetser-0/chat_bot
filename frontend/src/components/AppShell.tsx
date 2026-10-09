@@ -6,6 +6,8 @@
 import { type ReactNode } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/useAuth';
+import { useTheme } from '../contexts/useTheme';
+import { SkipLink } from './ui/SkipLink';
 
 interface AppShellProps {
   children: ReactNode;
@@ -15,6 +17,7 @@ const NAV_ITEMS = [
   { to: '/', icon: '🏠', label: 'الرئيسية', end: true },
   { to: '/presentations/new', icon: '🖥️', label: 'عرض تقديمي' },
   { to: '/chat', icon: '💬', label: 'محادثة', disabled: false },
+  { to: '/referrals', icon: '🎁', label: 'ادعُ أصدقاءك' },
   { to: '/research', icon: '📚', label: 'بحث أكاديمي', planned: true },
   { to: '/questions', icon: '🔢', label: 'حل المسائل', planned: true },
   { to: '/history', icon: '🕐', label: 'السجل' },
@@ -22,6 +25,7 @@ const NAV_ITEMS = [
 
 export function AppShell({ children }: AppShellProps) {
   const { student, logout, isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -31,6 +35,7 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="app-shell" dir="rtl">
+      <SkipLink />
       {/* Right sidebar */}
       <aside className="app-shell__sidebar" aria-label="القائمة الرئيسية">
         {/* Brand */}
@@ -100,9 +105,9 @@ export function AppShell({ children }: AppShellProps) {
                 </button>
               </div>
               {/* Developer badge */}
-              {(student.role === 'developer' || student.role === 'admin') && (
-                <Link to="/developer" className="btn btn--secondary btn--sm btn--full">
-                  لوحة المطور
+              {(student.role === 'developer' || student.role === 'admin' || student.role === 'superadmin') && (
+                <Link to="/admin" className="btn btn--secondary btn--sm btn--full">
+                  لوحة التحكم
                 </Link>
               )}
             </div>
@@ -121,6 +126,14 @@ export function AppShell({ children }: AppShellProps) {
           <h1 className="sr-only">Spetser AI</h1>
           {/* Breadcrumb / page context will be injected by routes */}
           <div style={{ flex: 1 }} />
+          <button
+            className="icon-btn"
+            onClick={toggleTheme}
+            aria-label={theme === 'light' ? 'الوضع الليلي' : 'الوضع النهاري'}
+            title={theme === 'light' ? 'الوضع الليلي' : 'الوضع النهاري'}
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
           {isAuthenticated && student && (
             <div className="credit-badge">
               <span aria-hidden="true">⚡</span>

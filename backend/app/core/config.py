@@ -6,6 +6,7 @@ All settings are validated by Pydantic Settings on startup.
 """
 from __future__ import annotations
 
+from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
 
@@ -68,10 +69,34 @@ class Settings(BaseSettings):
     rate_limit_requests_per_minute: int = 60
     rate_limit_burst: int = 10
     auth_rate_limit_per_minute: int = 5
+    chat_rate_limit_per_minute: int = 20
+    chat_rate_limit_per_day: int = 200
+    admin_rate_limit_per_minute: int = 30
+    payments_rate_limit_per_minute: int = 10
+    rate_limit_backend: Literal["memory", "redis"] = "memory"
 
     # ── Logging ──────────────────────────────────────────
     log_level: str = "INFO"
     log_format: Literal["json", "console"] = "console"
+
+    # ── JWT Settings (Phase 2) ───────────────────────────
+    access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 7
+
+    # ── Redis (Phase 2) ──────────────────────────────────
+    redis_url: str = "redis://localhost:6379/0"
+
+    # ── Encryption (Phase 2) ─────────────────────────────
+    llm_master_encryption_key: str = ""
+
+    # ── Payment Settings (Phase 2) ───────────────────────
+    crypto_payment_provider: Literal["nowpayments", "cryptomus"] = "nowpayments"
+    crypto_payment_api_key: str = ""
+    crypto_payment_webhook_secret: str = ""
+
+    # ── Referral Rewards (Phase 7) ──────────────────────
+    referral_reward_percent: Decimal = Decimal("10")      # % of referred user's payment
+    referral_reward_holding_days: int = 7                 # release delay (anti-fraud)
 
     @property
     def allowed_origins_list(self) -> list[str]:
@@ -90,4 +115,15 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Return the cached application settings singleton."""
-    return Settings()  # type: ignore[call-arg]
+    settings = Settings()  # type: ignore[call-arg]
+    
+    # Fail fast if production secrets are missing
+    if settings.is_production:
+        if not settings.llm_master_encryption_key:
+            raise ValueError("LLM_MASTER_ENCRYPTION_KEY is required in production")
+        if not settings.crypto_payment_api_key:
+            raise ValueError("CRYPTO_PAYMENT_API_KEY is required in production")
+        if not settings.crypto_payment_webhook_secret:
+            raise ValueError("CRYPTO_PAYMENT_WEBHOOK_SECRET is required in production")
+    
+    return settings

@@ -21,6 +21,9 @@ export interface ApiError {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
+/** Absolute backend origin (no /api/v1) — used by fetch-based streaming. */
+export const API_BASE_URL = API_BASE;
+
 
 export const apiClient = axios.create({
   baseURL: `${API_BASE}/api/v1`,

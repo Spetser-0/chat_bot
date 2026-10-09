@@ -95,27 +95,133 @@ async def get_active_student(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Developer/Admin Authorization
+# Developer/Admin/Superadmin Authorization
 # ──────────────────────────────────────────────────────────────────────────────
 
 async def get_developer(
     student: Student = Depends(get_active_student),
 ) -> Student:
     """
-    Dependency: Verify the current user has developer or admin role.
-    Use this on ALL Developer Dashboard endpoints.
+    Dependency: Verify the current user has developer, admin, or superadmin role.
+    Use this on ALL Developer Dashboard read endpoints.
     """
-    if student.role not in ("developer", "admin"):
+    if student.role not in ("developer", "admin", "superadmin"):
         raise AuthorizationError()
     return student
 
 
 async def get_admin(
-    student: Student = Depends(get_current_student),
+    student: Student = Depends(get_active_student),
 ) -> Student:
-    """Dependency: Admin-only access."""
-    if student.role != "admin":
+    """
+    Dependency: Admin-only access (admin or superadmin).
+    Use this on ALL Admin mutation endpoints.
+    """
+    if student.role not in ("admin", "superadmin"):
         raise AuthorizationError()
+    return student
+
+
+async def get_superadmin(
+    student: Student = Depends(get_active_student),
+) -> Student:
+    """
+    Dependency: Superadmin-only access.
+    Use this on the most dangerous operations (manual payment confirm,
+    provider key rotation, role changes).
+    """
+    if student.role != "superadmin":
+        raise AuthorizationError()
+    return student
+
+
+# Spec-named aliases (Phase 8, Lesson 8.1) — same semantics as above.
+require_developer = get_developer
+require_admin = get_admin
+require_superadmin = get_superadmin
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Rate Limits (Phase 10, Lesson 10.2)
+# ──────────────────────────────────────────────────────────────────────────────
+
+async def rate_limit_chat(
+    student: Student = Depends(get_active_student),
+) -> Student:
+    """Per-user chat limits: strict per-minute + softer daily cap.
+
+    Keyed by user id (not IP) so multi-tab use still counts once per user.
+    """
+    from app.core.config import get_settings
+    from app.core.rate_limit import (
+        enforce_rate_limit,
+        get_rate_limit_store,
+        rate_limit_key_for_user,
+    )
+
+    settings = get_settings()
+    store = get_rate_limit_store()
+    uid = str(student.id)
+    await enforce_rate_limit(
+        store,
+        rate_limit_key_for_user(uid, "chat:min"),
+        limit=settings.chat_rate_limit_per_minute,
+        window_seconds=60,
+        safe_message="كثرة طلبات المحادثة. انتظر قليلاً ثم حاول مجدداً.",
+    )
+    await enforce_rate_limit(
+        store,
+        rate_limit_key_for_user(uid, "chat:day"),
+        limit=settings.chat_rate_limit_per_day,
+        window_seconds=86_400,
+        safe_message="وصلت إلى حد المحادثات اليومي. حاول غداً.",
+    )
+    return student
+
+
+async def rate_limit_payments(
+    student: Student = Depends(get_active_student),
+) -> Student:
+    """Strict per-user limit on invoice creation (anti-abuse / carding-style spam)."""
+    from app.core.config import get_settings
+    from app.core.rate_limit import (
+        enforce_rate_limit,
+        get_rate_limit_store,
+        rate_limit_key_for_user,
+    )
+
+    settings = get_settings()
+    store = get_rate_limit_store()
+    await enforce_rate_limit(
+        store,
+        rate_limit_key_for_user(str(student.id), "payments:min"),
+        limit=settings.payments_rate_limit_per_minute,
+        window_seconds=60,
+        safe_message="كثرة محاولات الدفع. انتظر قليلاً.",
+    )
+    return student
+
+
+async def rate_limit_admin(
+    student: Student = Depends(get_developer),
+) -> Student:
+    """Stricter per-user limit for all admin/developer endpoints."""
+    from app.core.config import get_settings
+    from app.core.rate_limit import (
+        enforce_rate_limit,
+        get_rate_limit_store,
+        rate_limit_key_for_user,
+    )
+
+    settings = get_settings()
+    store = get_rate_limit_store()
+    await enforce_rate_limit(
+        store,
+        rate_limit_key_for_user(str(student.id), "admin:min"),
+        limit=settings.admin_rate_limit_per_minute,
+        window_seconds=60,
+        safe_message="كثرة طلبات لوحة التحكم. انتظر قليلاً.",
+    )
     return student
 
 

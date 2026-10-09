@@ -14,6 +14,12 @@ os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-32-chars-long-min!!")
 os.environ.setdefault("SESSION_SECRET_KEY", "test-session-secret-key-32-chars!!")
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 
+# Deterministic Fernet key so provider-key encryption works in tests.
+# Generate a real one for production: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+from cryptography.fernet import Fernet  # noqa: E402
+
+os.environ.setdefault("LLM_MASTER_ENCRYPTION_KEY", Fernet.generate_key().decode())
+
 import uuid
 from collections.abc import AsyncGenerator
 
@@ -59,6 +65,25 @@ async def db(engine) -> AsyncGenerator[AsyncSession, None]:
         await session.rollback()
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limiters():
+    """Reset module-level SlowAPI limiters and the shared RateLimitStore before each test.
+
+    The auth limiter is instantiated at import time on the module, so its
+    in-memory counter would otherwise leak across tests in the same session.
+    The RateLimitStore singleton is process-wide and must be cleared too.
+    Metrics counters are also process-wide.
+    """
+    from app.api.v1.routes import auth as _auth_routes
+    from app.core.rate_limit import reset_rate_limit_store_for_tests
+    from app.core.metrics import reset_metrics_for_tests
+
+    _auth_routes.limiter.reset()
+    reset_rate_limit_store_for_tests()
+    reset_metrics_for_tests()
+    yield
+
+
 # ── Application ───────────────────────────────────────────────────────────────
 
 @pytest.fixture
@@ -71,15 +96,6 @@ def app(db: AsyncSession) -> FastAPI:
 
     application.dependency_overrides[get_db] = override_get_db
     return application
-
-
-@pytest_asyncio.fixture
-async def client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
-    """HTTP test client for the FastAPI app."""
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as c:
-        yield c
 
 
 # ── Factories ─────────────────────────────────────────────────────────────────
@@ -137,6 +153,16 @@ async def authenticated_client(
         transport=ASGITransport(app=app),
         base_url="http://test",
         cookies={SESSION_COOKIE_NAME: token},
+    ) as c:
+        yield c
+
+
+@pytest_asyncio.fixture
+async def client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
+    """Unauthenticated HTTP client for public endpoints."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
     ) as c:
         yield c
 

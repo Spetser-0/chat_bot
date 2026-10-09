@@ -5,10 +5,13 @@ Authenticated platform user (student or developer).
 """
 from __future__ import annotations
 
+import uuid
+from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Numeric, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -23,6 +26,7 @@ class StudentRole(str):
     STUDENT = "student"
     DEVELOPER = "developer"
     ADMIN = "admin"
+    SUPERADMIN = "superadmin"
 
 
 class StudentStatus(str):
@@ -53,6 +57,35 @@ class Student(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Numeric(precision=18, scale=4), nullable=False, default=Decimal("100.0")
     )
 
+    # ━━━ Phase 1: Referral System Fields ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    referral_code: Mapped[str | None] = mapped_column(
+        String(20), unique=True, nullable=True, index=True
+    )
+    referred_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("students.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    # ━━━ Phase 1: Premium Subscription Fields ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    is_premium: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    premium_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    # ━━━ Phase 1: Security & Account Protection ━━━━━━━━━━━━━━━━━━━━━━━━━
+    failed_login_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    locked_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_login_ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
+
+    # ━━━ Relationships ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     requests: Mapped[list[Request]] = relationship(
         "Request", back_populates="student", lazy="select"
     )

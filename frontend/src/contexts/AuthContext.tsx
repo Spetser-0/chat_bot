@@ -17,7 +17,7 @@ interface AuthContextValue {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, displayName?: string) => Promise<void>;
+  register: (email: string, password: string, displayName?: string, ref?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -44,9 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: ({ email, password, displayName }: {
-      email: string; password: string; displayName?: string;
-    }) => authApi.register({ email, password, display_name: displayName }),
+    mutationFn: ({ email, password, displayName, ref }: {
+      email: string; password: string; displayName?: string; ref?: string;
+    }) => authApi.register({ email, password, display_name: displayName, ref }),
     onSuccess: (data) => {
       queryClient.setQueryData(['auth', 'me'], data);
     },
@@ -64,8 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await loginMutation.mutateAsync({ email, password });
   }, [loginMutation]);
 
-  const register = useCallback(async (email: string, password: string, displayName?: string) => {
-    await registerMutation.mutateAsync({ email, password, displayName });
+  const register = useCallback(async (email: string, password: string, displayName?: string, ref?: string) => {
+    await registerMutation.mutateAsync({ email, password, displayName, ref });
   }, [registerMutation]);
 
   const logout = useCallback(async () => {

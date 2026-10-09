@@ -1,0 +1,86 @@
+# docker-compose.yml — Spetser AI full stack (Phase 12, Lesson 12.3)
+# Usage:
+#   cp .env.example .env   # fill secrets
+#   docker compose up --build
+#
+# Services: postgres, redis, backend (FastAPI), frontend (nginx SPA + /api proxy).
+
+name: spetser
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-spetser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-spetser}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-spetser} -d $${POSTGRES_DB:-spetser}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      # Bound to localhost only — never expose Postgres publicly
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      # Compose overrides so containers talk by service name
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-spetser}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-spetser}
+      REDIS_URL: redis://redis:6379/0
+      RATE_LIMIT_BACKEND: ${RATE_LIMIT_BACKEND:-redis}
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: "false"
+      APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS:-http://localhost:8080}
+      LOG_FORMAT: json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # Apply migrations then start API
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - backend_tmp:/tmp/spetser
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_tmp:

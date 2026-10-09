@@ -1,0 +1,10 @@
+# frontend/.dockerignore
+node_modules
+dist
+.vite
+.git
+.gitignore
+*.log
+.env
+.env.*
+!.env.example

@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from slowapi import Limiter
@@ -22,6 +23,7 @@ from app.api.v1.routes.auth import limiter as auth_limiter
 from app.core.config import get_settings
 from app.core.errors import SpetserError
 from app.core.logging import configure_logging
+from app.core.metrics import get_metrics
 from app.middleware.request_id import RequestIDMiddleware
 
 
@@ -32,7 +34,11 @@ async def lifespan(app: FastAPI):
     logger = structlog.get_logger("spetser.startup")
     settings = get_settings()
     logger.info("Spetser AI starting", env=settings.app_env, version=settings.app_version)
-    
+
+    # Rate-limit store (memory or Redis per RATE_LIMIT_BACKEND).
+    from app.core.rate_limit import close_rate_limit_store, init_redis_store
+    await init_redis_store()
+
     # Schema changes are applied by Alembic; create_all is development-only.
     if settings.is_development:
         try:
@@ -44,8 +50,9 @@ async def lifespan(app: FastAPI):
             logger.info("Development database schema initialized")
         except Exception:
             logger.warning("Development database initialization skipped")
-        
+
     yield
+    await close_rate_limit_store()
     logger.info("Spetser AI shutting down")
 
 
@@ -69,7 +76,11 @@ def create_app() -> FastAPI:
             status_code=429,
             content={
                 "data": None,
-                "error": {"code": "RATE_LIMITED", "message": "محاولات كثيرة. حاول لاحقاً."},
+                "error": {
+                    "code": "RATE_LIMIT_EXCEEDED",
+                    "message": "محاولات كثيرة. حاول لاحقاً.",
+                },
+                "request_id": request.headers.get("X-Request-ID"),
             },
             headers={"Retry-After": "60"},
         ),
@@ -78,6 +89,26 @@ def create_app() -> FastAPI:
 
     # ── Middleware ─────────────────────────────────────────────────────────
     app.add_middleware(RequestIDMiddleware)
+
+    @app.middleware("http")
+    async def request_metrics(request: Request, call_next):
+        """Record per-request counters and latency (Phase 11, Lesson 11.1)."""
+        import time as _time
+
+        start = _time.perf_counter()
+        response = await call_next(request)
+        latency_ms = (_time.perf_counter() - start) * 1000
+        # Prefer the matched route path when available to avoid high-cardinality paths.
+        route = request.scope.get("route")
+        path = getattr(route, "path", None) or request.url.path
+        get_metrics().record_request(
+            method=request.method,
+            path=path,
+            status_code=response.status_code,
+            latency_ms=latency_ms,
+        )
+        return response
+
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
         response = await call_next(request)
@@ -98,6 +129,46 @@ def create_app() -> FastAPI:
 
     # ── Exception handlers ─────────────────────────────────────────────────
     from fastapi import HTTPException
+
+    @app.exception_handler(RequestValidationError)
+    async def request_validation_handler(
+        request: Request, exc: RequestValidationError
+    ) -> ORJSONResponse:
+        """Pydantic body/query validation → consistent Arabic envelope (Lesson 10.4).
+
+        Never echo raw input back to the client (could reflect secrets or
+        injection payloads); only field paths and short messages.
+        """
+        logger = structlog.get_logger("spetser.errors")
+        logger.warning(
+            "Request validation failed",
+            errors=[{"loc": list(e.get("loc", ())), "type": e.get("type", "")} for e in exc.errors()],
+        )
+        # Prefer the first human-readable message; fall back to generic Arabic.
+        message = "البيانات المُرسلة غير صحيحة."
+        for e in exc.errors():
+            msg = e.get("msg", "")
+            if msg and not msg.startswith("Value error, "):
+                message = msg
+                break
+            if msg.startswith("Value error, "):
+                message = msg[len("Value error, "):]
+                break
+        return ORJSONResponse(
+            status_code=422,
+            content={
+                "data": None,
+                "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": message,
+                    "details": [
+                        {"loc": list(e.get("loc", ())), "type": e.get("type", "")}
+                        for e in exc.errors()[:10]
+                    ],
+                },
+                "request_id": request.headers.get("X-Request-ID"),
+            },
+        )
 
     @app.exception_handler(SpetserError)
     async def spetser_error_handler(request: Request, exc: SpetserError) -> ORJSONResponse:
@@ -171,6 +242,25 @@ def create_app() -> FastAPI:
     @app.get("/", include_in_schema=False)
     async def root():
         return {"service": "Spetser AI", "docs": "/api/docs"}
+
+    # Unmatched paths: Starlette returns a bare 404 without our envelope.
+    # Mount a catch-all so every miss uses the global error shape (Lesson 10.4).
+    @app.middleware("http")
+    async def unify_not_found(request: Request, call_next):
+        response = await call_next(request)
+        if response.status_code == 404 and request.url.path.startswith("/api/"):
+            return ORJSONResponse(
+                status_code=404,
+                content={
+                    "data": None,
+                    "error": {
+                        "code": "NOT_FOUND",
+                        "message": "المورد المطلوب غير موجود.",
+                    },
+                    "request_id": request.headers.get("X-Request-ID"),
+                },
+            )
+        return response
 
     return app
 

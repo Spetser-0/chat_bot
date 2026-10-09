@@ -4,7 +4,7 @@ from __future__ import annotations
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import ForeignKey, Integer, Numeric, String
+from sqlalchemy import ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,6 +18,9 @@ class LedgerEntryType:
     RELEASE = "release"
     REFUND = "refund"
     GRANT = "grant"
+    TOPUP = "topup"
+    REFERRAL_REWARD = "referral_reward"
+    ADMIN_ADJUSTMENT = "admin_adjustment"
 
 
 class CreditLedger(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -52,5 +55,17 @@ class CreditLedger(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     idempotency_key: Mapped[str | None] = mapped_column(
         String(255), nullable=True, unique=True, index=True
     )
+
+    # ━━━ Phase 1: Enhanced Transaction Tracking ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    balance_after: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=18, scale=4), nullable=True
+    )
+    reference_type: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, index=True
+    )
+    reference_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     student = relationship("Student", back_populates="credit_ledger_entries")

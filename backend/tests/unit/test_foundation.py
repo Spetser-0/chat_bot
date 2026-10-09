@@ -173,30 +173,29 @@ def test_settings_parses_allowed_origins(monkeypatch):
     assert settings.allowed_origins_list == ["http://a.com", "http://b.com"]
 
 
-def test_settings_production_flag():
-    """is_production property reflects APP_ENV."""
-    # Use a fresh Settings instance without cache
-    with patch.dict(os.environ, {
+def test_settings_production_flag(monkeypatch):
+    """is_production property reflects APP_ENV (dev mode tolerates missing secrets)."""
+    common = {
         "APP_ENV": "production",
         "APP_SECRET_KEY": "x" * 32,
         "DATABASE_URL": "sqlite+aiosqlite:///:memory:",
         "SESSION_SECRET_KEY": "y" * 32,
-    }):
-        get_settings.cache_clear()
-        settings = get_settings()
-        assert settings.is_production is True
-        assert settings.is_development is False
+        # Production fail-fast checks require these to be present:
+        "LLM_MASTER_ENCRYPTION_KEY": "prod-test-llm-key",
+        "CRYPTO_PAYMENT_API_KEY": "prod-test-pay-key",
+        "CRYPTO_PAYMENT_WEBHOOK_SECRET": "prod-test-wh-secret",
+    }
+    get_settings.cache_clear()
+    monkeypatch.setenv(**common)
+    settings = get_settings()
+    assert settings.is_production is True
+    assert settings.is_development is False
 
-    with patch.dict(os.environ, {
-        "APP_ENV": "development",
-        "APP_SECRET_KEY": "x" * 32,
-        "DATABASE_URL": "sqlite+aiosqlite:///:memory:",
-        "SESSION_SECRET_KEY": "y" * 32,
-    }):
-        get_settings.cache_clear()
-        settings = get_settings()
-        assert settings.is_production is False
-        assert settings.is_development is True
+    get_settings.cache_clear()
+    monkeypatch.setenv("APP_ENV", "development")
+    settings = get_settings()
+    assert settings.is_production is False
+    assert settings.is_development is True
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -254,7 +253,7 @@ async def test_unhandled_exception_envelope():
 
 @pytest.mark.asyncio
 async def test_404_envelope():
-    """404 returns envelope (FastAPI default, but should be consistent)."""
+    """404 returns the global error envelope (Phase 10, Lesson 10.4)."""
     from starlette.testclient import TestClient
 
     from app.main import create_app
@@ -263,11 +262,11 @@ async def test_404_envelope():
     client = TestClient(app, raise_server_exceptions=False)
     resp = client.get("/api/v1/nonexistent")
     assert resp.status_code == 404
-    # FastAPI default 404 format is {"detail": "Not Found"}
-    # Our SpetserError handler only catches SpetserError subclasses.
-    # Document current behavior: FastAPI default for 404.
     data = resp.json()
-    assert "detail" in data
+    assert data["data"] is None
+    assert data["error"]["code"] == "NOT_FOUND"
+    assert data["error"]["message"]
+    assert "request_id" in data
 
 
 # ──────────────────────────────────────────────────────────────────────────────

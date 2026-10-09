@@ -1,12 +1,14 @@
 /**
  * pages/RegisterPage.tsx — New student registration
+ * Supports referral capture via ?ref= (Phase 7 backend, Phase 9 UI).
  */
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../contexts/useAuth';
+import { AuthLayout } from '../components/layout/AuthLayout';
 
 const registerSchema = z.object({
   display_name: z.string().min(2, 'الاسم يجب أن يحتوي على حرفين على الأقل').max(200),
@@ -25,6 +27,8 @@ type RegisterForm = z.infer<typeof registerSchema>;
 export function RegisterPage() {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get('ref')?.trim() || undefined;
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -36,35 +40,43 @@ export function RegisterPage() {
   const onSubmit = async (data: RegisterForm) => {
     setServerError(null);
     try {
-      await registerUser(data.email, data.password, data.display_name);
+      await registerUser(data.email, data.password, data.display_name, refCode);
       navigate('/', { replace: true });
-    } catch (err: any) {
-      setServerError(err.message || 'حدث خطأ أثناء إنشاء الحساب.');
+    } catch (err: unknown) {
+      setServerError(err instanceof Error ? err.message : 'حدث خطأ أثناء إنشاء الحساب.');
     }
   };
 
   return (
-    <div style={{ maxWidth: 420, margin: '0 auto', paddingTop: 'var(--space-8)' }}>
-      <div style={{ textAlign: 'center', marginBottom: 'var(--space-8)' }}>
-        <div style={{
-          width: 48, height: 48,
-          background: 'var(--color-deep-teal)',
-          borderRadius: 'var(--radius-lg)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'white', fontSize: 'var(--text-xl)', fontWeight: 'var(--font-semibold)',
-          margin: '0 auto var(--space-4)',
-        }} aria-hidden="true">
-          س
-        </div>
-        <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--font-semibold)', marginBottom: 'var(--space-1)' }}>
-          إنشاء حساب جديد
-        </h1>
-        <p className="text-muted text-sm">ابدأ مع Spetser AI مجاناً</p>
-      </div>
+    <AuthLayout title="إنشاء حساب جديد" subtitle="ابدأ مع Spetser AI مجاناً">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="card fade-in"
+        style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
+        noValidate
+      >
+        {refCode && (
+          <div
+            role="status"
+            style={{
+              padding: 'var(--space-3)', borderRadius: 'var(--radius-md)',
+              background: 'var(--color-success-bg)', color: 'var(--color-success)',
+              fontSize: 'var(--text-sm)', textAlign: 'center',
+            }}
+          >
+            🎉 تم استخدام رابط دعوة — سجّل عبر الصديق الذي دعاك!
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="card fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }} noValidate>
         {serverError && (
-          <div role="alert" style={{ background: 'var(--color-error-bg)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', color: 'var(--color-error)', fontSize: 'var(--text-sm)' }}>
+          <div
+            role="alert"
+            style={{
+              padding: 'var(--space-3)', borderRadius: 'var(--radius-md)',
+              background: 'var(--color-error-bg)', color: 'var(--color-error)',
+              fontSize: 'var(--text-sm)',
+            }}
+          >
             {serverError}
           </div>
         )}
@@ -113,6 +125,6 @@ export function RegisterPage() {
           <Link to="/login" className="text-accent">تسجيل الدخول</Link>
         </p>
       </form>
-    </div>
+    </AuthLayout>
   );
 }
