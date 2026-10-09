@@ -39,3 +39,6 @@ frontend/.vite/
 # Database
 *.sqlite
 *.db
+# خطأ لصق PowerShell — ملفات بلا امتداد من أوامر ملتصقة
+*ExecutionPolicy*
+*ScriptsActivate*
