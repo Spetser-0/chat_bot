@@ -3,6 +3,11 @@
  * ─────────────────────────
  * Dark/light theme state. Persisted to localStorage, applied as
  * data-theme on <html> so CSS variables switch atomically.
+ *
+ * Default is LIGHT: the design system is a parchment-on-paper palette
+ * (matching the Perplexity reference). OS preference is intentionally
+ * NOT followed — dark is an explicit opt-in via the toggle, because a
+ * dark default contradicts the product's visual identity.
  */
 import {
   createContext,
@@ -27,9 +32,8 @@ function getInitialTheme(): Theme {
   if (typeof window === 'undefined') return 'light';
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === 'light' || stored === 'dark') return stored;
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light';
+  // No stored choice → light. Dark is opt-in, never inferred.
+  return 'light';
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);

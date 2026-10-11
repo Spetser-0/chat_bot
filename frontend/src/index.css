@@ -86,6 +86,11 @@
   --sidebar-width: 260px;
   --topbar-height: 56px;
 
+  /* Content column — the reference centers the reading column at 640px
+     so the search/composer reads as the focal point, not a wide canvas.
+     Applies to the chat column only; admin tables stay full-width. */
+  --content-max-width: 640px;
+
   /* Transitions */
   --transition-fast: 120ms ease;
   --transition-base: 200ms ease;

@@ -14,9 +14,20 @@ build/
 venv/
 env/
 
-# Environment files
+# Environment files — NEVER commit real secrets.
+# .env.example is the only tracked variant (re-allowed at the end).
 .env
+.env.*
 *.env.local
+!.env.example
+
+# Backup / swap files that often contain real secrets (.env.backup-*, .env.bak)
+*.backup
+*.backup-*
+*.bak
+*.orig
+*.save
+*~
 
 # IDE
 .vscode/
