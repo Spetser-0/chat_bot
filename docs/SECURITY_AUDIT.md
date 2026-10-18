@@ -376,6 +376,52 @@ All `/api/v1/admin/*` routes share a strict per-user rate limit (`rate_limit_adm
 - **Cookie Security**: `HttpOnly`, `SameSite=Lax`, and `Secure` (production) properly configured.
 - **JWT Key Length Advisory**: Ensure `APP_SECRET_KEY` is strictly $\ge 32$ bytes across all environments (including test fixtures) to comply with RFC 7518.
 
+---
+
+### Scan D: Access Control & RBAC Audit
+- **Methodology**: Static grep patterns scanning for FastAPI authentication and authorization dependencies (`get_active_student`, `get_current_student`, `get_admin`, `get_developer`, `get_superadmin`, `verify_*_ownership`) across all routes in `backend/app/api/v1/routes/`.
+- **RBAC Hierarchy Verified**:
+  - `Student` (active): Base authenticated student role.
+  - `Developer`: Inherits Student + developer dashboards + read-only admin endpoints.
+  - `Admin`: Inherits Developer + mutation endpoints (skills, AI providers, user bans, credit adjustments).
+  - `Superadmin`: Highest privilege; exclusive access to financial mutations (`manual-confirm` on invoices) and platform key operations.
+
+#### Endpoints Without User Authentication (Public / Third-Party / Ephemeral)
+| # | Route | Method | Purpose | Protection / Justification | Security Assessment |
+|---|-------|--------|---------|---------------------------|---------------------|
+| 1 | `/api/v1/auth/register` | POST | Student account creation | IP Rate Limited (5/min via SlowAPI) | **Safe**: Intended public registration gateway. |
+| 2 | `/api/v1/auth/login` | POST | Student authentication | IP Rate Limited (5/min via SlowAPI) + timing-safe dummy password check | **Safe**: Intended public login gateway. |
+| 3 | `/api/v1/health/live` | GET | Liveness probe | Static response (`{"status": "ok"}`) | **Safe**: Standard container health probe. |
+| 4 | `/api/v1/health/ready` | GET | Readiness probe | Read-only connection check (DB, Redis) | **Safe**: Returns 503 only if database is unreachable. |
+| 5 | `/api/v1/health/metrics` | GET | Operational counters | High-cardinality paths stripped | **Safe**: Aggregated non-sensitive operational metrics. |
+| 6 | `/api/v1/skills` | GET | Skills catalogue | Read-only; `system_prompt` strictly omitted | **Safe**: Public storefront for AI skills. |
+| 7 | `/api/v1/skills/{slug}` | GET | Skill detail card | Read-only; `system_prompt` strictly omitted | **Safe**: Public card representation. |
+| 8 | `/api/v1/referrals/{code}/validate` | GET | Referral code validation | Validates code existence and returns display name | **Low Risk (SEC-LOW-01)**: Should be rate-limited to prevent code enumeration. |
+| 9 | `/api/v1/payments/webhook` | POST | Payment provider webhook | Authenticated via cryptographic HMAC-SHA512 header verification | **Safe**: Third-party webhook authenticated by signed body hash. |
+| 10 | `/api/v1/deliverables/download/{object_key:path}` | GET | File download | Authenticated via short-lived HMAC signed token (`token: str = Query(...)`) | **Safe**: Ephemeral signed download mechanism. |
+| 11 | `/` | GET | Root API banner | Static service metadata | **Safe**: Information banner. |
+
+#### Protected Endpoints: Auth & Role Enforcement Matrix
+| Category | Routes Covered | Minimum Required Dependency | Router-Level Enforcement | IDOR Ownership Enforcement | Assessment |
+|----------|----------------|-----------------------------|--------------------------|----------------------------|------------|
+| **Chat & Conversations** | `POST /chat/completions`, `GET/PATCH/DELETE /conversations/*` | `get_active_student` / `rate_limit_chat` | Session Cookie Verified | Enforced (`conv.user_id == student.id`) | **Secure**: Multi-turn chat and conversation history strictly user-isolated. |
+| **Wallet & Billing** | `GET /credits/*`, `POST /payments/create-invoice`, `GET /payments/{id}/status` | `get_active_student` / `rate_limit_payments` | Session Cookie Verified | Enforced (`inv.user_id == student.id`) | **Secure**: Invoices and ledgers strictly user-isolated. (*Note SEC-CRIT-01 on `/credits/grant`*). |
+| **Deliverables & Presentations** | `POST /presentations`, `GET /presentations/{id}/*` | `get_active_student` | Session Cookie Verified | Enforced (`verify_request_ownership`, `verify_deliverable_ownership`) | **Secure**: Deliverables require matching `student_id`. |
+| **User Referrals** | `GET /referrals/link`, `/me`, `/stats` | `get_active_student` | Session Cookie Verified | Scoped to current authenticated student | **Secure**: No cross-tenant referral data accessible. |
+| **Admin Read Dashboards** | `GET /admin/analytics/*`, `/admin/audit-logs/*`, `/admin/metrics`, `/admin/users/*`, `/admin/payments/*`, `/admin/providers/*`, `/admin/skills/*`, `/admin/referrals/*` | `get_developer` | `rate_limit_admin` dependency at router mount | Restricted to Developer/Admin/Superadmin | **Secure**: Defense-in-depth via router-level `rate_limit_admin` gate. |
+| **Admin Mutations** | `POST /credits/admin/adjust`, `POST /admin/users/{id}/*`, `POST/PATCH/DELETE /admin/providers/*`, `POST/PATCH/DELETE /admin/skills/*`, `POST /admin/referrals/*` | `get_admin` | `rate_limit_admin` dependency at router mount | Restricted to Admin/Superadmin + Full Audit Logging | **Secure**: Mutations require Admin and record immutable audit logs. |
+| **Superadmin Operations** | `POST /admin/payments/{id}/manual-confirm` | `get_superadmin` | `rate_limit_admin` dependency at router mount | Restricted exclusively to Superadmin + Audit Logging | **Secure**: Critical financial confirmation locked to superadmin role. |
+
+#### Summary & Conclusion
+- **Total Endpoints Audited**: 48 endpoints across the entire application.
+- **Unauthenticated Public Endpoints**: 11 (all intentional: auth gateways, public catalogue, health checks, signed webhooks, signed downloads).
+- **Protected User Endpoints**: 14 (all enforce `get_active_student` and strict object ownership).
+- **Admin/Developer Endpoints**: 23 (all protected by router-level `rate_limit_admin` and strict role gates `get_developer`, `get_admin`, or `get_superadmin`).
+- **Access Control Findings**:
+  - **SEC-CRIT-01**: `POST /credits/grant` requires `get_active_student`, but grants 300 free test credits without checking if the server is in development mode.
+  - **SEC-MED-02**: `POST /developer/providers/{id}/rotate-key` allows `developer` role to rotate credentials.
+
+
 
 
 
