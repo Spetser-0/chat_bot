@@ -1,7 +1,7 @@
 # Spetser AI — Project Status Log
 
-## Current Phase: Phase 3 — Frontend Rebuild
-## Last Updated: 2026-10-18T20:25:00Z
+## Current Phase: Phase 4 — Backend Optimization
+## Last Updated: 2026-10-18T20:33:00Z
 ## Status: IN PROGRESS
 
 ### Completed Steps
@@ -20,14 +20,21 @@
 - [x] 2.3 Design checklist created (`docs/DESIGN_CHECKLIST.md`)
 - [x] 2.4 Global styles updated (`frontend/src/styles/global.css` & imported into `index.css`)
 - [x] 2.5 Commit Phase 2
+- [x] 3.1 Restructure frontend directory & create barrel exports
+- [x] 3.2 Build core UI components (Button, Input, Toast)
+- [x] 3.3 Build chat components (MessageBubble, InputBox)
+- [x] 3.4 Build component CSS (button.css, chat.css, input.css, toast.css)
+- [x] 3.5 Verify frontend build and tests (0 errors, 8 vitest tests pass)
+- [x] 3.6 Commit Phase 3
 
 ### Next Steps
-1. Phase 3, Step 3.1: Restructure Frontend Directory & UI atomic components
-2. Phase 3, Step 3.2: Build Core UI Components (Button, Input, Toast)
-3. Phase 3, Step 3.3: Build Chat Components
-4. Phase 3, Step 3.4: Build Component CSS
-5. Phase 3, Step 3.5: Verify Frontend Build
-6. Phase 3, Step 3.6: Commit Phase 3
+1. Phase 4, Step 4.1: Optimize database connection pool (`backend/app/db/session.py`)
+2. Phase 4, Step 4.2: Add caching layer (`backend/app/core/cache.py`)
+3. Phase 4, Step 4.3: Add rate limiting middleware (`backend/app/middleware/rate_limit.py`)
+4. Phase 4, Step 4.4: Improve error handling (`backend/app/core/exceptions.py`)
+5. Phase 4, Step 4.5: Update `main.py` with middleware and handlers
+6. Phase 4, Step 4.6: Run backend tests
+7. Phase 4, Step 4.7: Commit Phase 4
 
 ### Test Summary
 - Backend: 604/604 PASS (0 failures)
@@ -37,8 +44,8 @@
 
 ### Resume Instructions
 - Read this file first.
-- Run: `cd frontend && npm run build`
-- Continue from: Phase 3, Step 3.1
+- Run: `cd backend && python -m pytest tests/ -q`
+- Continue from: Phase 4, Step 4.1
 
 ---
 

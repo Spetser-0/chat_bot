@@ -1,6 +1,10 @@
 /* Import design system */
 @import './tokens.css';
 @import './animations.css';
+@import './components/button.css';
+@import './components/chat.css';
+@import './components/input.css';
+@import './components/toast.css';
 
 /* === RESET & BASE === */
 *,
