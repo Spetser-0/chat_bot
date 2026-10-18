@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     kimi_api_key: str = ""
 
     # ── Developer Auth ───────────────────────────────────
-    developer_email: str = "ahmdjmt698@gmail.com"
+    developer_email: str = "dev@example.com"
     developer_password_hash: str = ""
 
     # ── Rate Limits ──────────────────────────────────────

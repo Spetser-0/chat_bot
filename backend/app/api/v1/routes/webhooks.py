@@ -41,9 +41,14 @@ def _webhook_gateway() -> MockCryptoProvider:
 async def payments_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     """Provider-signed event ingress. Idempotent by external_id."""
     settings = get_settings()
-    secret = settings.crypto_payment_webhook_secret or "dev-webhook-secret"
-    if not settings.crypto_payment_webhook_secret and settings.is_production:
-        raise HTTPException(status_code=503, detail="webhook not configured")
+    if not settings.crypto_payment_webhook_secret:
+        if settings.is_development:
+            logger.warning("crypto_payment_webhook_secret unset; using dev fallback secret")
+            secret = "dev-webhook-secret"
+        else:
+            raise HTTPException(status_code=503, detail="webhook not configured")
+    else:
+        secret = settings.crypto_payment_webhook_secret
 
     payload = await request.body()
     signature = request.headers.get("x-signature") or request.headers.get(

@@ -33,7 +33,9 @@ function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /** Highlight one line of code into safe HTML spans. */
@@ -43,7 +45,7 @@ function highlightLine(line: string, lang: string): string {
   // Comments first (# or //), then strings, then keywords.
   out = out.replace(/(^|\s)(#.*)$/, '$1<span class="tok-comment">$2</span>');
   out = out.replace(/(\/\/.*)$/, '<span class="tok-comment">$1</span>');
-  out = out.replace(/(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;|"[^"]*"|'[^']*')/g,
+  out = out.replace(/(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;)/g,
     '<span class="tok-string">$1</span>');
   if (kw.length) {
     const re = new RegExp(`\\b(${kw.join('|')})\\b`, 'g');
@@ -135,6 +137,12 @@ export function Markdown({ content }: MarkdownProps) {
             return <>{children}</>;
           },
           a({ children, href }) {
+            // Whitelist safe schemes: https://, http://, mailto:, or relative links (/ or #)
+            // Explicitly blocks javascript:, data:, vbscript:, etc.
+            const isSafe = typeof href === 'string' && /^(https?:\/\/|mailto:|\/|#)/i.test(href);
+            if (!isSafe) {
+              return <span>{children}</span>;
+            }
             return (
               <a href={href} target="_blank" rel="noopener noreferrer">
                 {children}

@@ -213,7 +213,12 @@ async def logout(
     await db.commit()
     from app.core.config import get_settings
     settings = get_settings()
-    response.delete_cookie(SESSION_COOKIE_NAME, httponly=True, samesite=settings.session_cookie_samesite)
+    response.delete_cookie(
+        SESSION_COOKIE_NAME,
+        httponly=True,
+        secure=settings.is_production,
+        samesite=settings.session_cookie_samesite,
+    )
     return {"data": {"message": "تم تسجيل الخروج بنجاح."}, "error": None}
 
 

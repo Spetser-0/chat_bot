@@ -17,7 +17,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_active_student, get_admin
-from app.core.errors import NotFoundError
+from app.core.config import get_settings
+from app.core.errors import AuthorizationError, NotFoundError
 from app.db.session import get_db
 from app.models.credit_ledger import LedgerEntryType
 from app.models.student import Student
@@ -82,6 +83,9 @@ async def grant_test_credits(
     db: AsyncSession = Depends(get_db),
 ):
     """Development-only: grant 300 test credits to the current student."""
+    if not get_settings().is_development:
+        raise AuthorizationError("رصيد التجربة متاح فقط في بيئة التطوير.")
+
     credits = CreditService(db, student)
     await credits.add_credits(
         Decimal("300"),

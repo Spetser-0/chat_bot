@@ -51,6 +51,11 @@ async def get_current_student(
     """
     # Check for development mode bypass
     if is_dev_auth_enabled() and x_dev_auth:
+        import structlog
+        structlog.get_logger("spetser.auth").warning(
+            "Development auth bypass used via X-Dev-Auth header",
+            ip=getattr(request.client, "host", "unknown") if request.client else "unknown",
+        )
         dev_identity = await get_dev_student_identity()
         if dev_identity:
             student = await get_student_by_id(dev_identity.student_id, db)

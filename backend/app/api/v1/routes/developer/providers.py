@@ -8,10 +8,10 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_developer, get_db
+from app.api.deps import get_admin, get_developer, get_db
 from app.core.errors import ConflictError, NotFoundError
 from app.models.student import Student
 from app.services.admin.provider_service import ProviderService
@@ -20,6 +20,10 @@ router = APIRouter(prefix="/providers", tags=["Developer - Providers"])
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────
+
+class RotateKeyRequest(BaseModel):
+    api_key: str = Field(min_length=1, max_length=500)
+
 
 class ProviderCreate(BaseModel):
     provider_key: str
@@ -207,19 +211,14 @@ async def test_provider(
 @router.post("/{provider_id}/rotate-key", response_model=ProviderResponse)
 async def rotate_provider_key(
     provider_id: uuid.UUID,
-    body: dict,
-    current_student: Student = Depends(get_developer),
+    body: RotateKeyRequest,
+    current_admin: Student = Depends(get_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Rotate provider API key."""
-
-    new_key = body.get("api_key")
-    if not new_key:
-        raise HTTPException(status_code=400, detail="New API key required")
-
+    """Rotate provider API key (Admin only)."""
     service = ProviderService(db)
     try:
-        provider = await service.rotate_key(provider_id, body["api_key"])
+        provider = await service.rotate_key(provider_id, body.api_key)
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Provider not found")
 

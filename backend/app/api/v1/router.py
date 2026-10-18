@@ -3,8 +3,11 @@ app/api/v1/router.py
 ─────────────────────
 Assembles all v1 API routes under /api/v1/.
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
+
+from app.api.deps import verify_deliverable_ownership
+from app.models.deliverable import Deliverable
 
 from app.api.v1.routes.admin.analytics import router as admin_analytics_router
 from app.api.v1.routes.admin.audit import router as admin_audit_router
@@ -66,7 +69,12 @@ async def download_local_object(object_key: str, token: str = Query(..., min_len
         raise HTTPException(status_code=404, detail="Download link is invalid or expired")
     return FileResponse(path)
 
-# Phase 2+ routes will be added here:
-# from app.api.v1.routes.requests import router as requests_router
-# from app.api.v1.routes.deliverables import router as deliverables_router
-# from app.api.v1.routes.developer import router as developer_router
+
+@api_v1_router.get("/deliverables/{deliverable_id}/download")
+async def download_deliverable_canonical(
+    deliverable: Deliverable = Depends(verify_deliverable_ownership),
+) -> dict:
+    """Canonical download endpoint matching module specification."""
+    from app.api.v1.routes.presentations import download_deliverable
+    return await download_deliverable(deliverable)
+

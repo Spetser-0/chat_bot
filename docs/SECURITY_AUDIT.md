@@ -235,28 +235,28 @@ All `/api/v1/admin/*` routes share a strict per-user rate limit (`rate_limit_adm
 ### Critical
 | # | File | Line | Vulnerability / Issue | Impact | Fix | Status |
 |---|------|------|-----------------------|--------|-----|--------|
-| **SEC-CRIT-01** | `backend/app/api/v1/routes/credits.py` | 79-94 | Unprotected test credit grant endpoint (`POST /credits/grant`) lacks environment check | Any active student in production can grant themselves unlimited 300-credit topups | Add `if not get_settings().is_development: raise AuthorizationError(...)` | Open |
+| **SEC-CRIT-01** | `backend/app/api/v1/routes/credits.py` | 79-94 | Unprotected test credit grant endpoint (`POST /credits/grant`) lacks environment check | Any active student in production can grant themselves unlimited 300-credit topups | Add `if not get_settings().is_development: raise AuthorizationError(...)` | Fixed |
 
 ### High
 | # | File | Line | Vulnerability / Issue | Impact | Fix | Status |
 |---|------|------|-----------------------|--------|-----|--------|
-| **SEC-HIGH-01** | `backend/app/api/deps.py` & `backend/app/services/auth.py` | 52-57, 185-233 | Development auth header bypass (`X-Dev-Auth`) active in dependency tree | If `app_env` is misconfigured as development, attacker can bypass authentication via header | Enforce strict fail-closed guards and explicit environment gating | Open |
+| **SEC-HIGH-01** | `backend/app/api/deps.py` & `backend/app/services/auth.py` | 52-57, 185-233 | Development auth header bypass (`X-Dev-Auth`) active in dependency tree | If `app_env` is misconfigured as development, attacker can bypass authentication via header | Enforce strict fail-closed guards and explicit environment gating | Fixed |
 
 ### Medium
 | # | File | Line | Vulnerability / Issue | Impact | Fix | Status |
 |---|------|------|-----------------------|--------|-----|--------|
-| **SEC-MED-01** | `backend/app/api/v1/routes/auth.py` | 216 | `delete_cookie` in logout missing `secure=True` flag | In HTTPS sessions with secure session cookies, modern browsers may reject deletion, leaving cookie on client | Pass `secure=settings.is_production` to `response.delete_cookie` | Open |
-| **SEC-MED-02** | `backend/app/api/v1/routes/developer/providers.py` | 207-236 | Inconsistent RBAC on provider key rotation (`rotate-key` allows `developer` role) | Developers can rotate provider keys without admin/superadmin privilege | Align with `admin/providers.py` RBAC (`require_admin` / `require_superadmin`) | Open |
-| **SEC-MED-03** | `backend/app/api/v1/routes/webhooks.py` | 44-46 | Hardcoded fallback webhook secret (`"dev-webhook-secret"`) in non-production | Non-production environments can process forged payment webhooks if secret is unset | Require explicit webhook secret or reject requests when secret is empty | Open |
-| **SEC-MED-04** | `frontend/src/components/chat/Markdown.tsx` | 137-143 | Unvalidated URL scheme in markdown link renderer | Malicious AI output or user prompt injection containing `javascript:...` links could execute arbitrary scripts on click | Restrict link protocol to `https:`, `http:`, `mailto:`, or relative paths | Open |
+| **SEC-MED-01** | `backend/app/api/v1/routes/auth.py` | 216 | `delete_cookie` in logout missing `secure=True` flag | In HTTPS sessions with secure session cookies, modern browsers may reject deletion, leaving cookie on client | Pass `secure=settings.is_production` to `response.delete_cookie` | Fixed |
+| **SEC-MED-02** | `backend/app/api/v1/routes/developer/providers.py` | 207-236 | Inconsistent RBAC on provider key rotation (`rotate-key` allows `developer` role) | Developers can rotate provider keys without admin/superadmin privilege | Align with `admin/providers.py` RBAC (`require_admin` / `require_superadmin`) | Fixed |
+| **SEC-MED-03** | `backend/app/api/v1/routes/webhooks.py` | 44-46 | Hardcoded fallback webhook secret (`"dev-webhook-secret"`) in non-production | Non-production environments can process forged payment webhooks if secret is unset | Require explicit webhook secret or reject requests when secret is empty | Fixed |
+| **SEC-MED-04** | `frontend/src/components/chat/Markdown.tsx` | 137-143 | Unvalidated URL scheme in markdown link renderer | Malicious AI output or user prompt injection containing `javascript:...` links could execute arbitrary scripts on click | Restrict link protocol to `https:`, `http:`, `mailto:`, or relative paths | Fixed |
 
 ### Low
 | # | File | Line | Vulnerability / Issue | Impact | Fix | Status |
 |---|------|------|-----------------------|--------|-----|--------|
-| **SEC-LOW-01** | `backend/app/api/v1/routes/referrals.py` | 31-50 | Unthrottled public referral code validation (`GET /referrals/{code}/validate`) | Attackers can brute-force referral codes to enumerate valid codes and referrer display names | Add rate limiting (`@limiter.limit("30/minute")`) | Open |
-| **SEC-LOW-02** | `backend/app/api/v1/routes/presentations.py` | 193 | Route prefix discrepancy for deliverable download | Endpoint is `/api/v1/presentations/deliverables/{id}/download` while docstring states `/api/v1/deliverables/{id}/download` | Align route path or create alias | Open |
-| **SEC-LOW-03** | `backend/app/core/config.py` | 65 | Hardcoded personal developer email (`ahmdjmt698@gmail.com`) as default | Exposes personal developer identity in source repository | Replace with neutral default (e.g. `dev@spetser.local`) or empty string | Open |
-| **SEC-LOW-04** | `frontend/src/components/chat/Markdown.tsx` | 102 | `dangerouslySetInnerHTML` used for code syntax highlighting | Bypasses React XSS protections for rendered code blocks; relies on custom regex escaping | Replace with pure React tokens or DOMPurify | Open |
+| **SEC-LOW-01** | `backend/app/api/v1/routes/referrals.py` | 31-50 | Unthrottled public referral code validation (`GET /referrals/{code}/validate`) | Attackers can brute-force referral codes to enumerate valid codes and referrer display names | Add rate limiting (`@limiter.limit("30/minute")`) | Fixed |
+| **SEC-LOW-02** | `backend/app/api/v1/routes/presentations.py` | 193 | Route prefix discrepancy for deliverable download | Endpoint is `/api/v1/presentations/deliverables/{id}/download` while docstring states `/api/v1/deliverables/{id}/download` | Align route path or create alias | Fixed |
+| **SEC-LOW-03** | `backend/app/core/config.py` | 65 | Hardcoded personal developer email (`ahmdjmt698@gmail.com`) as default | Exposes personal developer identity in source repository | Replace with neutral default (e.g. `dev@spetser.local`) or empty string | Fixed |
+| **SEC-LOW-04** | `frontend/src/components/chat/Markdown.tsx` | 102 | `dangerouslySetInnerHTML` used for code syntax highlighting | Bypasses React XSS protections for rendered code blocks; relies on custom regex escaping | Replace with pure React tokens or DOMPurify | Fixed |
 
 ---
 

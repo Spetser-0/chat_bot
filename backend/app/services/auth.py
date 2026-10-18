@@ -224,9 +224,10 @@ def get_dev_auth_provider() -> DevAuthProvider:
 
 
 def is_dev_auth_enabled() -> bool:
-    # Never allow the dev auth bypass outside local development.
+    # Fail-closed guard: NEVER allow dev auth outside strict local development
     from app.core.config import get_settings
-    if get_settings().app_env != "development":
+    settings = get_settings()
+    if not settings.is_development or settings.is_production:
         return False
     return _dev_auth_provider.is_enabled
 

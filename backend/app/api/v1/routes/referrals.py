@@ -11,7 +11,9 @@ Endpoints:
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_active_student, get_db
@@ -25,10 +27,13 @@ from app.models.student import Student
 from app.services.referral_service import ReferralService
 
 router = APIRouter(prefix="/referrals", tags=["Referrals"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/{code}/validate", response_model=ReferralValidateResponse)
+@limiter.limit("30/minute")
 async def validate_referral_code(
+    request: Request,
     code: str,
     db: AsyncSession = Depends(get_db),
 ) -> ReferralValidateResponse:
