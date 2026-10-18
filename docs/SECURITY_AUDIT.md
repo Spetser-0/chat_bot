@@ -248,12 +248,15 @@ All `/api/v1/admin/*` routes share a strict per-user rate limit (`rate_limit_adm
 | **SEC-MED-01** | `backend/app/api/v1/routes/auth.py` | 216 | `delete_cookie` in logout missing `secure=True` flag | In HTTPS sessions with secure session cookies, modern browsers may reject deletion, leaving cookie on client | Pass `secure=settings.is_production` to `response.delete_cookie` | Open |
 | **SEC-MED-02** | `backend/app/api/v1/routes/developer/providers.py` | 207-236 | Inconsistent RBAC on provider key rotation (`rotate-key` allows `developer` role) | Developers can rotate provider keys without admin/superadmin privilege | Align with `admin/providers.py` RBAC (`require_admin` / `require_superadmin`) | Open |
 | **SEC-MED-03** | `backend/app/api/v1/routes/webhooks.py` | 44-46 | Hardcoded fallback webhook secret (`"dev-webhook-secret"`) in non-production | Non-production environments can process forged payment webhooks if secret is unset | Require explicit webhook secret or reject requests when secret is empty | Open |
+| **SEC-MED-04** | `frontend/src/components/chat/Markdown.tsx` | 137-143 | Unvalidated URL scheme in markdown link renderer | Malicious AI output or user prompt injection containing `javascript:...` links could execute arbitrary scripts on click | Restrict link protocol to `https:`, `http:`, `mailto:`, or relative paths | Open |
 
 ### Low
 | # | File | Line | Vulnerability / Issue | Impact | Fix | Status |
 |---|------|------|-----------------------|--------|-----|--------|
 | **SEC-LOW-01** | `backend/app/api/v1/routes/referrals.py` | 31-50 | Unthrottled public referral code validation (`GET /referrals/{code}/validate`) | Attackers can brute-force referral codes to enumerate valid codes and referrer display names | Add rate limiting (`@limiter.limit("30/minute")`) | Open |
 | **SEC-LOW-02** | `backend/app/api/v1/routes/presentations.py` | 193 | Route prefix discrepancy for deliverable download | Endpoint is `/api/v1/presentations/deliverables/{id}/download` while docstring states `/api/v1/deliverables/{id}/download` | Align route path or create alias | Open |
+| **SEC-LOW-03** | `backend/app/core/config.py` | 65 | Hardcoded personal developer email (`ahmdjmt698@gmail.com`) as default | Exposes personal developer identity in source repository | Replace with neutral default (e.g. `dev@spetser.local`) or empty string | Open |
+| **SEC-LOW-04** | `frontend/src/components/chat/Markdown.tsx` | 102 | `dangerouslySetInnerHTML` used for code syntax highlighting | Bypasses React XSS protections for rendered code blocks; relies on custom regex escaping | Replace with pure React tokens or DOMPurify | Open |
 
 ---
 
@@ -420,6 +423,55 @@ All `/api/v1/admin/*` routes share a strict per-user rate limit (`rate_limit_adm
 - **Access Control Findings**:
   - **SEC-CRIT-01**: `POST /credits/grant` requires `get_active_student`, but grants 300 free test credits without checking if the server is in development mode.
   - **SEC-MED-02**: `POST /developer/providers/{id}/rotate-key` allows `developer` role to rotate credentials.
+
+---
+
+### Scan E: Hardcoded Secrets & Exposure Audit
+- **Methodology**: Static pattern scanning across entire repository (backend and frontend) for hardcoded tokens, API keys (Anthropic, Gemini, OpenAI), private keys, connection strings with credentials, git tracking of `.env` files, production startup validation, and sensitive data logging.
+- **Scan Vectors**:
+  1. **API Keys & Private Keys**: Scanned regex patterns for `sk-ant-`, `AIza`, `sk-`, `AKIA`, and `-----BEGIN [A-Z ]*PRIVATE KEY-----`. (0 hardcoded keys detected).
+  2. **Database Credentials**: Scanned for connection strings containing embedded plaintext passwords. (0 hardcoded connection strings detected).
+  3. **Version Control Hygiene**: Inspected `.gitignore` and `git ls-files`. Verified `.env` and `.env.*` are strictly ignored; only `.env.example` templates with `CHANGE_ME` placeholders are tracked.
+  4. **Production Startup Validation**: Inspected `backend/app/core/config.py`. Enforces strict fail-fast if `LLM_MASTER_ENCRYPTION_KEY`, `CRYPTO_PAYMENT_API_KEY`, or `CRYPTO_PAYMENT_WEBHOOK_SECRET` are missing in production. Also enforces `min_length=32` on `app_secret_key` and `session_secret_key`.
+  5. **Structured Logging Sanitization**: `backend/app/core/logging.py` implements a custom structlog `redact_secrets` processor matching `(api_key|secret|token|password|authorization|private_key|webhook_secret|session|credentials)`.
+  6. **Exception Sanitization**: `backend/app/main.py` sanitizes `500 Internal Server Error`, `SpetserError`, and `RequestValidationError`. Stack traces and raw inputs are never returned to clients.
+- **Findings Table**:
+| # | File | Line | Finding | Impact | Fix | Status |
+|---|------|------|---------|--------|-----|--------|
+| 1 | `backend/app/core/config.py` | 65 | `developer_email: str = "ahmdjmt698@gmail.com"` | Personal email exposed as default config value | Replace with neutral placeholder or empty default | Open (SEC-LOW-03) |
+| 2 | `backend/app/core/logging.py` | 24-51 | Structlog `redact_secrets` processor active | Automatic redaction of sensitive log keys | Working as designed | Pass |
+| 3 | `backend/app/core/config.py` | 120-128 | Startup production key assertions | Fails fast if production encryption / payment keys are unset | Working as designed | Pass |
+| 4 | `.gitignore` | 17-30 | Strict exclusion of `.env*` and backup files | Prevents accidental commit of environment files | Working as designed | Pass |
+
+- **Secrets Scan Status**: **PASS with 1 Low Finding (SEC-LOW-03)**.
+
+---
+
+### Scan F: Client-Side Security & XSS/CORS Audit
+- **Methodology**: Static analysis of React 19 / TypeScript frontend (`frontend/src/`) and FastAPI backend middleware for Cross-Site Scripting (XSS), Cross-Origin Resource Sharing (CORS), Content Security Policy (CSP), open redirects, and WebStorage token leakage.
+- **Scan Vectors**:
+  1. **XSS Vectors**: Searched for `dangerouslySetInnerHTML`, `innerHTML`, `document.write`, `eval()`.
+     - `frontend/src/components/chat/Markdown.tsx:102`: uses `dangerouslySetInnerHTML` for regex-based syntax highlighting (`highlightLine`). While lines are escaped with `escapeHtml` (`&`, `<`, `>`), using raw innerHTML introduces an unnecessary bypass of React's XSS protections (`SEC-LOW-04`).
+     - `frontend/src/components/chat/Markdown.tsx:137-143`: Custom markdown `a` component renders `<a href={href} ...>` without validating the URI scheme. An attacker or crafted AI completion could output `[click](javascript:...)` to execute arbitrary script (`SEC-MED-04`).
+  2. **CORS Configuration**: `backend/app/main.py` uses explicit `allow_origins=settings.allowed_origins_list` (default `http://localhost:5173`), `allow_credentials=True`, and whitelisted headers (`Content-Type`, `X-Request-ID`, `Idempotency-Key`). No wildcard origins (`*`) used with credentials.
+  3. **Security Headers Middleware**: `backend/app/main.py` injects:
+     - `X-Content-Type-Options: nosniff`
+     - `X-Frame-Options: DENY`
+     - `Referrer-Policy: strict-origin-when-cross-origin`
+     - `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'`
+     - `Strict-Transport-Security: max-age=31536000; includeSubDomains` (in production)
+  4. **WebStorage Hygiene**: Inspected all `localStorage` and `sessionStorage` usage in frontend. Verified only non-sensitive UI preferences (`theme`, `sidebar collapsed`, `modelStrength`) are stored. No auth tokens or credentials stored in WebStorage.
+  5. **Open Redirects**: Searched for `RedirectResponse` in backend and `window.location` / `location.href` assignments in frontend. No open redirect sinks found.
+- **Findings Table**:
+| # | File | Line | Finding | Impact | Fix | Status |
+|---|------|------|---------|--------|-----|--------|
+| 1 | `frontend/src/components/chat/Markdown.tsx` | 137-143 | Unvalidated URL scheme in markdown links | `javascript:...` links could execute script on click | Restrict link protocol to `https:`, `http:`, `mailto:`, or relative paths | Open (SEC-MED-04) |
+| 2 | `frontend/src/components/chat/Markdown.tsx` | 102 | `dangerouslySetInnerHTML` in code blocks | Bypasses React XSS protections | Replace with pure React tokens or DOMPurify | Open (SEC-LOW-04) |
+| 3 | `backend/app/main.py` | 148-154 | Strict CORS policy with explicit origin whitelist | Prevents unauthorized cross-origin requests with cookies | Working as designed | Pass |
+| 4 | `backend/app/main.py` | 139-147 | Hardened HTTP security headers (CSP, nosniff, DENY, HSTS) | Protects against framing, MIME-sniffing, and clickjacking | Working as designed | Pass |
+| 5 | `frontend/src/lib/*` | - | Zero auth tokens stored in localStorage | Immune to token exfiltration via client-side storage | Working as designed | Pass |
+
+- **Client-Side Scan Status**: **PASS with 1 Medium (SEC-MED-04) and 1 Low (SEC-LOW-04) Finding**.
 
 
 
