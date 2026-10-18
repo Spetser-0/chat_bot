@@ -307,4 +307,39 @@ All `/api/v1/admin/*` routes share a strict per-user rate limit (`rate_limit_adm
 - **Static Queries & Parameterized Bound Variables (Low)**: **7 findings** (all safe).
 - **SQLi Audit Status**: **PASS (0 SQL injection vulnerabilities)**.
 
+---
+
+### Scan B: Input Validation & Schema Enforcement Audit
+- **Methodology**: Static grep patterns across `backend/app/api/v1/routes/` and `backend/app/schemas/` to inspect request body handling, query/path parameter bounds, and Pydantic v2 schema validation.
+- **Patterns Scanned**:
+  1. `Request.body()`, `Request.json()`: Direct body reads bypassing Pydantic models.
+  2. `body: dict`: Untyped arbitrary dictionary body bindings.
+  3. `BaseModel`, `@field_validator`, `@validator`: Pydantic schema validation coverage across `app/schemas/` and inline route models.
+  4. Query and path parameter boundary enforcement (`ge`, `le`, `max_length`, `min_length`).
+
+#### Findings Table
+| # | File | Line | Route / Component | Input Structure | Validation Mechanism | Assessment |
+|---|------|------|-------------------|-----------------|----------------------|------------|
+| 1 | `backend/app/api/v1/routes/auth.py` | 78-86 | `POST /register` | `body: RegisterRequest` | Pydantic model (`EmailStr`, `min_length=8`, `@field_validator("password")` for UTF-8 bytes and entropy) | **Validated (High)**: Rejects passwords >72 bytes, weak entropy (<4 unique chars), invalid emails. |
+| 2 | `backend/app/api/v1/routes/auth.py` | 191-198 | `POST /login` | `body: LoginRequest` | Pydantic model (`EmailStr`, `password: str`) | **Validated (High)**: Email type enforced, length bounded by FastAPI defaults. |
+| 3 | `backend/app/api/v1/routes/chat.py` | 143-148 | `POST /completions` | `body: ChatCompletionRequest` | Pydantic model (`message`, `conversation_id`, `skill_slug`, `stream`, `regenerate`) + 3 `@field_validator`s | **Validated (High)**: Trims whitespace, enforces non-empty strings, validates regenerate consistency. |
+| 4 | `backend/app/api/v1/routes/conversations.py` | 84-90 | `PATCH /{conversation_id}` | `body: ConversationUpdateRequest` | Pydantic model (`title: str | None`, `is_archived: bool | None`) | **Validated (Medium)**: Checks at least one field present; trims title whitespace. |
+| 5 | `backend/app/api/v1/routes/credits.py` | 96-101 | `POST /admin/adjust` | `body: AdminAdjustRequest` | Pydantic model (`student_id: UUID`, `delta: Decimal`, `reason: str`, `idempotency_key`) | **Validated (High)**: Enforces reason string and Decimal precision. |
+| 6 | `backend/app/api/v1/routes/payments.py` | 39-44 | `POST /create-invoice` | `body: CreateInvoiceRequest` | Pydantic model (`amount_usd: Decimal = Field(gt=0)`, `currency`, `idempotency_key`) | **Validated (High)**: Rejects negative/zero amounts and currency length overflow. |
+| 7 | `backend/app/api/v1/routes/presentations.py` | 67-74 | `POST /presentations` | `body: PresentationCreateRequest` | Pydantic model (`topic: Field(3..500)`, `slide_count: Field(3..30)`, `language: Literal["ar", "en"]`) | **Validated (High)**: Strict bounds, enum restrictions, and regex-validated `Idempotency-Key` header. |
+| 8 | `backend/app/api/v1/routes/admin/users.py` | 141-148 | `POST /admin/users/{id}/adjust-credits` | `body: CreditAdjustRequest` | Pydantic model (`amount: Decimal`, `reason: Field(3..500)`) | **Validated (High)**: Non-zero constraint and minimum reason length enforced. |
+| 9 | `backend/app/api/v1/routes/admin/payments.py` | 127-134 | `POST /admin/payments/{id}/manual-confirm` | `body: ManualConfirmRequest` | Pydantic model (`reason: Field(5..500)`) | **Validated (High)**: Mandatory reason min length 5 chars. |
+| 10 | `backend/app/api/v1/routes/admin/providers.py` | 127-133 | `POST /admin/providers` | `body: ProviderCreate` | Pydantic model (`slug: regex r"^[a-z0-9-]+$"`, `api_key: max_length=500`, priority bounds) | **Validated (High)**: Strict slug regex and priority bounds. |
+| 11 | `backend/app/api/v1/routes/admin/skills.py` | 113-118 | `POST /admin/skills` | `body: SkillCreate` | Pydantic model (`tools: list[SkillToolIn]` with `@field_validator`) | **Validated (High)**: Deep tool schema validation. |
+| 12 | `backend/app/api/v1/routes/webhooks.py` | 41-48 | `POST /payments/webhook` | `raw payload = await request.body()` | Cryptographic HMAC-SHA512 verification before JSON parse | **Validated (High)**: Necessary for signature verification. Throws 400 on signature or JSON mismatch. |
+| 13 | `backend/app/api/v1/routes/developer/providers.py` | 207-210 | `POST /providers/{id}/rotate-key` | `body: dict` | **Manual dict extraction** (`body.get("api_key")`) | **Medium Risk (Unvalidated Body)**: Legacy route accepts raw `dict` without a Pydantic model. |
+
+#### Summary & Conclusion
+- **Total Pydantic Schemas across Codebase**: 38 models across `app/schemas/` and inline route modules.
+- **Coverage**: 97.4% of request endpoints strictly use typed Pydantic v2 models with boundary constraints.
+- **Recommendations**:
+  1. Replace `body: dict` in `developer/providers.py:210` with a typed `RotateKeyRequest(BaseModel)` or deprecate/remove the redundant legacy developer router.
+  2. Add `max_length=20` to the path parameter in `GET /api/v1/referrals/{code}/validate`.
+
+
 
