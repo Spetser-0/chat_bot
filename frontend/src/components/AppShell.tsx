@@ -1,152 +1,138 @@
 /**
- * components/AppShell.tsx
- * ─────────────────────────
- * Main layout shell with right-side sidebar (RTL-first) and top bar.
+ * AppShell — the authenticated layout: collapsible sidebar + top bar.
+ *
+ * The sidebar can be toggled via the hamburger button (three lines) in the
+ * top bar, or by clicking the overlay on mobile. The collapsed state is
+ * persisted in localStorage so the user's preference survives reloads.
  */
-import { type ReactNode } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowRight, Menu } from 'lucide-react';
 import { useAuth } from '../contexts/useAuth';
-import { useTheme } from '../contexts/useTheme';
-import { SkipLink } from './ui/SkipLink';
+import { AppSidebar } from './layout/AppSidebar';
+import { useQuery } from '@tanstack/react-query';
+import { conversationsApi } from '../api/conversations';
 
-interface AppShellProps {
-  children: ReactNode;
+const STORAGE_KEY = 'spetser.sidebarCollapsed';
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
-const NAV_ITEMS = [
-  { to: '/', icon: '🏠', label: 'الرئيسية', end: true },
-  { to: '/presentations/new', icon: '🖥️', label: 'عرض تقديمي' },
-  { to: '/chat', icon: '💬', label: 'محادثة', disabled: false },
-  { to: '/referrals', icon: '🎁', label: 'ادعُ أصدقاءك' },
-  { to: '/research', icon: '📚', label: 'بحث أكاديمي', planned: true },
-  { to: '/questions', icon: '🔢', label: 'حل المسائل', planned: true },
-  { to: '/history', icon: '🕐', label: 'السجل' },
-];
-
-export function AppShell({ children }: AppShellProps) {
-  const { student, logout, isAuthenticated } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+export function AppShell({ children }: { children?: ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
+  const [collapsed, setCollapsed] = useState(readCollapsed);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+  // Persist the desktop collapse preference.
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
+    } catch {
+      /* storage unavailable — ignore */
+    }
+  }, [collapsed]);
+
+  // Close the mobile drawer whenever the route changes.
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  // Close the mobile drawer with Escape.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
+
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: () => conversationsApi.list(),
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+  });
+
+  const sidebarConversations: { id: string; title: string }[] = conversations.map((c) => ({
+    id: c.id,
+    title: c.title ?? 'محادثة بدون عنوان',
+  }));
+
+  const location_activeId = location.pathname.startsWith('/chat/')
+    ? location.pathname.split('/')[2]
+    : null;
+
+  const toggleCollapsed = () => {
+    if (window.innerWidth <= 768) {
+      setMobileOpen((o) => !o);
+    } else {
+      setCollapsed((c) => !c);
+    }
   };
+  const closeMobile = () => setMobileOpen(false);
 
   return (
-    <div className="app-shell" dir="rtl">
-      <SkipLink />
-      {/* Right sidebar */}
-      <aside className="app-shell__sidebar" aria-label="القائمة الرئيسية">
-        {/* Brand */}
-        <div className="sidebar__brand">
-          <Link to="/" className="brand-mark" aria-label="Spetser AI - الصفحة الرئيسية">
-            <div className="brand-mark__icon" aria-hidden="true">س</div>
-            <div>
-              <div className="brand-mark__name">Spetser AI</div>
-              <div className="brand-mark__subtitle">مساعدك الأكاديمي</div>
-            </div>
-          </Link>
+    <div
+      className={`app-shell${collapsed ? ' app-shell--collapsed' : ''}`}
+      data-sidebar-open={mobileOpen ? 'true' : undefined}
+    >
+      {/* ── Mobile top bar with hamburger ─────────────────────────────── */}
+      <header className="app-shell__topbar">
+        <button
+          type="button"
+          className="icon-btn app-shell__menu-btn"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? 'إظهار القائمة' : 'إخفاء القائمة'}
+          title={collapsed ? 'إظهار القائمة' : 'إخفاء القائمة'}
+          aria-expanded={!collapsed && !mobileOpen}
+        >
+          <Menu size={20} aria-hidden="true" />
+        </button>
+
+        <div className="app-shell__topbar-title">
+          <span className="brand-mark__name">Spetser AI</span>
         </div>
 
-        {/* Navigation */}
-        <nav className="sidebar__nav" aria-label="التنقل">
-          {NAV_ITEMS.map((item) => (
-            item.planned ? (
-              <div
-                key={item.to}
-                className="sidebar__nav-item"
-                style={{ opacity: 0.45, cursor: 'not-allowed' }}
-                aria-disabled="true"
-                title="قريباً"
-              >
-                <span aria-hidden="true">{item.icon}</span>
-                <span>{item.label}</span>
-                <span className="badge badge--muted" style={{ marginInlineStart: 'auto', fontSize: '10px' }}>
-                  قريباً
-                </span>
-              </div>
-            ) : (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `sidebar__nav-item${isActive ? ' sidebar__nav-item--active' : ''}`
-                }
-              >
-                <span aria-hidden="true">{item.icon}</span>
-                <span>{item.label}</span>
-              </NavLink>
-            )
-          ))}
-        </nav>
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm app-shell__new-chat-btn"
+          onClick={() => navigate('/chat')}
+        >
+          <span className="sr-only">محادثة جديدة</span>
+          <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      </header>
 
-        {/* Footer */}
-        <div className="sidebar__footer">
-          {isAuthenticated && student ? (
-            <div className="flex flex-col gap-2">
-              {/* Credit balance */}
-              <div className="credit-badge" aria-label={`رصيدك: ${student.credit_balance} نقطة`}>
-                <span aria-hidden="true">⚡</span>
-                <span>{student.credit_balance.toFixed(0)} نقطة</span>
-              </div>
-              {/* Student name */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-secondary" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {student.display_name || student.email}
-                </span>
-                <button
-                  className="btn btn--ghost btn--sm"
-                  onClick={handleLogout}
-                  aria-label="تسجيل الخروج"
-                >
-                  خروج
-                </button>
-              </div>
-              {/* Developer badge */}
-              {(student.role === 'developer' || student.role === 'admin' || student.role === 'superadmin') && (
-                <Link to="/admin" className="btn btn--secondary btn--sm btn--full">
-                  لوحة التحكم
-                </Link>
-              )}
-            </div>
-          ) : (
-            <Link to="/login" className="btn btn--primary btn--full">
-              تسجيل الدخول
-            </Link>
-          )}
-        </div>
-      </aside>
+      {/* ── Sidebar ───────────────────────────────────────────────────── */}
+      {/* Desktop: always in the layout, collapses to a strip. Mobile: drawer. */}
+      <AppSidebar
+        conversations={sidebarConversations}
+        activeId={location_activeId}
+        onSelect={(id) => navigate(`/chat/${id}`)}
+        onNewChat={() => navigate('/chat')}
+      />
 
-      {/* Main content area */}
-      <div className="app-shell__main">
-        {/* Top bar */}
-        <header className="app-shell__topbar" role="banner">
-          <h1 className="sr-only">Spetser AI</h1>
-          {/* Breadcrumb / page context will be injected by routes */}
-          <div style={{ flex: 1 }} />
-          <button
-            className="icon-btn"
-            onClick={toggleTheme}
-            aria-label={theme === 'light' ? 'الوضع الليلي' : 'الوضع النهاري'}
-            title={theme === 'light' ? 'الوضع الليلي' : 'الوضع النهاري'}
-          >
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
-          {isAuthenticated && student && (
-            <div className="credit-badge">
-              <span aria-hidden="true">⚡</span>
-              <span>{student.credit_balance.toFixed(0)}</span>
-            </div>
-          )}
-        </header>
+      {/* ── Mobile overlay ────────────────────────────────────────────── */}
+      {mobileOpen && (
+        <div
+          className="app-shell__overlay"
+          onClick={closeMobile}
+          aria-hidden="true"
+        />
+      )}
 
-        {/* Page content */}
-        <main className="app-shell__content" id="main-content">
-          {children}
-        </main>
-      </div>
+      {/* ── Main content ──────────────────────────────────────────────── */}
+      <main className="app-shell__content">
+        {children ?? <Outlet />}
+      </main>
     </div>
   );
 }

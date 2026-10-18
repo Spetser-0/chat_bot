@@ -1,61 +1,56 @@
 /**
  * pages/HomePage.tsx
  * ────────────────────
- * Student home — calm academic workspace, Arabic-first.
- * Features: feature selection, recent requests, credit display.
+ * Chat-first home: greeting, floating quick-action chips, the composer and a
+ * grid of the latest conversations.
  */
+import { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/useAuth';
+import { Composer } from '../components/chat/Composer';
+import { QuickActions } from '../components/chat/QuickActions';
+import { useChat } from '../hooks/useChat';
+import { conversationsApi } from '../api/conversations';
+import type { QuickActionId } from '../lib/quickActions';
 
-interface Feature {
-  id: string;
-  icon: string;
-  title: string;
-  description: string;
-  href: string;
-  available: boolean;
-  accent?: boolean;
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return 'الآن';
+  if (minutes < 60) return `قبل ${minutes} د`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `قبل ${hours} س`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `قبل ${days} يوم`;
+  return new Date(iso).toLocaleDateString('ar');
 }
 
-const FEATURES: Feature[] = [
-  {
-    id: 'presentation',
-    icon: '🖥️',
-    title: 'عرض تقديمي',
-    description: 'أنشئ عروضاً تقديمية أكاديمية احترافية بالعربية أو الإنجليزية',
-    href: '/presentations/new',
-    available: true,
-    accent: true,
-  },
-  {
-    id: 'chat',
-    icon: '💬',
-    title: 'محادثة أكاديمية',
-    description: 'اطرح أسئلتك واحصل على شرح واضح لأي موضوع دراسي',
-    href: '/chat',
-    available: true,
-  },
-  {
-    id: 'research',
-    icon: '📚',
-    title: 'مساعد البحث',
-    description: 'أنشئ أوراقاً بحثية أكاديمية بمصادر موثّقة',
-    href: '/research',
-    available: false,
-  },
-  {
-    id: 'questions',
-    icon: '🔢',
-    title: 'حل المسائل',
-    description: 'احل المسائل الرياضية والعلمية خطوة بخطوة',
-    href: '/questions',
-    available: false,
-  },
-];
+const QUICK_LABELS: Record<QuickActionId, string> = {
+  presentation: 'إنشاء عرض تقديمي',
+  math: 'حل مسائل رياضية',
+  report: 'كتابة بحث / تقرير',
+};
 
 export function HomePage() {
   const { student, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [quickAction, setQuickAction] = useState<QuickActionId | null>(null);
+
+  const chat = useChat(
+    useCallback(
+      (id: string) => navigate(`/chat/${id}`, { replace: true }),
+      [navigate],
+    ),
+  );
+
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: () => conversationsApi.list(),
+    enabled: isAuthenticated,
+  });
+
 
   if (isLoading) {
     return (
@@ -65,111 +60,73 @@ export function HomePage() {
     );
   }
 
+  const latest = conversations.slice(0, 4);
+  const greeting = isAuthenticated && student
+    ? `أهلاً، ${student.display_name || 'بك'}`
+    : 'مرحباً بك';
+
   return (
-    <div className="fade-in">
-      {/* Hero */}
-      <section aria-labelledby="hero-heading" style={{ marginBottom: 'var(--space-8)' }}>
-        {isAuthenticated && student ? (
-          <>
-            <h2 id="hero-heading" className="section-title">
-              أهلاً، {student.display_name || 'بك'} 👋
-            </h2>
-            <p className="section-subtitle">
-              مساعدك الأكاديمي جاهز. ماذا تريد أن تنجز اليوم؟
-            </p>
-          </>
-        ) : (
-          <>
-            <h2 id="hero-heading" style={{ fontSize: 'var(--text-2xl)', fontWeight: 'var(--font-semibold)', color: 'var(--color-ink)', marginBottom: 'var(--space-3)' }}>
-              مساعدك الأكاديمي الذكي
-            </h2>
-            <p className="section-subtitle" style={{ maxWidth: 480, marginBottom: 'var(--space-6)' }}>
-              Spetser AI يساعدك في إنشاء العروض التقديمية والأبحاث الأكاديمية وحل المسائل بأسلوب واضح وموثوق.
-            </p>
-            <div className="flex gap-3">
-              <Link to="/register" className="btn btn--primary">
-                ابدأ مجاناً
-              </Link>
-              <Link to="/login" className="btn btn--secondary">
-                تسجيل الدخول
-              </Link>
-            </div>
-          </>
-        )}
-      </section>
-
-      {/* Feature grid */}
-      <section aria-labelledby="features-heading" style={{ marginBottom: 'var(--space-8)' }}>
-        <h3 id="features-heading" className="sr-only">الميزات المتاحة</h3>
-        <div className="feature-grid">
-          {FEATURES.map((feature) => (
-            <FeatureCard
-              key={feature.id}
-              feature={feature}
-              onClick={() => {
-                if (!isAuthenticated) {
-                  navigate('/login');
-                  return;
-                }
-                if (feature.available) {
-                  navigate(feature.href);
-                }
-              }}
-            />
-          ))}
+    <div className="fade-in home">
+      {/* ── Hero / composer ─────────────────────────────────────────── */}
+      <section className="home__hero" aria-labelledby="home-heading">
+        <div className="home__mark" aria-hidden="true">
+          <Sparkles size={34} strokeWidth={1.6} />
         </div>
+        <h1 id="home-heading" className="home__heading">{greeting}</h1>
+        <p className="home__subtitle">اسأل أي شيء، أو ابدأ من أحد الأزرار بالأسفل</p>
+
+        <QuickActions active={quickAction} onChange={setQuickAction} />
+        <Composer
+          onSend={(text) => chat.send(text)}
+          onStop={chat.stop}
+          isStreaming={chat.isStreaming}
+          modeLabel={quickAction ? QUICK_LABELS[quickAction] : null}
+          onClearMode={() => setQuickAction(null)}
+        />
+
       </section>
 
-      {/* Recent activity placeholder */}
+      {/* ── Latest chats ────────────────────────────────────────────── */}
       {isAuthenticated && (
-        <section aria-labelledby="recent-heading">
-          <div className="flex items-center justify-between" style={{ marginBottom: 'var(--space-4)' }}>
-            <h3 id="recent-heading" className="text-base font-semibold text-primary">
-              الطلبات الأخيرة
-            </h3>
+        <section aria-labelledby="home-latest" className="home__latest">
+          <div className="flex items-center justify-between" style={{ marginBottom: 'var(--space-3)' }}>
+            <h2 id="home-latest" className="home__section-title">أحدث المحادثات</h2>
             <Link to="/history" className="btn btn--ghost btn--sm">
               عرض الكل
             </Link>
           </div>
-          <div className="empty-state card" style={{ padding: 'var(--space-8)' }}>
-            <div className="empty-state__icon" aria-hidden="true">📂</div>
-            <div className="empty-state__title">لا يوجد طلبات بعد</div>
-            <div className="empty-state__desc">
-              ابدأ بإنشاء عرض تقديمي أو طرح سؤال لترى نتائجك هنا.
+
+          {latest.length === 0 ? (
+            <div className="empty-state card">
+              <div className="empty-state__icon" aria-hidden="true"><Sparkles size={34} /></div>
+              <div className="empty-state__title">لا توجد محادثات بعد</div>
+              <div className="empty-state__desc">
+                ابدأ بطرح سؤال أو إنشاء عرض تقديمي لترى نتائجك هنا.
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="feature-grid">
+              {latest.map((c) => (
+                <Link
+                  key={c.id}
+                  to={`/chat/${c.id}`}
+                  className="feature-card"
+                  aria-label={`فتح المحادثة ${c.title}`}
+                >
+                  <div className="feature-card__icon" aria-hidden="true">
+                    <Sparkles size={20} />
+                  </div>
+                  <div className="feature-card__title">{c.title}</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="feature-card__desc">{timeAgo(c.updated_at)}</span>
+                    <ArrowLeft size={14} aria-hidden="true" className="text-muted" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       )}
     </div>
-  );
-}
-
-interface FeatureCardProps {
-  feature: Feature;
-  onClick: () => void;
-}
-
-function FeatureCard({ feature, onClick }: FeatureCardProps) {
-  return (
-    <button
-      className={`feature-card${!feature.available ? ' feature-card--disabled' : ''}`}
-      onClick={onClick}
-      disabled={!feature.available}
-      aria-disabled={!feature.available}
-      aria-label={`${feature.title}${!feature.available ? ' — قريباً' : ''}`}
-      type="button"
-    >
-      <div className="feature-card__icon" aria-hidden="true">{feature.icon}</div>
-      <div className="flex items-center gap-2">
-        <span className="feature-card__title">{feature.title}</span>
-        {feature.accent && feature.available && (
-          <span className="badge badge--new">جديد</span>
-        )}
-        {!feature.available && (
-          <span className="badge badge--muted">قريباً</span>
-        )}
-      </div>
-      <p className="feature-card__desc">{feature.description}</p>
-    </button>
   );
 }

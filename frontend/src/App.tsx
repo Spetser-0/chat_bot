@@ -6,6 +6,7 @@ import { useAuth } from './contexts/useAuth';
 import { AppShell } from './components/AppShell';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { HomePage } from './pages/HomePage';
+import { SettingsPage } from './pages/SettingsPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ChatPage } from './pages/ChatPage';
@@ -109,6 +110,7 @@ export function App() {
                 } />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/chat/:conversationId" element={<ChatPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/history" element={
                   <div className="empty-state">
                     <div className="empty-state__icon">🕐</div>

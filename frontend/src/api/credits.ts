@@ -34,4 +34,9 @@ export const creditsApi = {
     const res = await apiClient.get('/credits/history', { params: { limit, offset } });
     return extractData<HistoryResponse>(res);
   },
+
+  async grantTestCredits(): Promise<BalanceResponse> {
+    const res = await apiClient.post('/credits/grant');
+    return extractData<BalanceResponse>(res);
+  },
 };

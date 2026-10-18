@@ -51,6 +51,32 @@ async def lifespan(app: FastAPI):
         except Exception:
             logger.warning("Development database initialization skipped")
 
+        # Auto-promote the configured developer account to developer role.
+        try:
+            from sqlalchemy import select
+            from app.models.student import Student
+            from app.db.session import get_session_factory
+
+            factory = get_session_factory()
+            async with factory() as db:
+                result = await db.execute(
+                    select(Student).where(Student.email == settings.developer_email)
+                )
+                dev = result.scalar_one_or_none()
+                if dev and dev.role != "developer":
+                    dev.role = "developer"
+                    await db.commit()
+                    logger.info("Developer account promoted", email=dev.email)
+                elif dev:
+                    logger.info("Developer account already configured", email=dev.email)
+                else:
+                    logger.warning(
+                        "Developer email not found in database — register it first",
+                        email=settings.developer_email,
+                    )
+        except Exception as exc:
+            logger.warning("Developer role assignment failed", error=str(exc))
+
     yield
     await close_rate_limit_store()
     logger.info("Spetser AI shutting down")

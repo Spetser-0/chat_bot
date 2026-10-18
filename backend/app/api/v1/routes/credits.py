@@ -11,6 +11,7 @@ POST /api/v1/credits/admin/adjust     → admin-only manual adjustment,
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_active_student, get_admin
 from app.core.errors import NotFoundError
 from app.db.session import get_db
+from app.models.credit_ledger import LedgerEntryType
 from app.models.student import Student
 from app.schemas.credit import (
     AdminAdjustRequest,
@@ -71,6 +73,23 @@ async def get_history(
             created_at=r.created_at.isoformat(),
         ) for r in rows],
         total=total,
+    )
+
+
+@router.post("/grant", response_model=BalanceResponse)
+async def grant_test_credits(
+    student: Student = Depends(get_active_student),
+    db: AsyncSession = Depends(get_db),
+):
+    """Development-only: grant 300 test credits to the current student."""
+    credits = CreditService(db, student)
+    await credits.add_credits(
+        Decimal("300"),
+        entry_type=LedgerEntryType.GRANT,
+        description="رصيد تجريبي (تطوير)",
+    )
+    return BalanceResponse(
+        balance=await credits.get_balance(), credits_per_usd=CREDITS_PER_USD,
     )
 
 
