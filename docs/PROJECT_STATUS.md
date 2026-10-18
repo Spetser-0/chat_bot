@@ -10,9 +10,10 @@
 - [x] 0.3 Backup branch created
 - [x] 0.4 Documentation structure initialized
 - [x] 1.1 Security reconnaissance, critical file analysis, and attack surface mapping complete
+- [/] 1.2 Vulnerability hunting — automated scans (Scan A: SQL Injection Scan complete — 0 vulnerabilities)
 
 ### Next Steps
-1. Phase 1, Step 1.2: Vulnerability Hunting & Static Security Checks
+1. Phase 1, Step 1.2: Vulnerability Hunting — remaining automated scans (XSS, Auth bypass, Hardcoded secrets, RBAC)
 2. Phase 1, Step 1.3: Remediation Planning & Verification
 3. Phase 1, Step 1.4: Security Audit Documentation Finalization
 
