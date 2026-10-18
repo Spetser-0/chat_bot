@@ -12,13 +12,21 @@
   - Fixed test environment isolation in `backend/tests/conftest.py` so local development `.env` cannot leak into unit/integration test runs.
   - Verified test suites: **599 backend tests passing (0 failures)**, frontend lint (0 errors), vitest (8/8 passed), frontend build clean.
 
+- [x] **Step 0.2: Baseline Verification & Migration Round-Trip** ✅ COMPLETE
+  - Frontend checks: `npm run build` (TypeScript + Vite production clean), `npm run lint` (0 errors), `npm run test` (8/8 passed).
+  - Backend checks: `python -m pytest tests/ -q --tb=short` (**599 passed, 0 failures**).
+  - Migration checks: `alembic upgrade head` → `alembic downgrade base` → `alembic upgrade head` round-trip verified.
+  - Fixed `backend/alembic/env.py` to use `settings.async_database_url` with the `asyncpg` driver.
+  - Fixed `backend/alembic/versions/20261005_0202_f2029e7b9acb_phase1_database_foundation.py` (named foreign key constraint `students_referred_by_user_id_fkey` and removed spurious UUID-to-NUMERIC alter_column operations).
+  - Preserved and restored active developer/student database accounts.
+
 ## Current Status
 
-✅ Baseline verified: 599 backend pytest tests passing (0 failures, 345 warnings). Frontend lint 0 errors, vitest 8/8 tests passing, Vite production build successful. Reference design and security skills populated in `.claude/skills/`.
+✅ Complete baseline green: 599 backend pytest tests passing (0 failures), frontend lint 0 errors, vitest 8/8 tests passing, Vite production build clean. Database migration round-trip (`upgrade head` / `downgrade base` / `upgrade head`) fully verified on PostgreSQL.
 
 ## Last Updated
 
-2026-10-18T18:32:00Z
+2026-10-18T19:08:00Z
 
 ---
 
