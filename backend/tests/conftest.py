@@ -19,6 +19,12 @@ os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 from cryptography.fernet import Fernet  # noqa: E402
 
 os.environ.setdefault("LLM_MASTER_ENCRYPTION_KEY", Fernet.generate_key().decode())
+os.environ.setdefault("CRYPTO_PAYMENT_WEBHOOK_SECRET", "dev-webhook-secret")
+os.environ["SUPABASE_URL"] = ""
+os.environ["SUPABASE_SERVICE_ROLE_KEY"] = ""
+
+from app.core.config import Settings  # noqa: E402
+Settings.model_config["env_file"] = None
 
 import uuid
 from collections.abc import AsyncGenerator

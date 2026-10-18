@@ -2,19 +2,23 @@
 
 ## Current Phase
 
-**Phase 12 - Docker and Deployment** ✅ COMPLETE (12.1–12.6)
+**Comprehensive Refactor v2.0 — Phase 0: Preparation and Environment Setup** 🔄 IN PROGRESS
 
-## Current Lesson
+## Current Step
 
-**Lessons 12.1–12.6** — ✅ ALL DONE. **Phases 0–12 are complete.** Feature-complete per spets.md acceptance criteria.
+- [x] **Step 0.1: Install Skill References into Project** ✅ COMPLETE
+  - Created `.claude/skills/` directory structure.
+  - Installed reference skills: `security-audit`, `ui-ux-pro-max`, `taste-skill`, `emil-design-eng`.
+  - Fixed test environment isolation in `backend/tests/conftest.py` so local development `.env` cannot leak into unit/integration test runs.
+  - Verified test suites: **599 backend tests passing (0 failures)**, frontend lint (0 errors), vitest (8/8 passed), frontend build clean.
 
 ## Current Status
 
-✅ Phases 0–12 complete. Docker: backend multi-stage non-root image, frontend nginx SPA+proxy, compose (postgres/redis/backend/frontend), CI workflow (pytest + frontend lint/test/build + compose config + docker build). Packaging static tests: 13/13 green. Unit suite after Phase 12: 292 passed, 6 known pre-existing failures (student model + production flag) + fixed 404 envelope unit test (was expecting old FastAPI default). Docker not available on this Windows machine — user must run `docker compose up --build` locally (Law 11).
+✅ Baseline verified: 599 backend pytest tests passing (0 failures, 345 warnings). Frontend lint 0 errors, vitest 8/8 tests passing, Vite production build successful. Reference design and security skills populated in `.claude/skills/`.
 
 ## Last Updated
 
-2026-10-09T08:00:00Z
+2026-10-18T18:32:00Z
 
 ---
 
