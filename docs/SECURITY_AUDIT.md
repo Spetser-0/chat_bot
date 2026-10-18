@@ -1,38 +1,264 @@
-# Spetser AI — Security Audit Report
+# Security Audit — Spetser AI
 
-## Summary
-- **Date**: 2026-10-18
-- **Auditor**: Lead Full-Stack Security Engineer & Design Architect
-- **Scope**: Full Stack (Frontend + Backend + Infrastructure)
-- **Methodology**: Inspired by `cloudflare/security-audit-skill` (Reconnaissance, Hunting, Validation)
-- **Status**: Phase 1, Step 1.1 (Reconnaissance) Complete
+## Audit Date: 2026-10-18
+## Auditor: AI Agent (Lead Full-Stack Security Engineer & Design Architect)
+## Scope: Full application (frontend + backend)
 
-## Discovered Findings
+---
+
+## 1. Attack Surface Map
+
+### Public Endpoints (No Auth Required)
+| Endpoint | Method | Purpose | Input Accepted | Data Returned | Risk Level |
+|----------|--------|---------|----------------|---------------|------------|
+| `/api/v1/auth/register` | POST | User registration & referral attribution | `email`, `password`, `display_name`, `?ref` query param, headers (`x-device-fingerprint`) | `StudentPublic` object + `spetser_session` cookie | Medium |
+| `/api/v1/auth/login` | POST | User login | `email`, `password` | `StudentPublic` object + `spetser_session` cookie | High |
+| `/api/v1/health/live` | GET | Liveness probe | None | `{"status": "ok"}` | Low |
+| `/api/v1/health/ready` | GET | Readiness probe (DB, Redis, Providers) | None | System check statuses and latencies | Low |
+| `/api/v1/health/metrics` | GET | Operational counters snapshot | None | Aggregated request counters and latencies | Low |
+| `/api/v1/skills` | GET | Public skills catalogue | None | List of `PublicSkillResponse` (tools as badges, NO prompts) | Low |
+| `/api/v1/skills/{slug}` | GET | Public skill card | Path param `slug` | Single `PublicSkillResponse` | Low |
+| `/api/v1/referrals/{code}/validate` | GET | Referral code validation | Path param `code` | `ReferralValidateResponse` (`valid`, `referrer_display_name`) | Low |
+| `/api/v1/payments/webhook` | POST | Crypto payment webhook ingress | Raw JSON payload, signature headers (`x-signature`, `sign`, `x-nowpayments-sig`) | `{"ok": True, "invoice_status": status}` | High |
+| `/api/v1/deliverables/download/{object_key:path}` | GET | Local storage download | Path `object_key`, query `token` (HMAC signed) | File stream | Medium |
+| `/` | GET | Service root banner | None | Service metadata | Low |
+
+### Protected Endpoints (Auth Required)
+All protected endpoints require an authenticated, active student session via HTTP-only cookie `spetser_session` (or JWT bearer token in Phase 2 core security).
+
+| Endpoint | Method | Auth Type | Purpose | Input Accepted | Data Returned | Risk Level |
+|----------|--------|-----------|---------|----------------|---------------|------------|
+| `/api/v1/auth/logout` | POST | Session Cookie (`get_current_student`) | Session revocation | None | Success message (bumps `session_version`) | Low |
+| `/api/v1/auth/me` | GET | Session Cookie (`get_active_student`) | Current user profile | None | `StudentPublic` profile | Low |
+| `/api/v1/chat/completions` | POST | Session Cookie (`rate_limit_chat` + `get_active_student`) | AI chat completion | `ChatCompletionRequest` (`message`, `conversation_id`, `skill_slug`, `stream`, `regenerate`) | JSON `ChatCompletionResponse` or SSE Event Stream | Medium |
+| `/api/v1/conversations` | GET | Session Cookie (`get_active_student`) | List user conversations | Query `include_archived` (bool) | List of `ConversationSummary` | Low |
+| `/api/v1/conversations/{id}` | GET | Session Cookie (`get_active_student` + ownership) | Conversation detail & history | Path `conversation_id` (UUID) | `ConversationDetail` with messages list | Low |
+| `/api/v1/conversations/{id}` | PATCH | Session Cookie (`get_active_student` + ownership) | Rename or archive conversation | Path `conversation_id`, body `title`, `is_archived` | Updated `ConversationSummary` | Low |
+| `/api/v1/conversations/{id}` | DELETE | Session Cookie (`get_active_student` + ownership) | Hard delete conversation | Path `conversation_id` (UUID) | `ConversationDeleteResponse` | Low |
+| `/api/v1/credits/balance` | GET | Session Cookie (`get_active_student`) | Wallet balance | None | `BalanceResponse` (`balance`, `credits_per_usd`) | Low |
+| `/api/v1/credits/history` | GET | Session Cookie (`get_active_student`) | Paged transaction ledger | Query `limit`, `offset` | `HistoryResponse` (entries, total count) | Low |
+| `/api/v1/credits/grant` | POST | Session Cookie (`get_active_student`) | [TEST ENDPOINT] Grant 300 test credits | None | `BalanceResponse` | Critical (Unprotected in Prod) |
+| `/api/v1/payments/create-invoice` | POST | Session Cookie (`rate_limit_payments` + `get_active_student`) | Create pending crypto invoice | `CreateInvoiceRequest` (`amount_usd`, `currency`, `idempotency_key`, `description`) | `InvoiceResponse` with deposit address & QR URL | Medium |
+| `/api/v1/payments/{invoice_id}/status` | GET | Session Cookie (`get_active_student` + ownership) | Read invoice status | Path `invoice_id` (UUID) | `InvoiceStatusResponse` | Low |
+| `/api/v1/presentations` | POST | Session Cookie (`get_active_student`) | Create presentation generation request | `PresentationCreateRequest` (`topic`, `language`, `slide_count`, `model_tier`, `custom_instructions`), header `Idempotency-Key` | Request confirmation with `request_id` | Medium |
+| `/api/v1/presentations/{request_id}` | GET | Session Cookie (`verify_request_ownership`) | Poll request generation status | Path `request_id` (UUID) | `RequestStatusResponse` | Low |
+| `/api/v1/presentations/{request_id}/deliverable` | GET | Session Cookie (`verify_request_ownership`) | Get deliverable metadata & download URL | Path `request_id` (UUID) | `DeliverableResponse` with short-lived URL | Medium |
+| `/api/v1/presentations/deliverables/{deliverable_id}/download` | GET | Session Cookie (`verify_deliverable_ownership`) | Secure download redirect | Path `deliverable_id` (UUID) | Download URL response | Medium |
+| `/api/v1/referrals/link` | GET | Session Cookie (`get_active_student`) | Get personal referral URL & code | None | `{"referral_link": url, "referral_code": code}` | Low |
+| `/api/v1/referrals/me` | GET | Session Cookie (`get_active_student`) | Referral profile snapshot | None | Detailed referral stats & referrer ID | Low |
+| `/api/v1/referrals/stats` | GET | Session Cookie (`get_active_student`) | Referral performance metrics | None | Total, qualified, and rewarded counts | Low |
+
+### Admin/Developer Endpoints
+All `/api/v1/admin/*` routes share a strict per-user rate limit (`rate_limit_admin`).
+
+| Endpoint | Method | Auth Type | Purpose | Input Accepted | Data Returned | Risk Level |
+|----------|--------|-----------|---------|----------------|---------------|------------|
+| `/api/v1/credits/admin/adjust` | POST | `get_admin` (Admin/Superadmin) | Manual credit adjustment | `AdminAdjustRequest` (`student_id`, `delta`, `reason`, `idempotency_key`) | `AdminAdjustResponse` | High |
+| `/api/v1/admin/analytics/overview` | GET | `get_developer` (Dev/Admin/Superadmin) | Platform health metrics | None | Overview of users, messages, revenue, referrals | Medium |
+| `/api/v1/admin/analytics/llm-usage` | GET | `get_developer` | Token & latency metrics by provider/skill | Query `days` (int 1-365) | Breakdown by provider and skill | Medium |
+| `/api/v1/admin/analytics/revenue` | GET | `get_developer` | Financial status breakdown | None | Revenue aggregates and payment counts | High |
+| `/api/v1/admin/analytics/referrals` | GET | `get_developer` | Referral conversion and liabilities | None | Status counts and pending/paid reward liability | Medium |
+| `/api/v1/admin/audit-logs` | GET | `get_developer` | Audit trail search | Query filters (`actor_id`, `action`, `resource_type`, `resource_id`, dates, limit, offset) | Paged audit log list | Medium |
+| `/api/v1/admin/audit-logs/{id}` | GET | `get_developer` | Single audit record | Path `log_id` (UUID) | Detailed audit log JSON | Low |
+| `/api/v1/admin/metrics` | GET | `get_developer` | Process telemetry snapshot | None | Internal metrics (counters, histograms) | Low |
+| `/api/v1/admin/metrics/reset` | POST | `get_developer` | Reset process telemetry | None | 204 No Content | Medium |
+| `/api/v1/admin/payments` | GET | `get_developer` | List invoices with filters | Query `status`, `user_id`, `limit`, `offset` | Paged invoice list | Medium |
+| `/api/v1/admin/payments/{id}` | GET | `get_developer` | Invoice detail & webhook history | Path `invoice_id` (UUID) | Invoice record + linked webhook events | Medium |
+| `/api/v1/admin/payments/{id}/manual-confirm` | POST | `get_superadmin` (Superadmin Only) | Manually confirm payment and credit wallet | Path `invoice_id`, body `reason` (min 5 chars) | Confirmation result + credited USD | Critical |
+| `/api/v1/admin/providers` | GET | `get_developer` | List AI providers | None | Provider configs with masked API keys (`sk-***abcd`) | Medium |
+| `/api/v1/admin/providers/{slug}` | GET | `get_developer` | Get single provider config | Path `slug` | Provider config with masked API key | Medium |
+| `/api/v1/admin/providers` | POST | `get_admin` | Create AI provider (Fernet encrypted key) | `ProviderCreate` (`name`, `slug`, `model_name`, `api_key`, `base_url`, etc.) | Created provider config (masked key) | High |
+| `/api/v1/admin/providers/{slug}` | PATCH | `get_admin` | Update provider / re-encrypt key | Path `slug`, `ProviderUpdate` body | Updated provider config (masked key) | High |
+| `/api/v1/admin/providers/{slug}` | DELETE | `get_admin` | Delete provider config | Path `slug` | 204 No Content | High |
+| `/api/v1/admin/providers/{slug}/toggle-active` | POST | `get_admin` | Enable or disable provider in routing | Path `slug` | Updated provider config | Medium |
+| `/api/v1/admin/providers/{slug}/test` | POST | `get_admin` | Dry-run configuration validation | Path `slug` | `{"healthy": bool, "error": str | None}` | Medium |
+| `/api/v1/admin/referrals` | GET | `get_developer` | List referrals with fraud data | Query `status`, `referrer_user_id`, `limit`, `offset` | Paged list with emails and fraud flags | Medium |
+| `/api/v1/admin/referrals/{id}/revoke` | POST | `get_admin` | Revoke referral and void reward | Path `referral_id` | Updated referral status | High |
+| `/api/v1/admin/referrals/{id}/release` | POST | `get_admin` | Force-release held reward | Path `referral_id` | Reward release record | High |
+| `/api/v1/admin/referrals/release-due` | POST | `get_admin` | Cron endpoint: release matured rewards | None | `{"released_count": int, "total_amount": str}` | Medium |
+| `/api/v1/admin/skills` | GET | `get_developer` | List all skills (including private) | Query `include_private` | List of `SkillResponse` (includes `system_prompt`) | Medium |
+| `/api/v1/admin/skills/_meta/count` | GET | `get_developer` | Aggregate skill count | None | `{"total": int, "public": int}` | Low |
+| `/api/v1/admin/skills/{id}` | GET | `get_developer` | Skill detail | Path `skill_id` (UUID) | Complete `SkillResponse` | Medium |
+| `/api/v1/admin/skills` | POST | `get_admin` | Create new skill with tools | `SkillCreate` (`name`, `slug`, `system_prompt`, `temperature`, `tools`, etc.) | Created `SkillResponse` | High |
+| `/api/v1/admin/skills/{id}` | PATCH | `get_admin` | Update skill configuration | Path `skill_id`, `SkillUpdate` body | Updated `SkillResponse` | High |
+| `/api/v1/admin/skills/{id}` | DELETE | `get_admin` | Delete skill | Path `skill_id` | 204 No Content | High |
+| `/api/v1/admin/skills/{id}/test` | POST | `get_admin` | Dry-run test skill prompt | Path `skill_id`, `SkillTestRequest` (`sample_message`) | `SkillTestResponse` with mock or provider output | Medium |
+| `/api/v1/admin/users` | GET | `get_developer` | Search & list users | Query `q`, `role`, `status`, `limit`, `offset` | Paged user list (passwords excluded) | Medium |
+| `/api/v1/admin/users/{id}` | GET | `get_developer` | User profile detail | Path `user_id` (UUID) | Serialized student profile | Medium |
+| `/api/v1/admin/users/{id}/transactions` | GET | `get_developer` | User credit transactions | Path `user_id`, `limit`, `offset` | Credit ledger records for target user | Medium |
+| `/api/v1/admin/users/{id}/adjust-credits` | POST | `get_admin` | Manually adjust student balance | Path `user_id`, `CreditAdjustRequest` (`amount`, `reason`, `idempotency_key`) | Updated balance | High |
+| `/api/v1/admin/users/{id}/ban` | POST | `get_admin` | Ban user and invalidate all sessions | Path `user_id` | Banned status confirmation | High |
+| `/api/v1/admin/users/{id}/unban` | POST | `get_admin` | Unban user and reset lockouts | Path `user_id` | Active status confirmation | High |
+
+---
+
+## 2. File-by-File Security Analysis
+
+### `backend/app/main.py`
+- **Endpoints Exposed**: Root `GET /`, Starlette error handling middleware, CORS, security headers, rate limiting wrapper.
+- **Authentication / Authorization**: Open root; developer auto-promotion during lifespan when `APP_ENV=development` (`settings.developer_email`).
+- **User Input Accepted**: Route paths, query params, headers (`Origin`, `X-Request-ID`, `Idempotency-Key`).
+- **Data Returned**: Error envelopes (`{"data": null, "error": {"code", "message"}, "request_id": id}`), service info.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/core/config.py`
+- **Endpoints Exposed**: Configuration module (no endpoints).
+- **Authentication / Authorization**: Validates settings on boot via Pydantic; fails fast in production if `LLM_MASTER_ENCRYPTION_KEY`, `CRYPTO_PAYMENT_API_KEY`, or `CRYPTO_PAYMENT_WEBHOOK_SECRET` are missing.
+- **User Input Accepted**: Environment variables.
+- **Data Returned**: Application settings singleton.
+- **Hardcoded Secrets**: None. Default developer email (`ahmdjmt698@gmail.com`) set as default string.
+
+### `backend/app/core/security.py`
+- **Endpoints Exposed**: Cryptographic utility functions.
+- **Authentication / Authorization**: Direct `bcrypt` password hashing (max 72 UTF-8 bytes); JWT HS256 access/refresh tokens; Fernet AES-128-CBC + HMAC secret encryption; constant-time HMAC-SHA512 webhook signature verification.
+- **User Input Accepted**: Passwords, tokens, API key strings, webhook payloads.
+- **Data Returned**: Hashes, signed tokens, encrypted tokens, masked keys.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/services/auth.py` & `auth_abstraction.py`
+- **Endpoints Exposed**: Service logic for session cookies.
+- **Authentication / Authorization**: `URLSafeTimedSerializer` signed cookies; constant-time password verification with dummy hash against unknown users to prevent enumeration; session version tracking for global revocation.
+- **User Input Accepted**: Email, password, cookie tokens.
+- **Data Returned**: `AuthIdentity`, `Student` model instance, signed cookie tokens.
+- **Hardcoded Secrets**: Static dummy password hash `_DUMMY_PASSWORD_HASH` used exclusively for timing attack mitigation.
+
+### `backend/app/api/deps.py` & `backend/app/core/dependencies.py`
+- **Endpoints Exposed**: FastAPI dependency injection functions.
+- **Authentication / Authorization**: Extracts `spetser_session` cookie; verifies against DB; verifies `session_version`; role enforcement gates (`require_admin`, `require_developer`, `require_superadmin`); resource ownership verification (`verify_request_ownership`, `verify_deliverable_ownership`).
+- **User Input Accepted**: Cookies, `X-Dev-Auth` header.
+- **Data Returned**: Authenticated `Student` model.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/api/v1/routes/auth.py`
+- **Endpoints Exposed**: `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/logout`, `/api/v1/auth/me`.
+- **Authentication / Authorization**: `register` and `login` are public (rate limited to 5/min by IP); `logout` and `me` require authenticated student session.
+- **User Input Accepted**: `RegisterRequest` (email, password 8-72 chars with entropy check, display_name, ?ref), `LoginRequest` (email, password).
+- **Data Returned**: `StudentPublic` (id, email, display_name, role, credit_balance, is_premium, referred_by_user_id), HTTP-only session cookie.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/api/v1/routes/chat.py`
+- **Endpoints Exposed**: `/api/v1/chat/completions`.
+- **Authentication / Authorization**: `rate_limit_chat` (20/min + 200/day per user) + `get_active_student`; conversation ownership checked (`conv.user_id == student.id`).
+- **User Input Accepted**: `ChatCompletionRequest` (message, conversation_id, skill_slug, stream, regenerate).
+- **Data Returned**: Stream of SSE events or JSON response with token counts and USD costs.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/api/v1/routes/conversations.py`
+- **Endpoints Exposed**: `GET /api/v1/conversations`, `GET /api/v1/conversations/{id}`, `PATCH /api/v1/conversations/{id}`, `DELETE /api/v1/conversations/{id}`.
+- **Authentication / Authorization**: `get_active_student` + strict user ownership verification on all operations (`conv.user_id == student.id`).
+- **User Input Accepted**: Path param UUIDs, query `include_archived`, body `ConversationUpdateRequest`.
+- **Data Returned**: Conversation summaries and detailed message history.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/api/v1/routes/credits.py`
+- **Endpoints Exposed**: `GET /balance`, `GET /history`, `POST /grant`, `POST /admin/adjust`.
+- **Authentication / Authorization**: `balance` and `history` require active student; `admin/adjust` requires `get_admin`; `grant` requires active student.
+- **User Input Accepted**: Pagination queries, `AdminAdjustRequest` (student_id, delta, reason, idempotency_key).
+- **Data Returned**: Balance amounts, ledger entries, adjustment receipts.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/api/v1/routes/health.py`
+- **Endpoints Exposed**: `GET /live`, `GET /ready`, `GET /metrics`.
+- **Authentication / Authorization**: None (public health checks).
+- **User Input Accepted**: None.
+- **Data Returned**: Health statuses, sanitized operational metrics (high-cardinality paths stripped).
+- **Hardcoded Secrets**: None.
+
+### `backend/app/api/v1/routes/payments.py`
+- **Endpoints Exposed**: `POST /create-invoice`, `GET /{id}/status`.
+- **Authentication / Authorization**: `rate_limit_payments` (10/min) + `get_active_student`; invoice ownership checked.
+- **User Input Accepted**: `CreateInvoiceRequest` (amount_usd, currency, idempotency_key, description).
+- **Data Returned**: Payment URL, cryptocurrency deposit address, invoice status.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/api/v1/routes/presentations.py`
+- **Endpoints Exposed**: `POST /`, `GET /{id}`, `GET /{id}/deliverable`, `GET /deliverables/{id}/download`.
+- **Authentication / Authorization**: Active student; strict ownership validation on request and deliverable.
+- **User Input Accepted**: `PresentationCreateRequest` (topic, language, slide_count, model_tier, instructions), `Idempotency-Key` header (regex validated).
+- **Data Returned**: Request ID, status, signed 1-hour download URLs.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/api/v1/routes/referrals.py`
+- **Endpoints Exposed**: `GET /{code}/validate`, `GET /link`, `GET /me`, `GET /stats`.
+- **Authentication / Authorization**: `validate` is public; all others require `get_active_student`.
+- **User Input Accepted**: Path param `code`.
+- **Data Returned**: Code validity, referrer display name, referral link, referral earnings and conversion stats.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/api/v1/routes/skills.py`
+- **Endpoints Exposed**: `GET /skills`, `GET /skills/{slug}`.
+- **Authentication / Authorization**: Public catalogue.
+- **User Input Accepted**: Path param `slug`.
+- **Data Returned**: `PublicSkillResponse` (name, slug, description, is_premium, tool names). System prompts are strictly excluded.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/api/v1/routes/webhooks.py`
+- **Endpoints Exposed**: `POST /api/v1/payments/webhook`.
+- **Authentication / Authorization**: HMAC-SHA512 webhook signature verification against request headers.
+- **User Input Accepted**: Raw webhook payload and signature headers (`x-signature`, `sign`).
+- **Data Returned**: Webhook status acknowledgment.
+- **Hardcoded Secrets**: Fallback to `"dev-webhook-secret"` when `crypto_payment_webhook_secret` is unset in non-production.
+
+### `backend/app/api/v1/routes/admin/*`
+- **Endpoints Exposed**: 35 administrative routes across users, providers, skills, payments, referrals, analytics, audit logs, and metrics.
+- **Authentication / Authorization**: Stricter per-user rate limit (`rate_limit_admin`) + role gates (`get_developer`, `get_admin`, or `get_superadmin`).
+- **User Input Accepted**: Complex query filters, mutation bodies with mandatory reason strings.
+- **Data Returned**: Sensitive admin telemetry, masked provider credentials, full audit logs.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/models/*`
+- **Security Features**:
+  - `Student.password_hash`: bcrypt hash string.
+  - `AIProvider.api_key_encrypted`: Fernet encrypted base64 ciphertext.
+  - `CreditLedger`: Immutable append-only ledger entries with idempotency keys.
+  - `Referral`: Stores device fingerprints, IPs, and user agents for fraud detection.
+  - `AuditLog`: Immutable action audit trail with correlation IDs.
+- **Hardcoded Secrets**: None.
+
+### `backend/app/middleware/request_id.py`
+- **Endpoints Exposed**: HTTP middleware on all requests.
+- **Authentication / Authorization**: Binds correlation ID from `X-Request-ID` or generates UUIDv4.
+- **User Input Accepted**: `X-Request-ID` header.
+- **Data Returned**: Echoes `X-Request-ID` response header.
+- **Hardcoded Secrets**: None.
+
+### `frontend/src/api/client.ts` & `frontend/src/api/auth.ts`
+- **Security Features**: Axios client configured with `withCredentials: true` (cookies sent securely). Interceptors extract unified API envelope errors.
+- **User Input Accepted**: Form inputs from UI.
+- **Data Returned**: Typed model responses.
+- **Hardcoded Secrets**: None.
+
+---
+
+## 3. Discovered Vulnerabilities & Findings
 
 ### Critical
 | # | File | Line | Vulnerability / Issue | Impact | Fix | Status |
 |---|------|------|-----------------------|--------|-----|--------|
-| SEC-CRIT-01 | `backend/app/api/v1/routes/credits.py` | 79-94 | Unprotected test credit grant endpoint (`POST /credits/grant`) lacks environment check | Any active student in production can grant themselves unlimited 300-credit topups | Add `if not get_settings().is_development: raise AuthorizationError(...)` | Open |
+| **SEC-CRIT-01** | `backend/app/api/v1/routes/credits.py` | 79-94 | Unprotected test credit grant endpoint (`POST /credits/grant`) lacks environment check | Any active student in production can grant themselves unlimited 300-credit topups | Add `if not get_settings().is_development: raise AuthorizationError(...)` | Open |
 
 ### High
 | # | File | Line | Vulnerability / Issue | Impact | Fix | Status |
 |---|------|------|-----------------------|--------|-----|--------|
-| SEC-HIGH-01 | `backend/app/api/deps.py` & `backend/app/services/auth.py` | 52-57, 185-233 | Development auth header bypass (`X-Dev-Auth`) active in dependency tree | If `app_env` is misconfigured as development, attacker can bypass authentication via header | Enforce strict fail-closed guards and explicit environment gating | Open |
+| **SEC-HIGH-01** | `backend/app/api/deps.py` & `backend/app/services/auth.py` | 52-57, 185-233 | Development auth header bypass (`X-Dev-Auth`) active in dependency tree | If `app_env` is misconfigured as development, attacker can bypass authentication via header | Enforce strict fail-closed guards and explicit environment gating | Open |
 
 ### Medium
 | # | File | Line | Vulnerability / Issue | Impact | Fix | Status |
 |---|------|------|-----------------------|--------|-----|--------|
-| SEC-MED-01 | `backend/app/api/v1/routes/auth.py` | 216 | `delete_cookie` in logout missing `secure=True` flag | In HTTPS sessions with secure session cookies, modern browsers may reject deletion, leaving cookie on client | Pass `secure=settings.is_production` to `response.delete_cookie` | Open |
-| SEC-MED-02 | `backend/app/api/v1/routes/developer/providers.py` | 207-236 | Inconsistent RBAC on provider key rotation (`rotate-key` allows `developer` role) | Developers can rotate provider keys without admin/superadmin privilege | Align with `admin/providers.py` RBAC (`require_admin` / `require_superadmin`) | Open |
-| SEC-MED-03 | `backend/app/api/v1/routes/webhooks.py` | 44-46 | Hardcoded fallback webhook secret (`"dev-webhook-secret"`) in non-production | Non-production environments can process forged payment webhooks if secret is unset | Require explicit webhook secret or reject requests when secret is empty | Open |
+| **SEC-MED-01** | `backend/app/api/v1/routes/auth.py` | 216 | `delete_cookie` in logout missing `secure=True` flag | In HTTPS sessions with secure session cookies, modern browsers may reject deletion, leaving cookie on client | Pass `secure=settings.is_production` to `response.delete_cookie` | Open |
+| **SEC-MED-02** | `backend/app/api/v1/routes/developer/providers.py` | 207-236 | Inconsistent RBAC on provider key rotation (`rotate-key` allows `developer` role) | Developers can rotate provider keys without admin/superadmin privilege | Align with `admin/providers.py` RBAC (`require_admin` / `require_superadmin`) | Open |
+| **SEC-MED-03** | `backend/app/api/v1/routes/webhooks.py` | 44-46 | Hardcoded fallback webhook secret (`"dev-webhook-secret"`) in non-production | Non-production environments can process forged payment webhooks if secret is unset | Require explicit webhook secret or reject requests when secret is empty | Open |
 
 ### Low
 | # | File | Line | Vulnerability / Issue | Impact | Fix | Status |
 |---|------|------|-----------------------|--------|-----|--------|
-| SEC-LOW-01 | `backend/app/api/v1/routes/referrals.py` | 31-50 | Unthrottled public referral code validation (`GET /referrals/{code}/validate`) | Attackers can brute-force referral codes to enumerate valid codes and referrer display names | Add rate limiting (`@limiter.limit("30/minute")`) | Open |
-| SEC-LOW-02 | `backend/app/api/v1/routes/presentations.py` | 193 | Route prefix discrepancy for deliverable download | Endpoint is `/api/v1/presentations/deliverables/{id}/download` while docstring states `/api/v1/deliverables/{id}/download` | Align route path or create alias | Open |
+| **SEC-LOW-01** | `backend/app/api/v1/routes/referrals.py` | 31-50 | Unthrottled public referral code validation (`GET /referrals/{code}/validate`) | Attackers can brute-force referral codes to enumerate valid codes and referrer display names | Add rate limiting (`@limiter.limit("30/minute")`) | Open |
+| **SEC-LOW-02** | `backend/app/api/v1/routes/presentations.py` | 193 | Route prefix discrepancy for deliverable download | Endpoint is `/api/v1/presentations/deliverables/{id}/download` while docstring states `/api/v1/deliverables/{id}/download` | Align route path or create alias | Open |
 
-## Architecture & Positive Security Findings
+---
+
+## 4. Architecture & Positive Security Controls
+
 - **Password Security**: Direct `bcrypt` hashing with salt and UTF-8 byte boundary checking (max 72 bytes) prevents hash truncation issues.
 - **Timing Attack Mitigation**: `authenticate_student` runs a dummy `bcrypt` check against unknown emails to prevent timing-based user enumeration.
 - **Provider API Key Protection**: AI provider keys are encrypted at rest using Fernet (AES-128-CBC + HMAC) and only returned masked (`sk-***abcd`) in responses.
@@ -41,8 +267,12 @@
 - **CSRF & Cookie Hardening**: Session cookies use `HttpOnly=True`, `SameSite=Lax`, and `Secure=True` in production.
 - **Session Revocation**: `session_version` integer on Student model ensures immediate revocation of all issued sessions upon ban or logout.
 
-## Recommendations
-1. Gate `POST /api/v1/credits/grant` immediately to ensure it can never be called in staging or production.
-2. Update `delete_cookie` in `auth.py` to match cookie `secure` attribute.
-3. Apply rate limiting to the public referral code validation endpoint.
-4. Align RBAC on developer provider key rotation with admin policies.
+---
+
+## 5. Remediation Recommendations
+
+1. **Gate Credit Grant**: Immediately restrict `POST /api/v1/credits/grant` so that calling it outside development raises `403 Forbidden`.
+2. **Align Cookie Deletion Flags**: Update `delete_cookie` in `auth.py` to supply `secure=settings.is_production` matching the set cookie options.
+3. **Harmonize Provider RBAC**: Ensure provider key mutation/rotation strictly requires `get_admin` / `get_superadmin`.
+4. **Throttle Referral Code Validation**: Apply SlowAPI rate limiting to `GET /api/v1/referrals/{code}/validate`.
+5. **Enforce Webhook Secrets**: Remove fallback `"dev-webhook-secret"` and fail closed if unconfigured.
