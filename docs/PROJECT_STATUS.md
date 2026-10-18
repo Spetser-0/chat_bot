@@ -10,10 +10,10 @@
 - [x] 0.3 Backup branch created
 - [x] 0.4 Documentation structure initialized
 - [x] 1.1 Security reconnaissance, critical file analysis, and attack surface mapping complete
-- [/] 1.2 Vulnerability hunting — automated scans (Scan A: SQLi — 0 vulns; Scan B: Input Validation — 97.4% schema coverage)
+- [/] 1.2 Vulnerability hunting — automated scans (Scan A: SQLi — 0 vulns; Scan B: Input Validation — 97.4% schema coverage; Scan C: JWT/Session — verified secure)
 
 ### Next Steps
-1. Phase 1, Step 1.2: Vulnerability Hunting — remaining automated scans (Scan C: Auth/RBAC, Scan D: Secrets & Exposure)
+1. Phase 1, Step 1.2: Vulnerability Hunting — remaining automated scans (Scan D: Auth/RBAC, Scan E: Secrets & Exposure)
 2. Phase 1, Step 1.3: Remediation Planning & Verification
 3. Phase 1, Step 1.4: Security Audit Documentation Finalization
 

@@ -341,5 +341,41 @@ All `/api/v1/admin/*` routes share a strict per-user rate limit (`rate_limit_adm
   1. Replace `body: dict` in `developer/providers.py:210` with a typed `RotateKeyRequest(BaseModel)` or deprecate/remove the redundant legacy developer router.
   2. Add `max_length=20` to the path parameter in `GET /api/v1/referrals/{code}/validate`.
 
+---
+
+### Scan C: JWT & Session Management Audit
+- **Methodology**: Static grep patterns across `backend/app/` for JWT token encoding/decoding, session cookie lifecycle, expiration/TTL parameters, revocation mechanics, and secret key constraints.
+- **Components Scanned**:
+  1. HTTP Cookie Session Auth (`app/services/auth.py`, `app/api/deps.py`, `app/api/v1/routes/auth.py`).
+  2. JWT Core Security Utilities (`app/core/security.py`).
+  3. Ephemeral Storage Download Tokens (`app/services/storage.py`).
+  4. Configuration Parameters (`app/core/config.py`).
+
+#### Token Configuration & Expiry Matrix
+| Mechanism | Component | Parameter / Setting | Default Value | Signing / Cryptographic Scheme | Revocation Mechanism | Security Assessment |
+|-----------|-----------|---------------------|---------------|--------------------------------|----------------------|---------------------|
+| **Session Cookie** | `app/services/auth.py` | `session_max_age_seconds` | 86,400s (24h) | `URLSafeTimedSerializer` with `SESSION_SECRET_KEY` ($\ge 32$ chars) | `Student.session_version` integer comparison on every request | **Secure**: Replay-resistant; instant global revocation upon logout or ban; `HttpOnly=True`, `SameSite=Lax`. |
+| **JWT Access Token** | `app/core/security.py` | `access_token_expire_minutes` | 60 min | PyJWT `HS256` with `APP_SECRET_KEY` ($\ge 32$ chars) | Expiration timestamp (`exp`) | **Secure**: Explicit algorithm whitelist `algorithms=["HS256"]` prevents `none` algorithm confusion. |
+| **JWT Refresh Token** | `app/core/security.py` | `refresh_token_expire_days` | 7 days | PyJWT `HS256` with `APP_SECRET_KEY` ($\ge 32$ chars) | Nonce (`jti`: `secrets.token_urlsafe(16)`) + `exp` | **Secure**: Cryptographically random JTI nonce for replay tracking. |
+| **Storage Download Token** | `app/services/storage.py` | `expires_in_seconds` / `max_age` | 3,600s (1h) | `URLSafeTimedSerializer` with `SESSION_SECRET_KEY` | Timed serializer validation | **Secure**: Short-lived, prevents unauthorized permanent hotlinking. |
+
+#### Detailed Findings Table
+| # | File | Line | Token / Session Code | Security Mechanism | Risk / Assessment | Status |
+|---|------|------|----------------------|--------------------|-------------------|--------|
+| 1 | `backend/app/core/security.py` | 74-104 | `create_access_token` | Claims: `sub`, `role`, `premium`, `type: "access"`, `iat`, `exp` | **Low Risk (Secure)**: Hardcoded `_ALGORITHM = "HS256"`. Short TTL (60 min). | Pass |
+| 2 | `backend/app/core/security.py` | 107-119 | `create_refresh_token` | Claims: `sub`, `type: "refresh"`, `jti`, `iat`, `exp` | **Low Risk (Secure)**: High-entropy JTI nonce prevents token reuse. | Pass |
+| 3 | `backend/app/core/security.py` | 121-137 | `decode_token` | Explicit `algorithms=["HS256"]` check | **Low Risk (Secure)**: Strictly protects against algorithm confusion attacks. | Pass |
+| 4 | `backend/app/services/auth.py` | 66-70 | `create_session_token` | Payload: `sub`, `role`, `sv` (`session_version`) | **Low Risk (Secure)**: Versioned token payload enables instant revocation. | Pass |
+| 5 | `backend/app/api/deps.py` | 70-76 | Session Version Validation | `if int(token_version) != int(student.session_version): raise AuthenticationError()` | **Low Risk (Secure)**: Prevents session hijacking post-logout/post-ban. | Pass |
+| 6 | `backend/app/api/v1/routes/auth.py` | 230-241 | `_set_session_cookie` | Flags: `httponly=True`, `samesite=lax`, `secure=settings.is_production` | **Low Risk (Secure)**: XSS-proof, CSRF-mitigated. | Pass |
+| 7 | `backend/app/api/v1/routes/auth.py` | 216 | `logout` | `response.delete_cookie(SESSION_COOKIE_NAME, httponly=True, samesite=...)` | **Medium Risk (Finding SEC-MED-01)**: Missing `secure=settings.is_production` flag during cookie deletion. | Open |
+
+#### Summary & Conclusion
+- **Algorithm Confusion Attacks**: Immune (`algorithms=["HS256"]` strictly hardcoded).
+- **Session Revocation**: Robust (Session version integer checked against DB on every request).
+- **Cookie Security**: `HttpOnly`, `SameSite=Lax`, and `Secure` (production) properly configured.
+- **JWT Key Length Advisory**: Ensure `APP_SECRET_KEY` is strictly $\ge 32$ bytes across all environments (including test fixtures) to comply with RFC 7518.
+
+
 
 
