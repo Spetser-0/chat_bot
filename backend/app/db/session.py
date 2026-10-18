@@ -31,7 +31,13 @@ def _make_engine():
         "pool_pre_ping": not is_sqlite,
     }
     if not is_sqlite:
-        kwargs.update(pool_size=5, max_overflow=10)
+        kwargs.update(
+            pool_size=20,
+            max_overflow=10,
+            pool_timeout=30,
+            pool_recycle=1800,
+            pool_pre_ping=True,
+        )
     return create_async_engine(db_url, **kwargs)
 
 

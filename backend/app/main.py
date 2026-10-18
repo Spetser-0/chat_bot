@@ -113,6 +113,14 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(SlowAPIMiddleware)
 
+    # Distributed rate limiter (Phase 4)
+    from app.middleware.rate_limit import RateLimitMiddleware
+    app.add_middleware(
+        RateLimitMiddleware,
+        max_requests=100,
+        window_seconds=60,
+    )
+
     # ── Middleware ─────────────────────────────────────────────────────────
     app.add_middleware(RequestIDMiddleware)
 
@@ -195,6 +203,9 @@ def create_app() -> FastAPI:
                 "request_id": request.headers.get("X-Request-ID"),
             },
         )
+
+    from app.core.exceptions import AppException, app_exception_handler
+    app.add_exception_handler(AppException, app_exception_handler)
 
     @app.exception_handler(SpetserError)
     async def spetser_error_handler(request: Request, exc: SpetserError) -> ORJSONResponse:
