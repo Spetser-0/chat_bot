@@ -285,20 +285,26 @@ All `/api/v1/admin/*` routes share a strict per-user rate limit (`rate_limit_adm
 - **Methodology**: Static grep patterns across `backend/app/` (`*.py`).
 - **Patterns Scanned**:
   1. `execute.*f["']`: String interpolation in database execution calls.
-     - **Result**: 0 matches. Clean.
   2. `text(`: Raw SQL expressions via SQLAlchemy `text()`.
-     - **Result**: 1 match (`backend/app/api/v1/routes/health.py:82`):
-       ```python
-       await db.execute(text("SELECT 1"))
-       ```
-     - **Assessment**: Static constant query for database liveness ping. No user input or dynamic parameter binding. Clean.
-  3. `.format(` combined with SQL keywords (`select`, `insert`, `update`, `delete`):
-     - **Result**: 1 match (`backend/app/services/skill_resolver.py:192`):
-       - Formats LLM system classifier prompt with skill names.
-       - No SQL execution. Clean.
-  4. `%s` string formatting in backend codebase:
-     - **Result**: 4 matches (`backend/app/services/provider_executor.py:209, 228, 242, 257`):
-       - Standard Python logging formatting (`logger.info("... %s ...", ...)`).
-       - No SQL execution. Clean.
-- **SQLi Audit Conclusion**: **PASS (0 SQL injection vulnerabilities found)**. All database queries throughout `spetser-ai` strictly use SQLAlchemy 2.0 ORM expressions (`select()`, `where()`, `func.lower()`) with auto-parameterized bound variables.
+  3. `.format(` combined with SQL keywords (`select`, `insert`, `update`, `delete`).
+  4. `%s`: Python format specifiers in queries or logs.
+  5. Dynamic filter/pattern construction in queries (e.g. `.like()`).
+
+#### Findings Table
+| # | File | Line | Query / Code Snippet | User Input Flows In? | Classification | Assessment |
+|---|------|------|----------------------|----------------------|----------------|------------|
+| 1 | `backend/app/api/v1/routes/health.py` | 82 | `await db.execute(text("SELECT 1"))` | **No** (Static constant string) | **Low (static query)** | Hardcoded static database liveness probe. No parameterization needed. No injection risk. |
+| 2 | `backend/app/services/skill_resolver.py` | 192-194 | `_CLASSIFIER_PROMPT.format(skills="\n".join(f"- {s}" for s in slugs), default=DEFAULT_SKILL_SLUG)` | **No** (Internal skill slugs) | **Low (non-SQL)** | LLM classifier prompt template formatting. Not a database query. No SQL execution. |
+| 3 | `backend/app/services/provider_executor.py` | 209 | `logger.info("Provider call succeeded provider=%s ...", provider, model, ...)` | **No** (Internal telemetry) | **Low (non-SQL)** | Standard Python logger message format. Not a database query. |
+| 4 | `backend/app/services/provider_executor.py` | 228 | `logger.warning("Provider call failed provider=%s ...", ...)` | **No** (Internal telemetry) | **Low (non-SQL)** | Standard Python logger message format. Not a database query. |
+| 5 | `backend/app/services/provider_executor.py` | 242 | `logger.info("Retrying after delay delay_seconds=%.2f provider=%s ...", ...)` | **No** (Internal telemetry) | **Low (non-SQL)** | Standard Python logger message format. Not a database query. |
+| 6 | `backend/app/services/provider_executor.py` | 257 | `logger.error("All provider models exhausted models_tried=%d ...", ...)` | **No** (Internal telemetry) | **Low (non-SQL)** | Standard Python logger message format. Not a database query. |
+| 7 | `backend/app/api/v1/routes/admin/users.py` | 83-84 | `pattern = f"%{q.lower()}%"`<br>`stmt = stmt.where(func.lower(Student.email).like(pattern))` | **Yes** (Query parameter `q`) | **Low (bound variable)** | Query parameter `q` is passed to SQLAlchemy's `.like()` method. SQLAlchemy binds `pattern` as a parameterized bound variable (`:lower_1`). It is not concatenated into the SQL command string. |
+
+#### Summary & Conclusion
+- **Direct User Input into Raw SQL (Critical)**: **0 findings**.
+- **Indirect Input into Raw SQL (High)**: **0 findings**.
+- **Static Queries & Parameterized Bound Variables (Low)**: **7 findings** (all safe).
+- **SQLi Audit Status**: **PASS (0 SQL injection vulnerabilities)**.
+
 
