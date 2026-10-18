@@ -1,0 +1,77 @@
+/* Import design system */
+@import './tokens.css';
+@import './animations.css';
+
+/* === RESET & BASE === */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  transition: background-color var(--transition-base) var(--ease-default),
+              color var(--transition-base) var(--ease-default);
+}
+
+/* RTL Support */
+[dir="rtl"] body {
+  font-family: var(--font-arabic);
+}
+
+/* === FOCUS STYLES === */
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}
+
+/* === SELECTION === */
+::selection {
+  background-color: var(--color-brand-light);
+  color: var(--color-brand);
+}
+
+/* === LINKS === */
+a {
+  color: var(--color-brand);
+  text-decoration: none;
+  transition: color var(--transition-fast) var(--ease-default);
+}
+
+a:hover {
+  color: var(--color-brand-hover);
+}
