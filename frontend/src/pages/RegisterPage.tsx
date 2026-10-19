@@ -42,7 +42,7 @@ export function RegisterPage() {
     setServerError(null);
     try {
       await registerUser(data.email, data.password, data.display_name, refCode);
-      navigate('/', { replace: true });
+      navigate('/verify-email', { state: { email: data.email }, replace: true });
     } catch (err: unknown) {
       setServerError(err instanceof Error ? err.message : 'حدث خطأ أثناء إنشاء الحساب.');
     }

@@ -98,6 +98,50 @@ class Settings(BaseSettings):
     referral_reward_percent: Decimal = Decimal("10")      # % of referred user's payment
     referral_reward_holding_days: int = 7                 # release delay (anti-fraud)
 
+    # ── Email & Verification (SMTP) ──────────────────────
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "noreply@spetser.ai"
+    smtp_tls: bool = True
+
+    # ── Password Reset & Auth Enhancements ───────────────
+    reset_token_secret: str = ""
+    default_new_user_credits: int = 300
+
+    @property
+    def DEBUG(self) -> bool:
+        return self.app_debug or self.app_env != "production"
+
+    @property
+    def SMTP_HOST(self) -> str:
+        return self.smtp_host
+
+    @property
+    def SMTP_PORT(self) -> int:
+        return self.smtp_port
+
+    @property
+    def SMTP_USER(self) -> str:
+        return self.smtp_user
+
+    @property
+    def SMTP_PASSWORD(self) -> str:
+        return self.smtp_password
+
+    @property
+    def SMTP_FROM(self) -> str:
+        return self.smtp_from
+
+    @property
+    def RESET_TOKEN_SECRET(self) -> str:
+        return self.reset_token_secret or self.app_secret_key
+
+    @property
+    def DEFAULT_NEW_USER_CREDITS(self) -> int:
+        return self.default_new_user_credits
+
     @property
     def allowed_origins_list(self) -> list[str]:
         """Parse comma-separated origins string into list."""

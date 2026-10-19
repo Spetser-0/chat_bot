@@ -107,6 +107,9 @@ async def authenticate_student(
     if not verify_password(password, student.password_hash):
         raise AuthenticationError("البريد الإلكتروني أو كلمة المرور غير صحيحة.")
 
+    if not student.is_verified:
+        raise AuthenticationError("البريد الإلكتروني غير مفعّل. يرجى التحقق من بريدك الإلكتروني لإدخال رمز التفعيل.")
+
     if student.status != "active":
         raise AuthorizationError("الحساب موقوف أو معلق. يرجى التواصل مع الدعم.")
 

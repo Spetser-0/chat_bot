@@ -23,11 +23,9 @@ class TestRegister:
             },
         )
         assert response.status_code == 201
+        assert response.json()["requires_verification"] is True
         data = response.json()["data"]
         assert data["email"] == "newuser@test.com"
-        assert data["role"] == "student"
-        # Session cookie must be set
-        assert SESSION_COOKIE_NAME in response.cookies
 
     @pytest.mark.asyncio
     async def test_register_duplicate_email(self, client: AsyncClient):

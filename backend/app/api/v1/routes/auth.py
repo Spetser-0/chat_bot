@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_active_student, get_current_student
-from app.core.errors import ConflictError, ValidationError
+from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.db.session import get_db
 from app.models.referral import Referral, ReferralStatus
 from app.models.student import Student
@@ -28,6 +28,7 @@ from app.services.auth import (
     hash_password,
 )
 from app.services.referral_service import ReferralService
+from app.services.verification_service import verification_service
 from app.core.config import get_settings
 from app.core.logging import get_logger
 
@@ -44,6 +45,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=72)
     display_name: str | None = Field(default=None, max_length=200)
+    name: str | None = Field(default=None, max_length=200, description="Alias for display_name")
     ref: str | None = Field(default=None, max_length=50, description="Referral code")
 
     @field_validator("password")
@@ -54,6 +56,15 @@ class RegisterRequest(BaseModel):
         if len(value) < 8 or len(set(value)) < 4:
             raise ValueError("كلمة المرور ضعيفة جداً")
         return value
+
+
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6)
+
+
+class ResendCodeRequest(BaseModel):
+    email: EmailStr
 
 
 class LoginRequest(BaseModel):
@@ -68,6 +79,7 @@ class StudentPublic(BaseModel):
     role: str
     credit_balance: float
     is_premium: bool = False
+    is_verified: bool = False
     referred_by_user_id: uuid.UUID | None = None
 
     model_config = {"from_attributes": True}
@@ -129,14 +141,16 @@ async def register(
     # Extract device fingerprint from request headers
     device_fingerprint = request.headers.get("x-device-fingerprint")
 
-    # Create student first
+    # Create student first (unverified)
+    effective_name = body.display_name or body.name
     student = Student(
         email=email,
-        display_name=body.display_name,
+        display_name=effective_name,
         password_hash=hash_password(body.password),
         role="student",
         status="active",
-        credit_balance=0.0,
+        credit_balance=float(get_settings().default_new_user_credits),
+        is_verified=False,
         referred_by_user_id=referrer.id if referrer else None,
     )
     db.add(student)
@@ -184,8 +198,78 @@ async def register(
             db.add(referral)
             await db.commit()
 
+    # Initiate email verification
+    await verification_service.initiate_verification(db, student)
+
+    # Note: Session cookie is NOT set until email is verified!
+    return {
+        "message": "Account created. Please check your email for the verification code.",
+        "email": student.email,
+        "requires_verification": True,
+        "data": {
+            "message": "Account created. Please check your email for the verification code.",
+            "email": student.email,
+            "requires_verification": True,
+            "user_id": str(student.id),
+        },
+        "error": None,
+    }
+
+
+@router.post("/verify-email")
+@limiter.limit(AUTH_RATE_LIMIT)
+async def verify_email(
+    request: Request,
+    body: VerifyEmailRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Verify user email with OTP code. Account is only activated if code is correct."""
+    email = body.email.lower().strip()
+    result = await db.execute(select(Student).where(Student.email == email))
+    student = result.scalar_one_or_none()
+
+    if not student:
+        raise NotFoundError("المستخدم غير موجود.")
+
+    await verification_service.verify_code(db, student, body.code)
     _set_session_cookie(response, student)
-    return {"data": StudentPublic.model_validate(student), "error": None}
+    return {
+        "message": "Email verified successfully. Account is now active.",
+        "user_id": str(student.id),
+        "data": {
+            "message": "Email verified successfully. Account is now active.",
+            "user_id": str(student.id),
+            "is_verified": True,
+            "student": StudentPublic.model_validate(student),
+        },
+        "error": None,
+    }
+
+
+@router.post("/resend-code")
+@limiter.limit(AUTH_RATE_LIMIT)
+async def resend_code(
+    request: Request,
+    body: ResendCodeRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Resend a new verification code."""
+    email = body.email.lower().strip()
+    result = await db.execute(select(Student).where(Student.email == email))
+    student = result.scalar_one_or_none()
+
+    if not student:
+        raise NotFoundError("المستخدم غير موجود.")
+
+    await verification_service.resend_code(db, student)
+    return {
+        "message": "A new verification code has been sent.",
+        "data": {
+            "message": "تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.",
+        },
+        "error": None,
+    }
 
 
 @router.post("/login")

@@ -14,6 +14,7 @@ from app.models.request import Request
 from app.models.routing_rule import RoutingRule
 from app.models.source_record import SourceRecord
 from app.models.student import Student
+from app.models.user import User
 
 # Phase 1: New models
 from app.models.ai_provider import AIProvider
@@ -25,6 +26,10 @@ from app.models.reward_transaction import RewardTransaction
 from app.models.skill import Skill
 from app.models.skill_tool import SkillTool
 from app.models.webhook_event import WebhookEvent
+
+# Auth & Admin Extensions
+from app.models.api_key import APIKey
+from app.models.system_settings import SystemSettings
 
 __all__ = [
     # Existing models
@@ -39,6 +44,7 @@ __all__ = [
     "RoutingRule",
     "SourceRecord",
     "Student",
+    "User",
     # Phase 1: New models
     "AIProvider",
     "Conversation",
@@ -49,4 +55,7 @@ __all__ = [
     "Skill",
     "SkillTool",
     "WebhookEvent",
+    # Auth & Admin Extensions
+    "APIKey",
+    "SystemSettings",
 ]

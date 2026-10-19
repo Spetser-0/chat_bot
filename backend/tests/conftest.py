@@ -139,6 +139,7 @@ async def student(db: AsyncSession) -> Student:
         role="student",
         status="active",
         credit_balance=200.0,
+        is_verified=True,
     )
     db.add(s)
     await db.commit()
@@ -158,6 +159,7 @@ async def developer(db: AsyncSession) -> Student:
         role="developer",
         status="active",
         credit_balance=1000.0,
+        is_verified=True,
     )
     db.add(d)
     await db.commit()

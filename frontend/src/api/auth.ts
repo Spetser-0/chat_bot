@@ -47,4 +47,14 @@ export const authApi = {
     const res = await apiClient.get('/auth/me');
     return extractData<Student>(res);
   },
+
+  async verifyEmail(email: string, code: string): Promise<{ message: string; user_id: string; is_verified: boolean; student?: Student }> {
+    const res = await apiClient.post('/auth/verify-email', { email, code });
+    return extractData<{ message: string; user_id: string; is_verified: boolean; student?: Student }>(res);
+  },
+
+  async resendCode(email: string): Promise<{ message: string }> {
+    const res = await apiClient.post('/auth/resend-code', { email });
+    return extractData<{ message: string }>(res);
+  },
 };

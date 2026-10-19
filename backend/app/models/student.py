@@ -85,6 +85,14 @@ class Student(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     last_login_ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
 
+    # ━━━ Email Verification Fields ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    is_verified: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    verification_code: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    verification_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    verification_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+
     # ━━━ Relationships ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     requests: Mapped[list[Request]] = relationship(
         "Request", back_populates="student", lazy="select"

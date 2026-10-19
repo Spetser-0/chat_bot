@@ -21,12 +21,20 @@ export function LoginPage() {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/';
+  const isVerifiedSuccess = (location.state as { verified?: boolean } | null)?.verified;
+  const initialEmail = (location.state as { email?: string } | null)?.email || '';
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: initialEmail,
+      password: '',
+    },
+  });
 
   const onSubmit = async (data: LoginForm) => {
     setServerError(null);
@@ -46,6 +54,19 @@ export function LoginPage() {
         style={{ gap: 'var(--space-4)', display: 'flex', flexDirection: 'column' }}
         noValidate
       >
+        {isVerifiedSuccess && (
+          <div
+            role="status"
+            style={{
+              padding: 'var(--space-3)', borderRadius: 'var(--radius-md)',
+              background: 'var(--color-success-bg)', color: 'var(--color-accent)',
+              fontSize: 'var(--text-sm)', textAlign: 'center', fontWeight: 'var(--font-medium)',
+            }}
+          >
+            🎉 تم تفعيل بريدك الإلكتروني بنجاح! يمكنك الآن تسجيل الدخول.
+          </div>
+        )}
+
         {serverError && (
           <div
             role="alert"
