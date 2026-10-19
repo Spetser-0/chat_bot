@@ -1,1251 +1,85 @@
-Here is the fully rewritten, ultra-detailed, step-by-step English prompt designed for an AI coding agent to execute the comprehensive refactor of Spetser AI:
+هذا برومت مفصل وشامل خطوة بخطوة، مصمم بنفس الأسلوب الاحترافي للبرومتات السابقة، يغطي جميع المتطلبات الخمسة:
 
 ---
 
 ```markdown
-# SPETSER AI — COMPREHENSIVE REFACTOR MASTER PROMPT
-# Version: 2.0 | Language: English | Execution Mode: Autonomous Step-by-Step
+# SPETSER AI — AUTHENTICATION & DEVELOPER PANEL FEATURES PROMPT
+# Version: 1.0 | Execution Mode: Autonomous Step-by-Step
 
 ==================================================
 SECTION 0: YOUR IDENTITY AND AUTHORITY
 ==================================================
 
-You are the **Lead Full-Stack Security Engineer and Design Architect** for the project `spetser-ai`. You have been granted full authority to:
+You are the **Senior Full-Stack Engineer** for the project `spetser-ai`. You are tasked with implementing five critical features:
 
-- Read, write, create, and delete files in the project repository.
-- Execute terminal commands (npm, python, git, curl, grep, mkdir, cp, mv).
-- Run tests, builds, and linters.
-- Create and modify documentation files.
-- Make architectural decisions when the instructions are ambiguous.
-- Stop and report if you encounter a blocking issue that cannot be resolved safely.
+1. **Password visibility toggle** (eye icon) in Login and Register forms.
+2. **Email verification with OTP** during account registration.
+3. **Forgot Password flow** with email verification and password reset.
+4. **Developer Panel** for managing API keys with custom commands/prompts.
+5. **Default Credits Control** for new user accounts.
+
+You have full authority to:
+- Read, write, create, and modify files.
+- Execute terminal commands (npm, python, git, alembic).
+- Run tests and builds.
+- Make architectural decisions when ambiguous.
 
 You must NOT:
-- Delete existing passing tests without replacement.
-- Hardcode secrets, API keys, or credentials anywhere in source code.
-- Skip any phase or sub-step without explicit user approval.
-- Mark a task as complete if any test is failing.
-- Introduce breaking changes without documenting them.
+- Hardcode secrets or API keys.
+- Store OTP codes or passwords in plain text.
+- Skip any step or sub-task.
+- Proceed if any test fails.
 
 ==================================================
-SECTION 1: PROJECT CONTEXT AND CURRENT STATE
+SECTION 1: EXECUTION PROTOCOL (MANDATORY)
 ==================================================
 
-**Project Name:** Spetser AI
-**Description:** An Arabic-first educational AI platform for university and school students, initially focused on Libya.
-**Tech Stack:**
-- Backend: Python 3.11+, FastAPI, SQLAlchemy (async), Alembic, PostgreSQL
-- Frontend: TypeScript, React (Vite or Next.js), Tailwind CSS
-- Testing: pytest (backend), vitest/jest (frontend)
-- Deployment: Vercel (frontend), Render/Railway (backend)
+For EVERY sub-step, follow this exact sequence:
 
-**Reference Skills Repositories (for methodology inspiration):**
-- `cloudflare/security-audit-skill` — Multi-stage security audit methodology
-- `nextlevelbuilder/ui-ux-pro-max-skill` — Professional UI/UX design patterns
-- `Leonxlnx/taste-skill` — Refined design aesthetics
-- `emilkowalski/skills` — Advanced animations and micro-interactions
-- `usestrix/strix` — Penetration testing and security validation
+1. **ANNOUNCE:** State what you will do.
+2. **INSPECT:** Read existing related files first.
+3. **PLAN:** List files to create/modify.
+4. **IMPLEMENT:** Write the code.
+5. **TEST:** Run relevant tests/builds.
+6. **FIX:** Fix any failures immediately.
+7. **DOCUMENT:** Update `docs/PROJECT_STATUS.md`.
+8. **COMMIT:** Create a descriptive git commit.
+9. **REPORT:** Summarize what was done.
 
-**Current Known State:**
-- 167 backend unit/integration tests passing (0 failures)
-- Frontend lint: 0 errors, 0 warnings
-- Frontend build: 0 TypeScript errors
-- Alembic migrations verified (upgrade head + downgrade base)
+**Error Logging:**
+Log ALL errors in `docs/ERROR_LOG.md` with:
+```
+## [DATE] [FEATURE] [STEP]
+**Error:** [message]
+**Root Cause:** [analysis]
+**Fix:** [solution]
+```
 
 ==================================================
-SECTION 2: EXECUTION PROTOCOL (MANDATORY FOR EVERY STEP)
+SECTION 2: FEATURE 1 — PASSWORD VISIBILITY TOGGLE (EYE ICON)
 ==================================================
 
-For EVERY sub-step in this prompt, you must follow this exact sequence:
-
-**STEP PROTOCOL:**
-1. **ANNOUNCE:** State what you are about to do in one sentence.
-2. **INSPECT:** Read all relevant existing files before making changes.
-3. **PLAN:** List the exact files you will create/modify and why.
-4. **IMPLEMENT:** Write the code or execute the command.
-5. **VERIFY:** Run the relevant tests/builds/lints.
-6. **FIX:** If any test fails, fix it immediately before proceeding.
-7. **DOCUMENT:** Update `docs/PROJECT_STATUS.md` with what was done.
-8. **COMMIT:** Create a git commit with a descriptive message.
-9. **REPORT:** Output a summary of what was accomplished.
-
-**ERROR HANDLING PROTOCOL:**
-- If a command fails: Read the full error output. Identify root cause. Fix. Re-run.
-- If a test fails: Do NOT proceed. Fix the test or the code causing the failure.
-- If you are unsure: Search the web for the specific error. Apply the best solution.
-- If still stuck: STOP and report the issue to the user with full context.
-- Log ALL errors encountered in `docs/ERROR_LOG.md` with format:
-  ```
-  ## [DATE] [PHASE] [STEP]
-  **Error:** [Full error message]
-  **Root Cause:** [Analysis]
-  **Fix Applied:** [What you did]
-  **Prevention:** [How to avoid in future]
-  ```
-
-==================================================
-SECTION 3: PHASE 0 — PREPARATION AND ENVIRONMENT SETUP
-==================================================
-
-**Estimated Duration:** 15-20 minutes
-**Goal:** Ensure the project is in a clean, backed-up, and verified state before any changes.
+**Goal:** Add an eye icon button inside the password input field on Login and Register forms that toggles password visibility.
 
 ---
 
-### Step 0.1: Install Skill References into Project
+### Step 2.1: Create Reusable PasswordInput Component
 
-**Action:** Create the `.claude/skills/` directory structure and populate it with reference skill files.
-
-**Commands to execute:**
-```bash
-# Create the skills directory structure
-mkdir -p .claude/skills/security-audit
-mkdir -p .claude/skills/ui-ux-pro-max
-mkdir -p .claude/skills/taste-skill
-mkdir -p .claude/skills/emil-design-eng
-
-# If the reference repositories are cloned locally, copy them:
-# Adjust paths based on actual local locations
-# cp -r /path/to/security-audit-skill/skills/security-audit .claude/skills/
-# cp -r /path/to/ui-ux-pro-max-skill .claude/skills/ui-ux-pro-max
-# cp -r /path/to/taste-skill .claude/skills/taste-skill
-# cp -r /path/to/emilkowalski-skills/skills/emil-design-eng .claude/skills/
-```
-
-**If repositories are NOT available locally:**
-- Create placeholder README.md files in each skill directory explaining what methodology they represent.
-- Note in `docs/PROJECT_STATUS.md` that skill references need to be cloned.
-
-**Verification:**
-```bash
-ls -la .claude/skills/
-# Expected: 4 directories exist
-```
-
----
-
-### Step 0.2: Verify Current Project Health
-
-**Action:** Run all existing tests and builds to confirm the project is in a healthy state.
-
-**Commands to execute IN ORDER:**
-```bash
-# 1. Frontend checks
-cd frontend
-npm run build
-npm run lint
-npm run test 2>/dev/null || echo "No frontend tests configured"
-
-# 2. Backend checks
-cd ../backend
-python -m pytest tests/ -v --tb=short
-
-# 3. Database migration check
-alembic upgrade head
-alembic downgrade base
-alembic upgrade head
-```
-
-**Expected Results:**
-- Frontend build: 0 errors
-- Frontend lint: 0 errors, 0 warnings
-- Backend tests: ALL PASS (167 expected)
-- Alembic: upgrade/downgrade/upgrade all succeed
-
-**IF ANY CHECK FAILS:**
-- STOP. Do not proceed to Phase 1.
-- Fix the failing check first.
-- Re-run all checks.
-- Only proceed when ALL checks pass.
-
-**Documentation:**
-Update `docs/PROJECT_STATUS.md`:
-```markdown
-## Phase 0.2 — Health Check
-- Date: [CURRENT DATE]
-- Frontend Build: PASS/FAIL
-- Frontend Lint: PASS/FAIL
-- Backend Tests: [X]/167 PASS
-- Alembic Migrations: PASS/FAIL
-- Status: READY FOR REFACTOR / BLOCKED
-```
-
----
-
-### Step 0.3: Create Backup Branch
-
-**Action:** Create a git backup before making any changes.
-
-**Commands:**
-```bash
-git add -A
-git commit -m "chore: pre-refactor backup checkpoint" --allow-empty
-git branch backup-before-refactor-$(date +%Y%m%d-%H%M%S)
-git log --oneline -1
-```
-
-**Verification:**
-```bash
-git branch -a | grep backup
-# Should show the new backup branch
-```
-
----
-
-### Step 0.4: Create Documentation Structure
-
-**Action:** Ensure all documentation files exist.
-
-**Commands:**
-```bash
-mkdir -p docs
-
-# Create files if they don't exist
-touch docs/PROJECT_STATUS.md
-touch docs/ERROR_LOG.md
-touch docs/SECURITY_AUDIT.md
-touch docs/PENETRATION_TEST.md
-touch docs/ARCHITECTURE.md
-touch docs/API.md
-touch docs/SECURITY.md
-touch docs/CHANGELOG.md
-touch docs/DESIGN_TOKENS.md
-```
-
-**Initialize `docs/PROJECT_STATUS.md`:**
-```markdown
-# Spetser AI — Project Status Log
-
-## Current Phase: Phase 0 — Preparation
-## Last Updated: [ISO TIMESTAMP]
-## Status: IN PROGRESS
-
-### Completed Steps
-- [x] 0.1 Skill references directory created
-- [x] 0.2 Health check verified
-- [x] 0.3 Backup branch created
-- [x] 0.4 Documentation structure initialized
-
-### Next Steps
-1. Begin Phase 1: Security Audit
-
-### Test Summary
-- Backend: 167/167 PASS
-- Frontend Build: PASS
-- Frontend Lint: PASS
-
-### Resume Instructions
-- Read this file first.
-- Run: `cd backend && python -m pytest tests/ -q`
-- Continue from: Phase 1, Step 1.1
-```
-
----
-
-### Step 0.5: Commit Phase 0
-
-```bash
-git add -A
-git commit -m "feat(phase-0): preparation complete - skills, health check, backup, docs"
-```
-
-**PHASE 0 COMPLETE. Proceed to Phase 1.**
-
-==================================================
-SECTION 4: PHASE 1 — COMPREHENSIVE SECURITY AUDIT
-==================================================
-
-**Estimated Duration:** 45-60 minutes
-**Goal:** Identify and document all security vulnerabilities across the entire application.
-**Methodology:** Based on `cloudflare/security-audit-skill` — 6-stage audit process.
-
----
-
-### Step 1.1: Reconnaissance — Map the Attack Surface
-
-**Action:** Read and analyze all security-critical files.
-
-**Files to READ (do not modify yet):**
-```
-backend/app/main.py
-backend/app/core/config.py
-backend/app/core/security.py
-backend/app/services/auth_service.py
-backend/app/api/v1/routes/  (ALL files in this directory)
-backend/app/models/  (ALL files)
-backend/app/middleware/  (ALL files, if exists)
-frontend/src/lib/api.ts  (or equivalent API client)
-```
-
-**For each file, document:**
-1. What endpoints are exposed?
-2. What authentication/authorization is applied?
-3. What user input is accepted?
-4. What data is returned?
-5. Are there any hardcoded secrets?
-
-**Create a security map in `docs/SECURITY_AUDIT.md`:**
-```markdown
-# Security Audit — Spetser AI
-
-## Audit Date: [DATE]
-## Auditor: AI Agent
-## Scope: Full application (frontend + backend)
-
-## 1. Attack Surface Map
-
-### Public Endpoints (No Auth Required)
-| Endpoint | Method | Purpose | Risk Level |
-|----------|--------|---------|------------|
-| /api/v1/auth/register | POST | User registration | Medium |
-| /api/v1/auth/login | POST | User login | High |
-| /api/v1/health | GET | Health check | Low |
-
-### Protected Endpoints (Auth Required)
-| Endpoint | Method | Auth Type | Purpose | Risk Level |
-|----------|--------|-----------|---------|------------|
-| /api/v1/chat | POST | JWT Bearer | AI chat | Medium |
-| /api/v1/credits/balance | GET | JWT Bearer | Get balance | Low |
-
-### Admin/Developer Endpoints
-| Endpoint | Method | Auth Type | Purpose | Risk Level |
-|----------|--------|-----------|---------|------------|
-| /api/v1/admin/* | ALL | JWT + Role | Admin ops | Critical |
-```
-
----
-
-### Step 1.2: Vulnerability Hunting — Automated Scans
-
-**Action:** Run grep-based scans to identify potential vulnerabilities.
-
-**A. SQL Injection Scan:**
-```bash
-# Search for string interpolation in SQL queries
-grep -rn "execute.*f\"" backend/app/ --include="*.py" || true
-grep -rn "text(" backend/app/ --include="*.py" || true
-grep -rn "\.format(" backend/app/ --include="*.py" | grep -i "select\|insert\|update\|delete" || true
-grep -rn "%s" backend/app/ --include="*.py" | grep -v "test\|#" || true
-```
-
-**For each finding:**
-- Note the file, line number, and the query.
-- Determine if user input flows into the query.
-- Classify: Critical (direct user input), High (indirect input), Low (static query).
-
-**B. Input Validation Scan:**
-```bash
-# Find endpoints that accept request body without validation
-grep -rn "request\.\|Request\|Body\|Query\|Path" backend/app/api/v1/routes/ --include="*.py" | head -50
-
-# Check if Pydantic models are used for validation
-grep -rn "BaseModel\|validator\|field_validator" backend/app/schemas/ --include="*.py" | head -30
-```
-
-**C. JWT/Session Management Scan:**
-```bash
-# Find all JWT-related code
-grep -rn "jwt\|JWT\|token\|Token\|session\|Session" backend/app/ --include="*.py" | grep -v "test\|__pycache__\|#" | head -40
-
-# Check token expiry configuration
-grep -rn "expire\|EXPIRE\|ttl\|TTL" backend/app/ --include="*.py" | head -20
-```
-
-**D. Access Control Scan:**
-```bash
-# Find all auth dependency usage
-grep -rn "get_active_student\|get_current_user\|require_admin\|get_developer\|Depends" backend/app/api/ --include="*.py" | head -40
-
-# Find endpoints WITHOUT auth dependencies
-grep -rn "@router\.\(get\|post\|put\|delete\|patch\)" backend/app/api/v1/routes/ --include="*.py" | head -40
-```
-
-**E. CORS Configuration Scan:**
-```bash
-grep -rn "CORS\|cors\|allow_origins\|Access-Control" backend/app/ --include="*.py" | head -20
-```
-
-**F. Secrets Exposure Scan:**
-```bash
-# Check for hardcoded secrets
-grep -rn "password\|secret\|api_key\|apikey\|token" backend/app/ --include="*.py" | grep -v "test\|#\|env\|config\|hash\|verify" | head -20
-
-# Check .env is in .gitignore
-cat .gitignore | grep -i "env"
-```
-
-**Document ALL findings in `docs/SECURITY_AUDIT.md` under Section 2.**
-
----
-
-### Step 1.3: Vulnerability Validation
-
-**Action:** For each potential vulnerability found in Step 1.2, validate it.
-
-**For each finding:**
-1. Read the full context (surrounding 20 lines of code).
-2. Trace the data flow: Where does user input enter? Where does it go?
-3. Determine if the vulnerability is exploitable.
-4. Rate severity: Critical / High / Medium / Low / Info.
-5. Propose the minimal fix.
-
-**Validation Template (add to SECURITY_AUDIT.md):**
-```markdown
-### Finding #001
-- **File:** `backend/app/api/v1/routes/chat.py`
-- **Line:** 42
-- **Type:** SQL Injection (Potential)
-- **Code:** `query = f"SELECT * FROM messages WHERE user_id = {user_id}"`
-- **Exploitable:** YES / NO
-- **Severity:** CRITICAL
-- **Impact:** Full database read access
-- **Fix:** Use parameterized query: `select(Message).where(Message.user_id == user_id)`
-- **Status:** OPEN / FIXED
-```
-
----
-
-### Step 1.4: Generate Security Audit Report
-
-**Action:** Compile all findings into a structured report.
-
-**Update `docs/SECURITY_AUDIT.md` with final format:**
-```markdown
-# Security Audit Report — Spetser AI
-
-## Summary
-- **Audit Date:** [DATE]
-- **Auditor:** AI Security Agent
-- **Scope:** Full application (frontend + backend)
-- **Total Findings:** [COUNT]
-- **Critical:** [COUNT]
-- **High:** [COUNT]
-- **Medium:** [COUNT]
-- **Low:** [COUNT]
-
-## Critical Findings
-| # | File | Line | Vulnerability | Impact | Fix | Status |
-|---|------|------|---------------|--------|-----|--------|
-| 001 | ... | ... | ... | ... | ... | OPEN |
-
-## High Findings
-| # | File | Line | Vulnerability | Impact | Fix | Status |
-|---|------|------|---------------|--------|-----|--------|
-
-## Medium Findings
-| # | File | Line | Vulnerability | Impact | Fix | Status |
-|---|------|------|---------------|--------|-----|--------|
-
-## Low Findings
-| # | File | Line | Vulnerability | Impact | Fix | Status |
-|---|------|------|---------------|--------|-----|--------|
-
-## Recommendations (Priority Order)
-1. [Most critical fix first]
-2. [Second most critical]
-3. ...
-
-## Compliance Checklist
-- [ ] No hardcoded secrets in source code
-- [ ] All endpoints have appropriate auth
-- [ ] Input validation on all user inputs
-- [ ] CORS restricted to known origins
-- [ ] JWT tokens have expiry
-- [ ] Password hashing uses bcrypt/argon2
-- [ ] Rate limiting implemented
-- [ ] Error messages don't leak internals
-```
-
----
-
-### Step 1.5: Fix Critical and High Vulnerabilities
-
-**Action:** Fix ALL Critical and High severity findings immediately.
-
-**For each fix:**
-1. Read the vulnerable code.
-2. Write the fix.
-3. Write a test that proves the vulnerability is fixed.
-4. Run the test.
-5. Run the full test suite to ensure no regressions.
-6. Update the finding status in `docs/SECURITY_AUDIT.md` to FIXED.
-
-**Example fix for SQL Injection:**
-```python
-# BEFORE (VULNERABLE):
-query = f"SELECT * FROM messages WHERE user_id = {user_id}"
-result = await db.execute(text(query))
-
-# AFTER (FIXED):
-from sqlalchemy import select
-from app.models.message import Message
-
-stmt = select(Message).where(Message.user_id == user_id)
-result = await db.execute(stmt)
-```
-
-**Example fix for missing input validation:**
-```python
-# BEFORE (VULNERABLE):
-@router.post("/chat")
-async def chat(request: Request):
-    message = await request.json()
-    # No validation!
-
-# AFTER (FIXED):
-from pydantic import BaseModel, Field, field_validator
-
-class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=10000)
-    skill_slug: str | None = Field(None, max_length=100)
-    
-    @field_validator('message')
-    @classmethod
-    def sanitize_message(cls, v: str) -> str:
-        # Remove potential script tags
-        import re
-        v = re.sub(r'<script[^>]*>.*?</script>', '', v, flags=re.DOTALL | re.IGNORECASE)
-        return v.strip()
-
-@router.post("/chat")
-async def chat(request: ChatRequest, current_user = Depends(get_active_student)):
-    # Now request.message is validated and sanitized
-```
-
----
-
-### Step 1.6: Commit Phase 1
-
-```bash
-git add -A
-git commit -m "security(phase-1): comprehensive security audit complete - [X] findings, [Y] fixed"
-```
-
-**Update `docs/PROJECT_STATUS.md`:**
-```markdown
-## Phase 1 — Security Audit COMPLETE
-- Findings: [TOTAL] (Critical: [X], High: [Y], Medium: [Z], Low: [W])
-- Fixed: [COUNT]
-- Remaining: [COUNT] (Medium/Low - scheduled for later)
-- Report: docs/SECURITY_AUDIT.md
-```
-
-**PHASE 1 COMPLETE. Proceed to Phase 2.**
-
-==================================================
-SECTION 5: PHASE 2 — UI/UX DESIGN SYSTEM
-==================================================
-
-**Estimated Duration:** 30-45 minutes
-**Goal:** Establish a complete, consistent design system with tokens, colors, typography, spacing, and animation guidelines.
-**Methodology:** Based on `nextlevelbuilder/ui-ux-pro-max-skill` + `Leonxlnx/taste-skill` + `emilkowalski/skills`.
-
----
-
-### Step 2.1: Create Design Tokens File
-
-**Action:** Create the master design tokens CSS file.
-
-**File to create:** `frontend/src/styles/tokens.css`
-
-**Exact content:**
-```css
-/* ============================================
-   SPETSER AI — DESIGN TOKENS
-   Inspired by: ui-ux-pro-max-skill, taste-skill, emilkowalski/skills
-   ============================================ */
-
-:root {
-  /* ===== BRAND COLORS ===== */
-  --color-brand: #01696D;
-  --color-brand-hover: #017a7f;
-  --color-brand-active: #015a5e;
-  --color-brand-light: #E6F4F4;
-  --color-brand-subtle: #F0FAFA;
-
-  /* ===== SEMANTIC COLORS ===== */
-  --color-success: #000000;
-  --color-error: #DC2626;
-  --color-error-hover: #B91C1C;
-  --color-warning: #F59E0B;
-  --color-info: #3B82F6;
-
-  /* ===== BACKGROUND COLORS (Light Mode) ===== */
-  --color-bg-primary: #F9F8F4;
-  --color-bg-secondary: #FFFFFF;
-  --color-bg-tertiary: #F3F2ED;
-  --color-bg-elevated: #FFFFFF;
-  --color-bg-overlay: rgba(0, 0, 0, 0.5);
-
-  /* ===== TEXT COLORS (Light Mode) ===== */
-  --color-text-primary: #1A1A1A;
-  --color-text-secondary: #6B7280;
-  --color-text-tertiary: #9CA3AF;
-  --color-text-inverse: #FFFFFF;
-  --color-text-brand: #01696D;
-
-  /* ===== BORDER COLORS ===== */
-  --color-border: #E5E7EB;
-  --color-border-hover: #D1D5DB;
-  --color-border-focus: #01696D;
-  --color-border-error: #DC2626;
-
-  /* ===== SPACING SCALE ===== */
-  --space-0: 0px;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
-  --space-20: 80px;
-  --space-24: 96px;
-
-  /* ===== TYPOGRAPHY ===== */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  --font-arabic: 'Noto Sans Arabic', 'Inter', sans-serif;
-
-  --text-xs: 0.75rem;    /* 12px */
-  --text-sm: 0.875rem;   /* 14px */
-  --text-base: 1rem;     /* 16px */
-  --text-lg: 1.125rem;   /* 18px */
-  --text-xl: 1.25rem;    /* 20px */
-  --text-2xl: 1.5rem;    /* 24px */
-  --text-3xl: 1.875rem;  /* 30px */
-  --text-4xl: 2.25rem;   /* 36px */
-
-  --leading-tight: 1.25;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.75;
-
-  --font-normal: 400;
-  --font-medium: 500;
-  --font-semibold: 600;
-  --font-bold: 700;
-
-  /* ===== BORDER RADIUS ===== */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 24px;
-  --radius-full: 9999px;
-
-  /* ===== SHADOWS ===== */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-
-  /* ===== TRANSITIONS ===== */
-  --transition-fast: 150ms;
-  --transition-base: 200ms;
-  --transition-slow: 300ms;
-  --transition-slower: 500ms;
-  --transition-page: 600ms;
-
-  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-in: cubic-bezier(0.4, 0, 1, 1);
-  --ease-out: cubic-bezier(0, 0, 0.2, 1);
-  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-
-  /* ===== Z-INDEX SCALE ===== */
-  --z-base: 0;
-  --z-dropdown: 10;
-  --z-sticky: 20;
-  --z-fixed: 30;
-  --z-modal-backdrop: 40;
-  --z-modal: 50;
-  --z-popover: 55;
-  --z-toast: 60;
-  --z-tooltip: 70;
-
-  /* ===== BREAKPOINTS (for reference) ===== */
-  /* sm: 640px, md: 768px, lg: 1024px, xl: 1280px, 2xl: 1536px */
-
-  /* ===== TOUCH TARGETS ===== */
-  --touch-target-min: 44px;
-  --touch-target-comfortable: 48px;
-}
-
-/* ===== DARK MODE TOKENS ===== */
-[data-theme="dark"] {
-  --color-bg-primary: #0F0E17;
-  --color-bg-secondary: #1A1923;
-  --color-bg-tertiary: #252432;
-  --color-bg-elevated: #2D2C3A;
-  --color-bg-overlay: rgba(0, 0, 0, 0.7);
-
-  --color-text-primary: #F9F8F4;
-  --color-text-secondary: #A09FA8;
-  --color-text-tertiary: #6B7280;
-  --color-text-inverse: #1A1A1A;
-
-  --color-border: #2D2C3A;
-  --color-border-hover: #3D3C4A;
-  --color-border-focus: #01696D;
-
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-}
-
-/* ===== RTL ADJUSTMENTS ===== */
-[dir="rtl"] {
-  --font-sans: 'Noto Sans Arabic', 'Inter', sans-serif;
-}
-```
-
----
-
-### Step 2.2: Create Animation Guidelines
-
-**Action:** Create a CSS file with reusable animation keyframes.
-
-**File to create:** `frontend/src/styles/animations.css`
-
-```css
-/* ============================================
-   SPETSER AI — ANIMATION SYSTEM
-   Based on: emilkowalski/skills methodology
-   ============================================ */
-
-/* === KEYFRAMES === */
-
-@keyframes fadeSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeSlideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes scaleOut {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes messageIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-/* === UTILITY CLASSES === */
-
-.animate-fade-slide-up {
-  animation: fadeSlideUp 0.5s var(--ease-out) both;
-}
-
-.animate-fade-slide-down {
-  animation: fadeSlideDown 0.5s var(--ease-out) both;
-}
-
-.animate-fade-in {
-  animation: fadeIn var(--transition-base) var(--ease-default) both;
-}
-
-.animate-scale-in {
-  animation: scaleIn var(--transition-base) var(--ease-out) both;
-}
-
-.animate-message-in {
-  animation: messageIn 0.3s var(--ease-out) both;
-}
-
-.animate-pulse {
-  animation: pulse 2s var(--ease-default) infinite;
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-/* === STAGGER DELAYS (for lists) === */
-.stagger-1 { animation-delay: 50ms; }
-.stagger-2 { animation-delay: 100ms; }
-.stagger-3 { animation-delay: 150ms; }
-.stagger-4 { animation-delay: 200ms; }
-.stagger-5 { animation-delay: 250ms; }
-.stagger-6 { animation-delay: 300ms; }
-
-/* === REDUCED MOTION === */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-```
-
----
-
-### Step 2.3: Create Design Checklist Document
-
-**Action:** Create a design quality checklist based on taste-skill principles.
-
-**File to create:** `docs/DESIGN_CHECKLIST.md`
-
-```markdown
-# Design Quality Checklist — Spetser AI
-
-## Visual Hierarchy
-- [ ] Primary text: 16px minimum
-- [ ] Headings: h1=24px, h2=20px, h3=18px
-- [ ] Secondary text: 14px
-- [ ] Caption text: 12px minimum
-- [ ] Line height: 1.5 for body, 1.25 for headings
-
-## Color & Contrast
-- [ ] Text contrast ratio ≥ 4.5:1 (WCAG AA)
-- [ ] Large text contrast ratio ≥ 3:1
-- [ ] Brand color (#01696D) used consistently
-- [ ] Error states use #DC2626
-- [ ] Warning states use #F59E0B
-- [ ] Dark mode has equivalent contrast
-
-## Spacing & Layout
-- [ ] Base spacing unit: 8px
-- [ ] Consistent padding: 16px, 24px, 32px
-- [ ] Card border-radius: 12px
-- [ ] Button border-radius: 8px
-- [ ] Input border-radius: 8px
-- [ ] Grid gap: 16px
-
-## Interactions
-- [ ] Hover states on all interactive elements
-- [ ] Focus states visible (keyboard navigation)
-- [ ] Active/pressed states
-- [ ] Disabled states (opacity 0.5 + cursor not-allowed)
-- [ ] Loading states (spinner or skeleton)
-- [ ] Transition duration: 200-300ms
-- [ ] Easing: cubic-bezier(0.4, 0, 0.2, 1)
-
-## Touch & Mobile
-- [ ] Touch targets ≥ 44px
-- [ ] Comfortable touch targets: 48px
-- [ ] No horizontal scroll on mobile
-- [ ] Bottom navigation thumb-friendly
-- [ ] Input fields don't get hidden by keyboard
-
-## Accessibility
-- [ ] ARIA labels on icon-only buttons
-- [ ] Alt text on images
-- [ ] Keyboard navigation works
-- [ ] Screen reader announcements for dynamic content
-- [ ] Color is not the only indicator of state
-
-## RTL Support
-- [ ] Layout flips correctly with dir="rtl"
-- [ ] Icons that indicate direction flip (arrows, chevrons)
-- [ ] Text alignment adjusts
-- [ ] Padding/margin logical properties used
-```
-
----
-
-### Step 2.4: Update Global Styles
-
-**Action:** Create or update the global CSS file to import tokens and animations.
-
-**File to create/update:** `frontend/src/styles/global.css`
-
-```css
-/* Import design system */
-@import './tokens.css';
-@import './animations.css';
-
-/* === RESET & BASE === */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  font-size: 16px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-body {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: var(--leading-normal);
-  color: var(--color-text-primary);
-  background-color: var(--color-bg-primary);
-  transition: background-color var(--transition-base) var(--ease-default),
-              color var(--transition-base) var(--ease-default);
-}
-
-/* RTL Support */
-[dir="rtl"] body {
-  font-family: var(--font-arabic);
-}
-
-/* === FOCUS STYLES === */
-:focus-visible {
-  outline: 2px solid var(--color-border-focus);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
-
-/* === SCROLLBAR === */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: var(--radius-full);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-border-hover);
-}
-
-/* === SELECTION === */
-::selection {
-  background-color: var(--color-brand-light);
-  color: var(--color-brand);
-}
-
-/* === LINKS === */
-a {
-  color: var(--color-brand);
-  text-decoration: none;
-  transition: color var(--transition-fast) var(--ease-default);
-}
-
-a:hover {
-  color: var(--color-brand-hover);
-}
-```
-
----
-
-### Step 2.5: Commit Phase 2
-
-```bash
-git add -A
-git commit -m "design(phase-2): complete design system - tokens, animations, checklist, global styles"
-```
-
-**PHASE 2 COMPLETE. Proceed to Phase 3.**
-
-==================================================
-SECTION 6: PHASE 3 — FRONTEND REBUILD
-==================================================
-
-**Estimated Duration:** 2-3 hours
-**Goal:** Rebuild the frontend component architecture using the design system from Phase 2.
-
----
-
-### Step 3.1: Restructure Frontend Directory
-
-**Action:** Ensure the frontend follows this exact structure.
-
-**Target structure:**
-```
-frontend/src/
-├── components/
-│   ├── ui/                    # Reusable atomic components
-│   │   ├── Button.tsx
-│   │   ├── Input.tsx
-│   │   ├── TextArea.tsx
-│   │   ├── Select.tsx
-│   │   ├── Modal.tsx
-│   │   ├── Toast.tsx
-│   │   ├── Card.tsx
-│   │   ├── Badge.tsx
-│   │   ├── Avatar.tsx
-│   │   ├── Skeleton.tsx
-│   │   ├── Spinner.tsx
-│   │   └── index.ts          # Barrel export
-│   ├── layout/
-│   │   ├── Header.tsx
-│   │   ├── Sidebar.tsx
-│   │   ├── Footer.tsx
-│   │   ├── MainLayout.tsx
-│   │   └── index.ts
-│   ├── chat/
-│   │   ├── ChatWindow.tsx
-│   │   ├── MessageList.tsx
-│   │   ├── MessageBubble.tsx
-│   │   ├── InputBox.tsx
-│   │   ├── TypingIndicator.tsx
-│   │   ├── SkillSelector.tsx
-│   │   └── index.ts
-│   ├── auth/
-│   │   ├── LoginForm.tsx
-│   │   ├── RegisterForm.tsx
-│   │   ├── PasswordInput.tsx
-│   │   ├── EmailVerification.tsx
-│   │   └── index.ts
-│   └── settings/
-│       ├── ProfileSettings.tsx
-│       ├── BillingSettings.tsx
-│       ├── ColorModeSettings.tsx
-│       └── index.ts
-├── pages/
-│   ├── HomePage.tsx
-│   ├── ChatPage.tsx
-│   ├── LoginPage.tsx
-│   ├── RegisterPage.tsx
-│   ├── VerifyEmailPage.tsx
-│   ├── SettingsPage.tsx
-│   └── NotFoundPage.tsx
-├── hooks/
-│   ├── useAuth.ts
-│   ├── useTheme.ts
-│   ├── useToast.ts
-│   ├── useChat.ts
-│   ├── useCredits.ts
-│   └── index.ts
-├── lib/
-│   ├── api.ts
-│   ├── utils.ts
-│   ├── constants.ts
-│   └── types.ts
-├── styles/
-│   ├── tokens.css
-│   ├── animations.css
-│   ├── global.css
-│   └── components/
-│       ├── button.css
-│       ├── input.css
-│       ├── card.css
-│       ├── chat.css
-│       └── modal.css
-├── App.tsx
-└── main.tsx
-```
-
-**Commands:**
-```bash
-cd frontend/src
-
-# Create directories
-mkdir -p components/ui components/layout components/chat components/auth components/settings
-mkdir -p pages hooks lib styles/components
-
-# Create barrel export files
-echo "// UI Components" > components/ui/index.ts
-echo "// Layout Components" > components/layout/index.ts
-echo "// Chat Components" > components/chat/index.ts
-echo "// Auth Components" > components/auth/index.ts
-echo "// Settings Components" > components/settings/index.ts
-echo "// Hooks" > hooks/index.ts
-```
-
----
-
-### Step 3.2: Build Core UI Components
-
-**Action:** Create each atomic UI component with full TypeScript typing, accessibility, and design token usage.
-
-#### 3.2.1 — Button Component
-
-**File:** `frontend/src/components/ui/Button.tsx`
-
-```tsx
-import { ButtonHTMLAttributes, forwardRef } from 'react';
-import { Loader2 } from 'lucide-react';
-
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
-type ButtonSize = 'sm' | 'md' | 'lg';
-
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  isLoading?: boolean;
-  fullWidth?: boolean;
-}
-
-const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'btn--sm',
-  md: 'btn--md',
-  lg: 'btn--lg',
-};
-
-const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'btn--primary',
-  secondary: 'btn--secondary',
-  ghost: 'btn--ghost',
-  danger: 'btn--danger',
-  outline: 'btn--outline',
-};
-
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
-      variant = 'primary',
-      size = 'md',
-      isLoading = false,
-      fullWidth = false,
-      children,
-      className = '',
-      disabled,
-      ...props
-    },
-    ref
-  ) => {
-    return (
-      <button
-        ref={ref}
-        className={[
-          'btn',
-          variantClasses[variant],
-          sizeClasses[size],
-          fullWidth ? 'btn--full-width' : '',
-          isLoading ? 'btn--loading' : '',
-          className,
-        ].filter(Boolean).join(' ')}
-        disabled={disabled || isLoading}
-        aria-busy={isLoading}
-        {...props}
-      >
-        {isLoading && (
-          <Loader2
-            className="btn__spinner"
-            size={size === 'sm' ? 14 : size === 'lg' ? 20 : 16}
-            aria-hidden="true"
-          />
-        )}
-        <span className={isLoading ? 'btn__content btn__content--hidden' : 'btn__content'}>
-          {children}
-        </span>
-      </button>
-    );
-  }
-);
-
-Button.displayName = 'Button';
-```
-
-#### 3.2.2 — Input Component with Password Toggle
-
-**File:** `frontend/src/components/ui/Input.tsx`
+**File to create:** `frontend/src/components/ui/PasswordInput.tsx`
 
 ```tsx
 import { InputHTMLAttributes, forwardRef, useState } from 'react';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface PasswordInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
-  hint?: string;
-  isPassword?: boolean;
-  leftIcon?: React.ReactNode;
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, isPassword = false, leftIcon, className = '', id, ...props }, ref) => {
+export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
+  ({ label, error, id, className = '', ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
-    const inputId = id || `input-${Math.random().toString(36).slice(2)}`;
+    const inputId = id || `password-${Math.random().toString(36).slice(2)}`;
 
     return (
       <div className="input-group">
@@ -1254,174 +88,1123 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <div className={`input-wrapper ${error ? 'input-wrapper--error' : ''} ${className}`}>
-          {leftIcon && <span className="input-wrapper__icon-left">{leftIcon}</span>}
+        <div className={`input-wrapper input-wrapper--password ${error ? 'input-wrapper--error' : ''}`}>
           <input
             ref={ref}
             id={inputId}
-            type={isPassword && !showPassword ? 'password' : 'text'}
+            type={showPassword ? 'text' : 'password'}
             className="input-wrapper__field"
             aria-invalid={!!error}
-            aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
             {...props}
           />
-          {isPassword && (
-            <button
-              type="button"
-              className="input-wrapper__toggle-password"
-              onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              tabIndex={-1}
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          )}
+          <button
+            type="button"
+            className="input-wrapper__toggle-password"
+            onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
         </div>
         {error && (
-          <p id={`${inputId}-error`} className="input-group__error" role="alert">
-            <AlertCircle size={14} aria-hidden="true" />
-            {error}
-          </p>
-        )}
-        {hint && !error && (
-          <p id={`${inputId}-hint`} className="input-group__hint">
-            {hint}
-          </p>
+          <p className="input-group__error" role="alert">{error}</p>
         )}
       </div>
     );
   }
 );
 
-Input.displayName = 'Input';
+PasswordInput.displayName = 'PasswordInput';
 ```
 
-#### 3.2.3 — Toast Notification System
+---
 
-**File:** `frontend/src/components/ui/Toast.tsx`
+### Step 2.2: Create CSS for Password Toggle
 
-```tsx
-import { create } from 'zustand';
-import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
+**File to create/update:** `frontend/src/styles/components/input.css`
 
-type ToastType = 'success' | 'error' | 'warning' | 'info';
-
-interface Toast {
-  id: string;
-  type: ToastType;
-  title: string;
-  message?: string;
+```css
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
-interface ToastStore {
-  toasts: Toast[];
-  addToast: (toast: Omit<Toast, 'id'>) => void;
-  removeToast: (id: string) => void;
-  clearAll: () => void;
+.input-group__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
 }
 
-export const useToastStore = create<ToastStore>((set) => ({
-  toasts: [],
-  addToast: (toast) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    set((state) => ({
-      toasts: [...state.toasts, { ...toast, id }],
-    }));
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-      set((state) => ({
-        toasts: state.toasts.filter((t) => t.id !== id),
-      }));
-    }, 5000);
-  },
-  removeToast: (id) =>
-    set((state) => ({
-      toasts: state.toasts.filter((t) => t.id !== id),
-    })),
-  clearAll: () => set({ toasts: [] }),
-}));
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
 
-const iconMap: Record<ToastType, React.ReactNode> = {
-  success: <CheckCircle size={20} className="toast__icon toast__icon--success" />,
-  error: <XCircle size={20} className="toast__icon toast__icon--error" />,
-  warning: <AlertTriangle size={20} className="toast__icon toast__icon--warning" />,
-  info: <Info size={20} className="toast__icon toast__icon--info" />,
-};
+.input-wrapper__field {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  padding-inline-end: var(--space-12); /* Space for eye icon */
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-base) var(--ease-default),
+              box-shadow var(--transition-base) var(--ease-default);
+  min-height: var(--touch-target-min);
+}
 
-export function ToastContainer() {
-  const { toasts, removeToast } = useToastStore();
+.input-wrapper__field:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-brand-light);
+}
 
-  if (toasts.length === 0) return null;
+.input-wrapper--error .input-wrapper__field {
+  border-color: var(--color-border-error);
+}
 
-  return (
-    <div className="toast-container" role="region" aria-label="Notifications" aria-live="polite">
-      {toasts.map((toast) => (
-        <div key={toast.id} className={`toast toast--${toast.type}`} role="alert">
-          <div className="toast__content">
-            {iconMap[toast.type]}
-            <div className="toast__text">
-              <p className="toast__title">{toast.title}</p>
-              {toast.message && <p className="toast__message">{toast.message}</p>}
-            </div>
-          </div>
-          <button
-            className="toast__close"
-            onClick={() => removeToast(toast.id)}
-            aria-label="Dismiss notification"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      ))}
-    </div>
-  );
+.input-wrapper__toggle-password {
+  position: absolute;
+  inset-inline-end: var(--space-3); /* RTL-aware positioning */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  color: var(--color-text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast) var(--ease-default);
+}
+
+.input-wrapper__toggle-password:hover {
+  color: var(--color-text-primary);
+}
+
+.input-group__error {
+  font-size: var(--text-sm);
+  color: var(--color-error);
 }
 ```
 
 ---
 
-### Step 3.3: Build Chat Components
+### Step 2.3: Update Login Form
 
-**Action:** Create the chat interface components.
+**File to update:** `frontend/src/components/auth/LoginForm.tsx`
 
-#### 3.3.1 — Message Bubble
-
-**File:** `frontend/src/components/chat/MessageBubble.tsx`
+**Action:**
+- Read the existing file.
+- Replace the password `<input>` with `<PasswordInput>`.
+- Add a "Forgot Password" link below the password field:
 
 ```tsx
-import ReactMarkdown from 'react-markdown';
-import { User, Bot } from 'lucide-react';
+import { PasswordInput } from '../ui/PasswordInput';
+import { Link } from 'react-router-dom';
 
-interface MessageBubbleProps {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp?: string;
-  isStreaming?: boolean;
+// Inside the form JSX:
+<PasswordInput
+  label="كلمة المرور"
+  name="password"
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+  placeholder="••••••••"
+  required
+/>
+
+<div className="form__forgot-row">
+  <Link to="/forgot-password" className="link--forgot">
+    نسيت كلمة المرور؟
+  </Link>
+</div>
+```
+
+**CSS for forgot row:**
+```css
+.form__forgot-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
 }
 
-export function MessageBubble({ role, content, timestamp, isStreaming = false }: MessageBubbleProps) {
-  const isUser = role === 'user';
+.link--forgot {
+  font-size: var(--text-sm);
+  color: var(--color-brand);
+  text-decoration: none;
+}
+
+.link--forgot:hover {
+  text-decoration: underline;
+}
+```
+
+---
+
+### Step 2.4: Update Register Form
+
+**File to update:** `frontend/src/components/auth/RegisterForm.tsx`
+
+**Action:**
+- Replace password field with `<PasswordInput>`.
+- Add a password confirmation field using `<PasswordInput>` as well.
+- Validate that both passwords match before submission.
+
+---
+
+### Step 2.5: Test Feature 1
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+**Verify manually:**
+- [ ] Eye icon appears in login password field.
+- [ ] Eye icon appears in register password field.
+- [ ] Clicking toggles between password/text.
+- [ ] Icon position is correct in RTL (Arabic) mode.
+- [ ] Icon position is correct in LTR (English) mode.
+
+**Commit:**
+```bash
+git add -A
+git commit -m "feat(auth): add password visibility toggle with eye icon in login and register"
+```
+
+==================================================
+SECTION 3: FEATURE 2 — EMAIL VERIFICATION WITH OTP
+==================================================
+
+**Goal:** When a user registers, send a random OTP code to their email. The account is only created/activated if the correct code is entered.
+
+---
+
+### Step 3.1: Backend — Create Verification Models
+
+**File to create/update:** `backend/app/models/user.py`
+
+**Add fields to User model:**
+```python
+is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+verification_code: Mapped[str | None] = mapped_column(String(255), nullable=True)  # Store HASHED code
+verification_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+verification_attempts: Mapped[int] = mapped_column(Integer, default=0)
+```
+
+**Create Alembic migration:**
+```bash
+cd backend
+alembic revision --autogenerate -m "add email verification fields to user"
+alembic upgrade head
+```
+
+---
+
+### Step 3.2: Backend — OTP Service
+
+**File to create:** `backend/app/services/verification_service.py`
+
+```python
+"""
+Email verification service for Spetser AI.
+Generates secure OTP codes, hashes them, and verifies user input.
+"""
+import secrets
+import hashlib
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user import User
+from app.core.exceptions import ValidationError, AuthenticationError
+from app.services.email_service import send_verification_email
+
+
+class VerificationService:
+    """Handles OTP generation, storage, and verification."""
+
+    OTP_LENGTH = 6
+    OTP_TTL_MINUTES = 15
+    MAX_ATTEMPTS = 5
+
+    @staticmethod
+    def _hash_code(code: str) -> str:
+        """Hash the OTP before storing (never store plain text)."""
+        return hashlib.sha256(code.encode()).hexdigest()
+
+    @staticmethod
+    def generate_otp() -> str:
+        """Generate a cryptographically secure 6-digit OTP."""
+        return ''.join([str(secrets.randbelow(10)) for _ in range(VerificationService.OTP_LENGTH)])
+
+    async def initiate_verification(
+        self,
+        db: AsyncSession,
+        user: User,
+    ) -> None:
+        """Generate OTP, store hash, send email."""
+        otp = self.generate_otp()
+
+        user.verification_code = self._hash_code(otp)
+        user.verification_expires_at = datetime.now(timezone.utc) + timedelta(minutes=self.OTP_TTL_MINUTES)
+        user.verification_attempts = 0
+        user.is_verified = False
+
+        await db.commit()
+
+        # Send email with OTP
+        await send_verification_email(to_email=user.email, code=otp)
+
+    async def verify_code(
+        self,
+        db: AsyncSession,
+        user: User,
+        code: str,
+    ) -> bool:
+        """
+        Verify the OTP code.
+        Returns True if valid, raises exception otherwise.
+        """
+        # Check if already verified
+        if user.is_verified:
+            return True
+
+        # Check attempts limit
+        if user.verification_attempts >= self.MAX_ATTEMPTS:
+            raise AuthenticationError("Too many failed attempts. Please request a new code.")
+
+        # Check expiration
+        if not user.verification_expires_at or user.verification_expires_at < datetime.now(timezone.utc):
+            raise ValidationError("Verification code has expired. Please request a new one.")
+
+        # Check code
+        if self._hash_code(code) != user.verification_code:
+            user.verification_attempts += 1
+            await db.commit()
+            remaining = self.MAX_ATTEMPTS - user.verification_attempts
+            raise ValidationError(f"Invalid verification code. {remaining} attempts remaining.")
+
+        # Success - verify the account
+        user.is_verified = True
+        user.verification_code = None
+        user.verification_expires_at = None
+        user.verification_attempts = 0
+        await db.commit()
+
+        return True
+
+    async def resend_code(self, db: AsyncSession, user: User) -> None:
+        """Resend a new verification code."""
+        if user.is_verified:
+            raise ValidationError("Account is already verified.")
+        await self.initiate_verification(db, user)
+
+
+verification_service = VerificationService()
+```
+
+---
+
+### Step 3.3: Backend — Email Service
+
+**File to create:** `backend/app/services/email_service.py`
+
+```python
+"""
+Email sending service.
+Uses SMTP or a provider like Resend/SendGrid.
+"""
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+from app.core.config import settings
+
+
+async def send_verification_email(to_email: str, code: str) -> None:
+    """Send OTP verification email."""
+    subject = "رمز التحقق - Spetser AI"
+    body = f"""
+    <div dir="rtl" style="font-family: 'Noto Sans Arabic', sans-serif; padding: 20px;">
+        <h2 style="color: #01696D;">مرحباً بك في Spetser AI</h2>
+        <p>رمز التحقق الخاص بك هو:</p>
+        <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #01696D; padding: 20px; background: #E6F4F4; border-radius: 12px; text-align: center; margin: 20px 0;">
+            {code}
+        </div>
+        <p style="color: #6B7280;">هذا الرمز صالح لمدة 15 دقيقة فقط.</p>
+        <p style="color: #6B7280;">إذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.</p>
+    </div>
+    """
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = settings.SMTP_FROM
+    msg["To"] = to_email
+    msg.attach(MIMEText(body, "html", "utf-8"))
+
+    # For development: print to console
+    if settings.DEBUG:
+        print(f"[DEV] Verification code for {to_email}: {code}")
+        return
+
+    # Production: Send via SMTP
+    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        server.starttls()
+        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.send_message(msg)
+```
+
+**Add to `.env.example`:**
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=noreply@spetser.ai
+```
+
+---
+
+### Step 3.4: Backend — Update Register Endpoint
+
+**File to update:** `backend/app/api/v1/routes/auth.py`
+
+**Modify the register endpoint:**
+```python
+from app.services.verification_service import verification_service
+
+@router.post("/register")
+async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    # Check if email already exists
+    existing = await db.execute(select(User).where(User.email == request.email))
+    if existing.scalar_one_or_none():
+        raise ValidationError("This email is already registered.")
+
+    # Create user (NOT verified yet)
+    user = User(
+        email=request.email,
+        name=request.name,
+        hashed_password=hash_password(request.password),
+        is_verified=False,
+        credit_balance=settings.DEFAULT_NEW_USER_CREDITS,  # From Feature 5
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    # Send verification code
+    await verification_service.initiate_verification(db, user)
+
+    return {
+        "message": "Account created. Please check your email for the verification code.",
+        "email": user.email,
+        "requires_verification": True,
+    }
+```
+
+---
+
+### Step 3.5: Backend — Verification Endpoint
+
+**File to update:** `backend/app/api/v1/routes/auth.py`
+
+```python
+@router.post("/verify-email")
+async def verify_email(request: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Verify user email with OTP code.
+    Account is only activated if code is correct.
+    """
+    # Find user by email
+    result = await db.execute(select(User).where(User.email == request.email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise NotFoundError("User not found.")
+
+    # Verify the code (raises exception if invalid)
+    await verification_service.verify_code(db, user, request.code)
+
+    return {
+        "message": "Email verified successfully. Account is now active.",
+        "user_id": str(user.id),
+    }
+
+
+@router.post("/resend-code")
+async def resend_code(request: ResendCodeRequest, db: AsyncSession = Depends(get_db)):
+    """Resend verification code."""
+    result = await db.execute(select(User).where(User.email == request.email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise NotFoundError("User not found.")
+
+    await verification_service.resend_code(db, user)
+
+    return {"message": "A new verification code has been sent."}
+```
+
+---
+
+### Step 3.6: Backend — Block Login for Unverified Users
+
+**File to update:** `backend/app/api/v1/routes/auth.py`
+
+**In the login endpoint, add check:**
+```python
+@router.post("/login")
+async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.email == request.email))
+    user = result.scalar_one_or_none()
+
+    if not user or not verify_password(request.password, user.hashed_password):
+        raise AuthenticationError("Invalid email or password.")
+
+    # NEW: Block unverified users
+    if not user.is_verified:
+        raise AuthenticationError(
+            "Your email is not verified. Please check your email for the verification code."
+        )
+
+    # Generate tokens...
+    access_token = create_access_token(user.id)
+    return {"access_token": access_token, "token_type": "bearer"}
+```
+
+---
+
+### Step 3.7: Frontend — Verification Page
+
+**File to create:** `frontend/src/pages/VerifyEmailPage.tsx`
+
+```tsx
+import { useState, useRef, KeyboardEvent } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Button } from '../components/ui/Button';
+import { api } from '../lib/api';
+
+export function VerifyEmailPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const email = location.state?.email || '';
+
+  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+
+    const newCode = [...code];
+    newCode[index] = value;
+    setCode(newCode);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleSubmit = async () => {
+    const fullCode = code.join('');
+    if (fullCode.length !== 6) {
+      setError('يرجى إدخال الرمز كاملاً');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      await api.post('/auth/verify-email', { email, code: fullCode });
+      navigate('/login', { state: { verified: true } });
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'فشل التحقق من الرمز');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    try {
+      await api.post('/auth/resend-code', { email });
+      setError('');
+      alert('تم إرسال رمز جديد إلى بريدك');
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'فشل إرسال الرمز');
+    }
+  };
 
   return (
-    <div className={`message ${isUser ? 'message--user' : 'message--assistant'} animate-message-in`}>
-      <div className="message__avatar">
-        {isUser ? <User size={20} /> : <Bot size={20} />}
-      </div>
-      <div className="message__content">
-        <div className={`message__bubble ${isUser ? 'message__bubble--user' : 'message__bubble--assistant'}`}>
-          {isUser ? (
-            <p>{content}</p>
-          ) : (
-            <div className="message__markdown">
-              <ReactMarkdown>{content}</ReactMarkdown>
-            </div>
-          )}
-          {isStreaming && <span className="message__cursor" aria-hidden="true" />}
+    <div className="verify-page">
+      <div className="verify-page__card animate-fade-slide-up">
+        <h1 className="verify-page__title">التحقق من البريد الإلكتروني</h1>
+        <p className="verify-page__subtitle">
+          أرسلنا رمزاً مكوناً من 6 أرقام إلى <strong>{email}</strong>
+        </p>
+
+        <div className="verify-page__inputs" dir="ltr">
+          {code.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => { inputRefs.current[index] = el; }}
+              type="text"
+              inputMode="numeric"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(index, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(index, e)}
+              className="verify-page__input"
+              aria-label={`الخانة ${index + 1}`}
+            />
+          ))}
         </div>
-        {timestamp && (
-          <time className="message__timestamp" dateTime={timestamp}>
-            {new Date(timestamp).toLocaleTimeString('ar-LY', { hour: '2-digit', minute: '2-digit' })}
-          </time>
+
+        {error && <p className="verify-page__error" role="alert">{error}</p>}
+
+        <Button
+          variant="primary"
+          fullWidth
+          onClick={handleSubmit}
+          isLoading={isLoading}
+        >
+          تأكيد الحساب
+        </Button>
+
+        <button className="verify-page__resend" onClick={handleResend}>
+          لم يصلك الرمز؟ إعادة الإرسال
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+**CSS for verification page:**
+```css
+.verify-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background-color: var(--color-bg-primary);
+}
+
+.verify-page__card {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-8);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.verify-page__title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-2);
+}
+
+.verify-page__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+.verify-page__inputs {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.verify-page__input {
+  width: 44px;
+  height: 52px;
+  text-align: center;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-base);
+}
+
+.verify-page__input:focus {
+  outline: none;
+  border-color: var(--color-brand);
+}
+
+.verify-page__error {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+}
+
+.verify-page__resend {
+  margin-top: var(--space-4);
+  background: none;
+  border: none;
+  color: var(--color-brand);
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+
+.verify-page__resend:hover {
+  text-decoration: underline;
+}
+```
+
+---
+
+### Step 3.8: Update Register Form to Redirect
+
+**File to update:** `frontend/src/components/auth/RegisterForm.tsx`
+
+```tsx
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault();
+
+  if (password !== confirmPassword) {
+    setError('كلمتا المرور غير متطابقتين');
+    return;
+  }
+
+  setIsLoading(true);
+  try {
+    await api.post('/auth/register', { name, email, password });
+    // Redirect to verification page
+    navigate('/verify-email', { state: { email } });
+  } catch (err: any) {
+    setError(err.response?.data?.error?.message || 'فشل إنشاء الحساب');
+  } finally {
+    setIsLoading(false);
+  }
+};
+```
+
+---
+
+### Step 3.9: Add Route
+
+**File to update:** `frontend/src/App.tsx` (or router file)
+
+```tsx
+import { VerifyEmailPage } from './pages/VerifyEmailPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+
+// Inside routes:
+<Route path="/verify-email" element={<VerifyEmailPage />} />
+<Route path="/forgot-password" element={<ForgotPasswordPage />} />
+```
+
+---
+
+### Step 3.10: Test Feature 2
+
+**Backend tests:**
+```bash
+cd backend
+python -m pytest tests/test_verification.py -v
+```
+
+**Create test file:** `backend/tests/test_verification.py`
+
+```python
+import pytest
+from httpx import AsyncClient
+
+@pytest.mark.asyncio
+async def test_register_creates_unverified_user(client: AsyncClient):
+    response = await client.post("/api/v1/auth/register", json={
+        "name": "Test User",
+        "email": "test@example.com",
+        "password": "SecurePass123!",
+    })
+    assert response.status_code == 200
+    assert response.json()["requires_verification"] == True
+
+@pytest.mark.asyncio
+async def test_login_blocked_for_unverified_user(client: AsyncClient):
+    # Register first
+    await client.post("/api/v1/auth/register", json={
+        "name": "Test", "email": "unverified@example.com", "password": "Pass123!"
+    })
+    # Try login
+    response = await client.post("/api/v1/auth/login", json={
+        "email": "unverified@example.com",
+        "password": "Pass123!",
+    })
+    assert response.status_code == 401
+
+@pytest.mark.asyncio
+async def test_verify_with_wrong_code_fails(client: AsyncClient):
+    await client.post("/api/v1/auth/register", json={
+        "name": "Test", "email": "wrong@example.com", "password": "Pass123!"
+    })
+    response = await client.post("/api/v1/auth/verify-email", json={
+        "email": "wrong@example.com",
+        "code": "000000",  # Wrong code
+    })
+    assert response.status_code == 422
+
+@pytest.mark.asyncio
+async def test_verify_with_correct_code_succeeds(client: AsyncClient, db_session):
+    # This test would need to mock the email service or extract the code from DB
+    pass
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm run lint && npm run build
+```
+
+**Commit:**
+```bash
+git add -A
+git commit -m "feat(auth): add email verification with OTP during registration"
+```
+
+==================================================
+SECTION 4: FEATURE 3 — FORGOT PASSWORD FLOW
+==================================================
+
+**Goal:** User clicks "Forgot Password" → receives OTP via email → enters OTP → can set new password.
+
+---
+
+### Step 4.1: Backend — Password Reset Service
+
+**File to create:** `backend/app/services/password_reset_service.py`
+
+```python
+"""
+Password reset service.
+Uses the same OTP mechanism as email verification.
+"""
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user import User
+from app.core.security import hash_password
+from app.core.exceptions import ValidationError, AuthenticationError
+from app.services.email_service import send_reset_email
+from app.services.verification_service import VerificationService
+
+
+class PasswordResetService:
+    """Handles forgot password flow."""
+
+    async def initiate_reset(self, db: AsyncSession, user: User) -> None:
+        """Generate reset code and send email."""
+        otp = VerificationService.generate_otp()
+
+        user.verification_code = VerificationService._hash_code(otp)
+        user.verification_expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+        user.verification_attempts = 0
+        await db.commit()
+
+        await send_reset_email(to_email=user.email, code=otp)
+
+    async def verify_reset_code(self, db: AsyncSession, user: User, code: str) -> bool:
+        """Verify the reset code."""
+        if user.verification_attempts >= VerificationService.MAX_ATTEMPTS:
+            raise AuthenticationError("Too many failed attempts. Please request a new code.")
+
+        if not user.verification_expires_at or user.verification_expires_at < datetime.now(timezone.utc):
+            raise ValidationError("Reset code has expired.")
+
+        if VerificationService._hash_code(code) != user.verification_code:
+            user.verification_attempts += 1
+            await db.commit()
+            raise ValidationError("Invalid reset code.")
+
+        return True
+
+    async def reset_password(self, db: AsyncSession, user: User, new_password: str) -> None:
+        """Set new password and invalidate the code."""
+        user.hashed_password = hash_password(new_password)
+        user.verification_code = None
+        user.verification_expires_at = None
+        user.verification_attempts = 0
+        await db.commit()
+
+
+password_reset_service = PasswordResetService()
+```
+
+---
+
+### Step 4.2: Backend — Forgot Password Endpoints
+
+**File to update:** `backend/app/api/v1/routes/auth.py`
+
+```python
+@router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Step 1: User requests password reset.
+    Sends OTP to their email.
+    """
+    result = await db.execute(select(User).where(User.email == request.email))
+    user = result.scalar_one_or_none()
+
+    # Security: Don't reveal if email exists or not
+    if not user:
+        return {"message": "If this email exists, a reset code has been sent."}
+
+    await password_reset_service.initiate_reset(db, user)
+    return {"message": "If this email exists, a reset code has been sent."}
+
+
+@router.post("/verify-reset-code")
+async def verify_reset_code(request: VerifyResetCodeRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Step 2: User enters the OTP code.
+    Returns a temporary reset token if valid.
+    """
+    result = await db.execute(select(User).where(User.email == request.email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise ValidationError("Invalid code.")
+
+    await password_reset_service.verify_reset_code(db, user, request.code)
+
+    # Generate a short-lived reset token (10 minutes)
+    reset_token = create_reset_token(user.id, expires_minutes=10)
+
+    return {"reset_token": reset_token}
+
+
+@router.post("/reset-password")
+async def reset_password(request: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Step 3: User sets new password using the reset token.
+    """
+    # Verify the reset token
+    user_id = decode_reset_token(request.reset_token)
+    if not user_id:
+        raise ValidationError("Invalid or expired reset token.")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise NotFoundError("User not found.")
+
+    # Validate new password strength
+    if len(request.new_password) < 8:
+        raise ValidationError("Password must be at least 8 characters.")
+
+    await password_reset_service.reset_password(db, user, request.new_password)
+
+    return {"message": "Password has been reset successfully."}
+```
+
+---
+
+### Step 4.3: Backend — Reset Token Helper
+
+**File to update:** `backend/app/core/security.py`
+
+```python
+from datetime import datetime, timedelta, timezone
+import jwt
+
+RESET_TOKEN_SECRET = settings.RESET_TOKEN_SECRET
+RESET_TOKEN_ALGORITHM = "HS256"
+
+
+def create_reset_token(user_id: str, expires_minutes: int = 10) -> str:
+    """Create a short-lived password reset token."""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+    payload = {
+        "sub": str(user_id),
+        "type": "password_reset",
+        "exp": expire,
+    }
+    return jwt.encode(payload, RESET_TOKEN_SECRET, algorithm=RESET_TOKEN_ALGORITHM)
+
+
+def decode_reset_token(token: str) -> str | None:
+    """Decode and validate reset token. Returns user_id or None."""
+    try:
+        payload = jwt.decode(token, RESET_TOKEN_SECRET, algorithms=[RESET_TOKEN_ALGORITHM])
+        if payload.get("type") != "password_reset":
+            return None
+        return payload.get("sub")
+    except jwt.PyJWTError:
+        return None
+```
+
+**Add to `.env.example`:**
+```env
+RESET_TOKEN_SECRET=your-secure-random-secret-here
+```
+
+---
+
+### Step 4.4: Frontend — Forgot Password Page
+
+**File to create:** `frontend/src/pages/ForgotPasswordPage.tsx`
+
+```tsx
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { PasswordInput } from '../components/ui/PasswordInput';
+import { api } from '../lib/api';
+
+type Step = 'email' | 'code' | 'new-password' | 'success';
+
+export function ForgotPasswordPage() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState<Step>('email');
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSendCode = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/forgot-password', { email });
+      setStep('code');
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'حدث خطأ');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await api.post('/auth/verify-reset-code', { email, code });
+      setResetToken(response.data.reset_token);
+      setStep('new-password');
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'رمز غير صحيح');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (newPassword !== confirmPassword) {
+      setError('كلمتا المرور غير متطابقتين');
+      return;
+    }
+    setIsLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/reset-password', {
+        reset_token: resetToken,
+        new_password: newPassword,
+      });
+      setStep('success');
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'فشل إعادة تعيين كلمة المرور');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="forgot-page">
+      <div className="forgot-page__card animate-fade-slide-up">
+        {step === 'email' && (
+          <>
+            <h1>نسيت كلمة المرور؟</h1>
+            <p>أدخل بريدك الإلكتروني وسنرسل لك رمز التحقق</p>
+            <Input
+              label="البريد الإلكتروني"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="example@email.com"
+            />
+            {error && <p className="error-text">{error}</p>}
+            <Button fullWidth onClick={handleSendCode} isLoading={isLoading}>
+              إرسال رمز التحقق
+            </Button>
+          </>
+        )}
+
+        {step === 'code' && (
+          <>
+            <h1>أدخل رمز التحقق</h1>
+            <p>أرسلنا رمزاً إلى {email}</p>
+            <Input
+              label="رمز التحقق"
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+              placeholder="123456"
+            />
+            {error && <p className="error-text">{error}</p>}
+            <Button fullWidth onClick={handleVerifyCode} isLoading={isLoading}>
+              تأكيد الرمز
+            </Button>
+          </>
+        )}
+
+        {step === 'new-password' && (
+          <>
+            <h1>كلمة المرور الجديدة</h1>
+            <PasswordInput
+              label="كلمة المرور الجديدة"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <PasswordInput
+              label="تأكيد كلمة المرور"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            {error && <p className="error-text">{error}</p>}
+            <Button fullWidth onClick={handleResetPassword} isLoading={isLoading}>
+              حفظ كلمة المرور
+            </Button>
+          </>
+        )}
+
+        {step === 'success' && (
+          <>
+            <h1>تم بنجاح! 🎉</h1>
+            <p>تم تغيير كلمة المرور. يمكنك الآن تسجيل الدخول.</p>
+            <Button fullWidth onClick={() => navigate('/login')}>
+              الانتقال لتسجيل الدخول
+            </Button>
+          </>
         )}
       </div>
     </div>
@@ -1429,92 +1212,570 @@ export function MessageBubble({ role, content, timestamp, isStreaming = false }:
 }
 ```
 
-#### 3.3.2 — Chat Input Box
+---
 
-**File:** `frontend/src/components/chat/InputBox.tsx`
+### Step 4.5: Test Feature 3
+
+```bash
+cd backend
+python -m pytest tests/test_password_reset.py -v
+
+cd ../frontend
+npm run lint && npm run build
+```
+
+**Commit:**
+```bash
+git add -A
+git commit -m "feat(auth): add forgot password flow with email OTP verification"
+```
+
+==================================================
+SECTION 5: FEATURE 4 — DEVELOPER PANEL FOR API KEYS
+==================================================
+
+**Goal:** Build an admin/developer panel where API keys can be added, customized with commands/prompts, and deleted.
+
+---
+
+### Step 5.1: Backend — API Key Model
+
+**File to create:** `backend/app/models/api_key.py`
+
+```python
+import uuid
+from datetime import datetime, timezone
+from sqlalchemy import String, Boolean, DateTime, Text, Integer, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.base import Base
+
+
+class APIKey(Base):
+    """API keys that can be used to authenticate external requests."""
+
+    __tablename__ = "api_keys"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name: Mapped[str] = mapped_column(String(100))
+    key_hash: Mapped[str] = mapped_column(String(255))  # Store HASHED key, not plain
+    key_prefix: Mapped[str] = mapped_column(String(8))  # First 8 chars for display: "sk-abc1..."
+
+    # Customization fields
+    system_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)  # Custom instructions
+    max_credits_per_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    allowed_skills: Mapped[str | None] = mapped_column(Text, nullable=True)  # Comma-separated skill slugs
+
+    # Status
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Tracking
+    created_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    total_requests: Mapped[int] = mapped_column(Integer, default=0)
+```
+
+**Create migration:**
+```bash
+cd backend
+alembic revision --autogenerate -m "add api_keys table"
+alembic upgrade head
+```
+
+---
+
+### Step 5.2: Backend — API Key Service
+
+**File to create:** `backend/app/services/api_key_service.py`
+
+```python
+"""
+API Key management service for developer panel.
+"""
+import secrets
+import hashlib
+from datetime import datetime, timezone
+from typing import Optional
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.api_key import APIKey
+from app.core.exceptions import NotFoundError, ValidationError
+
+
+class APIKeyService:
+    """Manages API key lifecycle."""
+
+    KEY_PREFIX = "sk-spetser-"
+
+    @staticmethod
+    def _hash_key(key: str) -> str:
+        return hashlib.sha256(key.encode()).hexdigest()
+
+    def generate_key(self) -> str:
+        """Generate a new API key."""
+        random_part = secrets.token_urlsafe(32)
+        return f"{self.KEY_PREFIX}{random_part}"
+
+    async def create_key(
+        self,
+        db: AsyncSession,
+        name: str,
+        created_by: str,
+        system_prompt: Optional[str] = None,
+        max_credits_per_day: Optional[int] = None,
+        allowed_skills: Optional[str] = None,
+        expires_at: Optional[datetime] = None,
+    ) -> tuple[APIKey, str]:
+        """
+        Create a new API key.
+        Returns the APIKey object and the PLAIN key (shown only once).
+        """
+        plain_key = self.generate_key()
+
+        api_key = APIKey(
+            name=name,
+            key_hash=self._hash_key(plain_key),
+            key_prefix=plain_key[:len(self.KEY_PREFIX) + 4],
+            system_prompt=system_prompt,
+            max_credits_per_day=max_credits_per_day,
+            allowed_skills=allowed_skills,
+            expires_at=expires_at,
+            created_by=created_by,
+        )
+        db.add(api_key)
+        await db.commit()
+        await db.refresh(api_key)
+
+        return api_key, plain_key
+
+    async def verify_key(self, db: AsyncSession, plain_key: str) -> Optional[APIKey]:
+        """Verify an API key and return it if valid."""
+        key_hash = self._hash_key(plain_key)
+        result = await db.execute(select(APIKey).where(APIKey.key_hash == key_hash))
+        api_key = result.scalar_one_or_none()
+
+        if not api_key:
+            return None
+
+        if not api_key.is_active:
+            return None
+
+        if api_key.expires_at and api_key.expires_at < datetime.now(timezone.utc):
+            return None
+
+        # Update tracking
+        api_key.last_used_at = datetime.now(timezone.utc)
+        api_key.total_requests += 1
+        await db.commit()
+
+        return api_key
+
+    async def update_key(
+        self,
+        db: AsyncSession,
+        key_id: str,
+        **updates,
+    ) -> APIKey:
+        """Update API key settings."""
+        result = await db.execute(select(APIKey).where(APIKey.id == key_id))
+        api_key = result.scalar_one_or_none()
+
+        if not api_key:
+            raise NotFoundError("API key not found.")
+
+        allowed_fields = {"name", "system_prompt", "max_credits_per_day", "allowed_skills", "is_active", "expires_at"}
+        for field, value in updates.items():
+            if field in allowed_fields:
+                setattr(api_key, field, value)
+
+        await db.commit()
+        await db.refresh(api_key)
+        return api_key
+
+    async def delete_key(self, db: AsyncSession, key_id: str) -> None:
+        """Delete an API key."""
+        result = await db.execute(select(APIKey).where(APIKey.id == key_id))
+        api_key = result.scalar_one_or_none()
+
+        if not api_key:
+            raise NotFoundError("API key not found.")
+
+        await db.delete(api_key)
+        await db.commit()
+
+
+api_key_service = APIKeyService()
+```
+
+---
+
+### Step 5.3: Backend — Developer Panel Endpoints
+
+**File to create:** `backend/app/api/v1/routes/developer.py`
+
+```python
+from fastapi import APIRouter, Depends
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.session import get_db
+from app.core.security import get_developer, require_admin
+from app.models.api_key import APIKey
+from app.models.user import User
+from app.services.api_key_service import api_key_service
+from app.schemas.api_key import (
+    CreateAPIKeyRequest,
+    UpdateAPIKeyRequest,
+    APIKeyResponse,
+    APIKeyCreateResponse,
+)
+
+router = APIRouter(prefix="/developer", tags=["Developer"])
+
+
+@router.get("/api-keys", response_model=list[APIKeyResponse])
+async def list_api_keys(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """List all API keys (admin only)."""
+    result = await db.execute(select(APIKey).order_by(APIKey.created_at.desc()))
+    return result.scalars().all()
+
+
+@router.post("/api-keys", response_model=APIKeyCreateResponse)
+async def create_api_key(
+    request: CreateAPIKeyRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """
+    Create a new API key.
+    The plain key is returned ONLY ONCE. Store it securely.
+    """
+    api_key, plain_key = await api_key_service.create_key(
+        db=db,
+        name=request.name,
+        created_by=current_user.id,
+        system_prompt=request.system_prompt,
+        max_credits_per_day=request.max_credits_per_day,
+        allowed_skills=request.allowed_skills,
+        expires_at=request.expires_at,
+    )
+
+    return {
+        **APIKeyResponse.from_orm(api_key).dict(),
+        "plain_key": plain_key,  # Shown only once!
+    }
+
+
+@router.patch("/api-keys/{key_id}", response_model=APIKeyResponse)
+async def update_api_key(
+    key_id: str,
+    request: UpdateAPIKeyRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Update API key settings."""
+    return await api_key_service.update_key(db, key_id, **request.dict(exclude_unset=True))
+
+
+@router.delete("/api-keys/{key_id}")
+async def delete_api_key(
+    key_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Delete an API key."""
+    await api_key_service.delete_key(db, key_id)
+    return {"message": "API key deleted successfully."}
+
+
+@router.post("/api-keys/{key_id}/regenerate", response_model=APIKeyCreateResponse)
+async def regenerate_api_key(
+    key_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Regenerate the key value (old key becomes invalid)."""
+    result = await db.execute(select(APIKey).where(APIKey.id == key_id))
+    api_key = result.scalar_one_or_none()
+
+    if not api_key:
+        raise NotFoundError("API key not found.")
+
+    # Generate new key
+    plain_key = api_key_service.generate_key()
+    api_key.key_hash = api_key_service._hash_key(plain_key)
+    api_key.key_prefix = plain_key[:len(api_key_service.KEY_PREFIX) + 4]
+    await db.commit()
+
+    return {
+        **APIKeyResponse.from_orm(api_key).dict(),
+        "plain_key": plain_key,
+    }
+```
+
+---
+
+### Step 5.4: Backend — Schemas
+
+**File to create:** `backend/app/schemas/api_key.py`
+
+```python
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, Field
+
+
+class CreateAPIKeyRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    system_prompt: Optional[str] = Field(None, max_length=10000)
+    max_credits_per_day: Optional[int] = Field(None, ge=0)
+    allowed_skills: Optional[str] = None
+    expires_at: Optional[datetime] = None
+
+
+class UpdateAPIKeyRequest(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    system_prompt: Optional[str] = Field(None, max_length=10000)
+    max_credits_per_day: Optional[int] = Field(None, ge=0)
+    allowed_skills: Optional[str] = None
+    is_active: Optional[bool] = None
+    expires_at: Optional[datetime] = None
+
+
+class APIKeyResponse(BaseModel):
+    id: str
+    name: str
+    key_prefix: str
+    system_prompt: Optional[str]
+    max_credits_per_day: Optional[int]
+    allowed_skills: Optional[str]
+    is_active: bool
+    expires_at: Optional[datetime]
+    created_at: datetime
+    last_used_at: Optional[datetime]
+    total_requests: int
+
+    class Config:
+        from_attributes = True
+
+
+class APIKeyCreateResponse(APIKeyResponse):
+    plain_key: str  # Only returned on creation
+```
+
+---
+
+### Step 5.5: Register Developer Router
+
+**File to update:** `backend/app/api/v1/__init__.py` (or main router file)
+
+```python
+from app.api.v1.routes import developer
+
+api_router.include_router(developer.router)
+```
+
+---
+
+### Step 5.6: Frontend — Developer Panel Page
+
+**File to create:** `frontend/src/pages/DeveloperPage.tsx`
 
 ```tsx
-import { useState, useRef, KeyboardEvent } from 'react';
-import { Send, StopCircle, Paperclip } from 'lucide-react';
-import { Button } from '../ui/Button';
+import { useState, useEffect } from 'react';
+import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
+import { Input } from '../components/ui/Input';
+import { api } from '../lib/api';
+import { Copy, Trash2, Edit, Plus, Key, Eye, EyeOff } from 'lucide-react';
 
-interface InputBoxProps {
-  onSend: (message: string) => void;
-  onStop?: () => void;
-  isGenerating?: boolean;
-  disabled?: boolean;
+interface APIKey {
+  id: string;
+  name: string;
+  key_prefix: string;
+  system_prompt: string | null;
+  max_credits_per_day: number | null;
+  allowed_skills: string | null;
+  is_active: boolean;
+  created_at: string;
+  last_used_at: string | null;
+  total_requests: number;
 }
 
-export function InputBox({ onSend, onStop, isGenerating = false, disabled = false }: InputBoxProps) {
-  const [message, setMessage] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+export function DeveloperPage() {
+  const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [newKey, setNewKey] = useState('');
+  const [editingKey, setEditingKey] = useState<APIKey | null>(null);
 
-  const handleSubmit = () => {
-    const trimmed = message.trim();
-    if (!trimmed || isGenerating) return;
-    onSend(trimmed);
-    setMessage('');
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+  // Create form state
+  const [name, setName] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [maxCredits, setMaxCredits] = useState('');
+
+  const fetchKeys = async () => {
+    try {
+      const response = await api.get('/developer/api-keys');
+      setApiKeys(response.data);
+    } catch (error) {
+      console.error('Failed to fetch API keys:', error);
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
+  useEffect(() => {
+    fetchKeys();
+  }, []);
+
+  const handleCreate = async () => {
+    try {
+      const response = await api.post('/developer/api-keys', {
+        name,
+        system_prompt: systemPrompt || null,
+        max_credits_per_day: maxCredits ? parseInt(maxCredits) : null,
+      });
+      setNewKey(response.data.plain_key);
+      setShowCreateModal(false);
+      setShowKeyModal(true);
+      fetchKeys();
+    } catch (error) {
+      console.error('Failed to create key:', error);
     }
   };
 
-  const handleInput = () => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+  const handleDelete = async (keyId: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا المفتاح؟')) return;
+
+    try {
+      await api.delete(`/developer/api-keys/${keyId}`);
+      fetchKeys();
+    } catch (error) {
+      console.error('Failed to delete key:', error);
     }
+  };
+
+  const handleToggleActive = async (key: APIKey) => {
+    try {
+      await api.patch(`/developer/api-keys/${key.id}`, {
+        is_active: !key.is_active,
+      });
+      fetchKeys();
+    } catch (error) {
+      console.error('Failed to update key:', error);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert('تم نسخ المفتاح');
   };
 
   return (
-    <div className="composer">
-      <div className="composer__wrapper">
-        <textarea
-          ref={textareaRef}
-          className="composer__textarea"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onInput={handleInput}
-          placeholder="اكتب رسالتك هنا..."
-          rows={1}
-          disabled={disabled}
-          aria-label="Chat message input"
-        />
-        <div className="composer__actions">
-          {isGenerating && onStop ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onStop}
-              aria-label="Stop generation"
-            >
-              <StopCircle size={20} />
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleSubmit}
-              disabled={!message.trim() || isGenerating || disabled}
-              aria-label="Send message"
-            >
-              <Send size={18} />
-            </Button>
-          )}
-        </div>
+    <div className="developer-page">
+      <div className="developer-page__header">
+        <h1>لوحة المطورين</h1>
+        <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+          <Plus size={18} />
+          إضافة مفتاح جديد
+        </Button>
       </div>
-      <p className="composer__hint">
-        اضغط Enter للإرسال، Shift+Enter لسطر جديد
-      </p>
+
+      <div className="developer-page__keys-grid">
+        {apiKeys.map((key) => (
+          <div key={key.id} className="api-key-card">
+            <div className="api-key-card__header">
+              <Key size={20} />
+              <span className="api-key-card__name">{key.name}</span>
+              <span className={`api-key-card__status ${key.is_active ? 'active' : 'inactive'}`}>
+                {key.is_active ? 'نشط' : 'معطل'}
+              </span>
+            </div>
+
+            <div className="api-key-card__prefix">
+              <code>{key.key_prefix}••••••••</code>
+            </div>
+
+            {key.system_prompt && (
+              <div className="api-key-card__prompt">
+                <p className="api-key-card__prompt-label">الأوامر المخصصة:</p>
+                <p className="api-key-card__prompt-text">{key.system_prompt.slice(0, 100)}...</p>
+              </div>
+            )}
+
+            <div className="api-key-card__stats">
+              <span>الطلبات: {key.total_requests}</span>
+              {key.max_credits_per_day && <span>الحد اليومي: {key.max_credits_per_day}</span>}
+            </div>
+
+            <div className="api-key-card__actions">
+              <Button size="sm" variant="ghost" onClick={() => setEditingKey(key)}>
+                <Edit size={16} />
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => handleToggleActive(key)}>
+                {key.is_active ? <EyeOff size={16} /> : <Eye size={16} />}
+              </Button>
+              <Button size="sm" variant="danger" onClick={() => handleDelete(key.id)}>
+                <Trash2 size={16} />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Create Key Modal */}
+      {showCreateModal && (
+        <Modal onClose={() => setShowCreateModal(false)} title="إنشاء مفتاح جديد">
+          <Input
+            label="اسم المفتاح"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="مثال: مفتاح تطبيق الموبايل"
+          />
+          <div className="form-group">
+            <label>الأوامر المخصصة (System Prompt)</label>
+            <textarea
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              rows={4}
+              placeholder="أنت مساعد تعليمي متخصص في الرياضيات..."
+            />
+          </div>
+          <Input
+            label="الحد الأقصى للكريدت اليومي (اختياري)"
+            type="number"
+            value={maxCredits}
+            onChange={(e) => setMaxCredits(e.target.value)}
+          />
+          <Button fullWidth onClick={handleCreate}>
+            إنشاء المفتاح
+          </Button>
+        </Modal>
+      )}
+
+      {/* Show New Key Modal */}
+      {showKeyModal && (
+        <Modal onClose={() => setShowKeyModal(false)} title="المفتاح الجديد">
+          <p className="key-warning">
+            ⚠️ احفظ هذا المفتاح الآن. لن تتمكن من رؤيته مرة أخرى!
+          </p>
+          <div className="key-display">
+            <code>{newKey}</code>
+            <Button size="sm" variant="ghost" onClick={() => copyToClipboard(newKey)}>
+              <Copy size={16} />
+            </Button>
+          </div>
+          <Button fullWidth onClick={() => setShowKeyModal(false)}>
+            تم الحفظ
+          </Button>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -1522,935 +1783,291 @@ export function InputBox({ onSend, onStop, isGenerating = false, disabled = fals
 
 ---
 
-### Step 3.4: Build Component CSS
+### Step 5.7: Add Developer Route
 
-**Action:** Create CSS files for each component using design tokens.
+**File to update:** `frontend/src/App.tsx`
 
-**File:** `frontend/src/styles/components/button.css`
+```tsx
+import { DeveloperPage } from './pages/DeveloperPage';
 
-```css
-/* ============================================
-   BUTTON COMPONENT STYLES
-   ============================================ */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  font-family: var(--font-sans);
-  font-weight: var(--font-medium);
-  border: none;
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-base) var(--ease-default);
-  position: relative;
-  white-space: nowrap;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Sizes */
-.btn--sm {
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  min-height: 36px;
-}
-
-.btn--md {
-  padding: var(--space-3) var(--space-4);
-  font-size: var(--text-base);
-  min-height: var(--touch-target-min);
-}
-
-.btn--lg {
-  padding: var(--space-4) var(--space-6);
-  font-size: var(--text-lg);
-  min-height: var(--touch-target-comfortable);
-}
-
-/* Variants */
-.btn--primary {
-  background-color: var(--color-brand);
-  color: var(--color-text-inverse);
-}
-
-.btn--primary:hover:not(:disabled) {
-  background-color: var(--color-brand-hover);
-  box-shadow: var(--shadow-md);
-}
-
-.btn--primary:active:not(:disabled) {
-  background-color: var(--color-brand-active);
-  transform: translateY(1px);
-}
-
-.btn--secondary {
-  background-color: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-}
-
-.btn--secondary:hover:not(:disabled) {
-  background-color: var(--color-border);
-}
-
-.btn--ghost {
-  background-color: transparent;
-  color: var(--color-text-secondary);
-}
-
-.btn--ghost:hover:not(:disabled) {
-  background-color: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-}
-
-.btn--danger {
-  background-color: var(--color-error);
-  color: white;
-}
-
-.btn--danger:hover:not(:disabled) {
-  background-color: var(--color-error-hover);
-}
-
-.btn--outline {
-  background-color: transparent;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-}
-
-.btn--outline:hover:not(:disabled) {
-  border-color: var(--color-brand);
-  color: var(--color-brand);
-}
-
-/* States */
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn--full-width {
-  width: 100%;
-}
-
-.btn--loading {
-  pointer-events: none;
-}
-
-.btn__spinner {
-  animation: spin 1s linear infinite;
-}
-
-.btn__content--hidden {
-  visibility: hidden;
-}
-```
-
-**File:** `frontend/src/styles/components/chat.css`
-
-```css
-/* ============================================
-   CHAT COMPONENT STYLES
-   ============================================ */
-
-/* Message Layout */
-.message {
-  display: flex;
-  gap: var(--space-3);
-  padding: var(--space-2) 0;
-  max-width: 100%;
-}
-
-.message--user {
-  flex-direction: row-reverse;
-}
-
-.message--assistant {
-  flex-direction: row;
-}
-
-/* Avatar */
-.message__avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.message--user .message__avatar {
-  background-color: var(--color-brand-light);
-  color: var(--color-brand);
-}
-
-.message--assistant .message__avatar {
-  background-color: var(--color-bg-tertiary);
-  color: var(--color-text-secondary);
-}
-
-/* Bubble */
-.message__bubble {
-  max-width: 70%;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-xl);
-  line-height: var(--leading-relaxed);
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-.message__bubble--user {
-  background-color: var(--color-brand);
-  color: var(--color-text-inverse);
-  border-bottom-right-radius: var(--radius-sm);
-}
-
-[dir="rtl"] .message__bubble--user {
-  border-bottom-right-radius: var(--radius-xl);
-  border-bottom-left-radius: var(--radius-sm);
-}
-
-.message__bubble--assistant {
-  background-color: var(--color-bg-secondary);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
-  border-bottom-left-radius: var(--radius-sm);
-}
-
-[dir="rtl"] .message__bubble--assistant {
-  border-bottom-left-radius: var(--radius-xl);
-  border-bottom-right-radius: var(--radius-sm);
-}
-
-/* Streaming Cursor */
-.message__cursor {
-  display: inline-block;
-  width: 2px;
-  height: 1em;
-  background-color: currentColor;
-  margin-left: 2px;
-  animation: pulse 1s var(--ease-default) infinite;
-}
-
-/* Timestamp */
-.message__timestamp {
-  display: block;
-  font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
-  margin-top: var(--space-1);
-}
-
-/* Composer */
-.composer {
-  position: sticky;
-  bottom: 0;
-  padding: var(--space-4);
-  background-color: var(--color-bg-primary);
-  border-top: 1px solid var(--color-border);
-}
-
-.composer__wrapper {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-2);
-  background-color: var(--color-bg-secondary);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-2) var(--space-3);
-  transition: border-color var(--transition-base) var(--ease-default),
-              box-shadow var(--transition-base) var(--ease-default);
-}
-
-.composer__wrapper:focus-within {
-  border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px var(--color-brand-light);
-}
-
-.composer__textarea {
-  flex: 1;
-  border: none;
-  outline: none;
-  resize: none;
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: var(--leading-normal);
-  color: var(--color-text-primary);
-  background: transparent;
-  max-height: 200px;
-  padding: var(--space-1) 0;
-}
-
-.composer__textarea::placeholder {
-  color: var(--color-text-tertiary);
-}
-
-.composer__hint {
-  text-align: center;
-  font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
-  margin-top: var(--space-2);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .message__bubble {
-    max-width: 85%;
+// Protected route (admin only):
+<Route
+  path="/developer"
+  element={
+    <ProtectedRoute requiredRole="admin">
+      <DeveloperPage />
+    </ProtectedRoute>
   }
-  
-  .composer {
-    padding: var(--space-3);
-  }
-}
+/>
 ```
 
 ---
 
-### Step 3.5: Verify Frontend Build
-
-**Commands:**
-```bash
-cd frontend
-npm run lint
-npm run build
-```
-
-**Expected:** 0 errors, 0 warnings.
-
-**If errors occur:** Fix them. Do not proceed until build is clean.
-
----
-
-### Step 3.6: Commit Phase 3
-
-```bash
-git add -A
-git commit -m "feat(phase-3): frontend rebuild - UI components, chat interface, design system integration"
-```
-
-**PHASE 3 COMPLETE. Proceed to Phase 4.**
-
-==================================================
-SECTION 7: PHASE 4 — BACKEND OPTIMIZATION
-==================================================
-
-**Estimated Duration:** 1-2 hours
-**Goal:** Optimize backend performance, security, and error handling.
-
----
-
-### Step 4.1: Optimize Database Connection Pool
-
-**File to update:** `backend/app/db/session.py`
-
-**Read the current file first, then ensure it contains:**
-```python
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from app.core.config import settings
-
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    pool_size=20,
-    max_overflow=10,
-    pool_timeout=30,
-    pool_recycle=1800,
-    pool_pre_ping=True,  # Verify connections before use
-    echo=False,  # Set to True for SQL debugging only
-)
-
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autoflush=False,
-)
-
-async def get_db() -> AsyncSession:
-    """Dependency that provides a database session."""
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
-```
-
----
-
-### Step 4.2: Add Caching Layer
-
-**File to create:** `backend/app/core/cache.py`
-
-```python
-"""
-Redis caching utility for Spetser AI.
-Provides decorator-based caching for expensive operations.
-"""
-import hashlib
-import json
-from functools import wraps
-from typing import Any, Callable, Optional
-
-import redis.asyncio as redis
-
-from app.core.config import settings
-
-# Initialize Redis connection
-redis_client: Optional[redis.Redis] = None
-
-async def get_redis() -> redis.Redis:
-    """Get or create Redis connection."""
-    global redis_client
-    if redis_client is None:
-        redis_client = redis.from_url(
-            settings.REDIS_URL,
-            encoding="utf-8",
-            decode_responses=True,
-        )
-    return redis_client
-
-def cache_result(ttl: int = 300, prefix: str = "cache"):
-    """
-    Decorator to cache function results in Redis.
-    
-    Args:
-        ttl: Time-to-live in seconds (default: 5 minutes)
-        prefix: Cache key prefix for namespacing
-    
-    Usage:
-        @cache_result(ttl=600, prefix="user_credits")
-        async def get_user_credits(user_id: str) -> dict:
-            ...
-    """
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            try:
-                r = await get_redis()
-                
-                # Generate cache key from function name and arguments
-                key_data = f"{func.__name__}:{str(args)}:{str(sorted(kwargs.items()))}"
-                cache_key = f"{prefix}:{hashlib.md5(key_data.encode()).hexdigest()}"
-                
-                # Try to get from cache
-                cached = await r.get(cache_key)
-                if cached is not None:
-                    return json.loads(cached)
-                
-                # Execute function
-                result = await func(*args, **kwargs)
-                
-                # Store in cache
-                await r.setex(cache_key, ttl, json.dumps(result, default=str))
-                
-                return result
-            except redis.RedisError:
-                # If Redis is down, execute without caching
-                return await func(*args, **kwargs)
-        
-        return wrapper
-    return decorator
-
-async def invalidate_cache(pattern: str):
-    """Invalidate all cache keys matching a pattern."""
-    try:
-        r = await get_redis()
-        keys = await r.keys(pattern)
-        if keys:
-            await r.delete(*keys)
-    except redis.RedisError:
-        pass  # Silently fail if Redis is down
-```
-
----
-
-### Step 4.3: Add Rate Limiting Middleware
-
-**File to create:** `backend/app/middleware/rate_limit.py`
-
-```python
-"""
-Rate limiting middleware for Spetser AI.
-Uses Redis for distributed rate limiting.
-"""
-import time
-from typing import Callable
-
-from fastapi import Request, HTTPException, status
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse
-
-import redis.asyncio as redis
-
-from app.core.config import settings
-
-
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    """
-    Sliding window rate limiter using Redis.
-    
-    Configuration via environment:
-    - RATE_LIMIT_REQUESTS: Max requests per window (default: 100)
-    - RATE_LIMIT_WINDOW: Window size in seconds (default: 60)
-    """
-    
-    def __init__(
-        self,
-        app,
-        max_requests: int = 100,
-        window_seconds: int = 60,
-    ):
-        super().__init__(app)
-        self.max_requests = max_requests
-        self.window_seconds = window_seconds
-        self._redis: redis.Redis | None = None
-    
-    async def _get_redis(self) -> redis.Redis:
-        if self._redis is None:
-            self._redis = redis.from_url(settings.REDIS_URL)
-        return self._redis
-    
-    async def dispatch(self, request: Request, call_next: Callable):
-        # Skip rate limiting for health checks
-        if request.url.path in ("/api/v1/health", "/health"):
-            return await call_next(request)
-        
-        # Get client identifier (IP or authenticated user)
-        client_id = self._get_client_id(request)
-        
-        try:
-            r = await self._get_redis()
-            
-            # Sliding window counter
-            now = time.time()
-            window_start = now - self.window_seconds
-            key = f"rate_limit:{client_id}"
-            
-            # Remove old entries and add current request
-            pipe = r.pipeline()
-            pipe.zremrangebyscore(key, 0, window_start)
-            pipe.zadd(key, {str(now): now})
-            pipe.zcard(key)
-            pipe.expire(key, self.window_seconds + 1)
-            results = await pipe.execute()
-            
-            request_count = results[2]
-            
-            if request_count > self.max_requests:
-                return JSONResponse(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    content={
-                        "error": {
-                            "code": "RATE_LIMIT_EXCEEDED",
-                            "message": "Too many requests. Please try again later.",
-                            "retry_after": self.window_seconds,
-                        }
-                    },
-                    headers={
-                        "Retry-After": str(self.window_seconds),
-                        "X-RateLimit-Limit": str(self.max_requests),
-                        "X-RateLimit-Remaining": "0",
-                    },
-                )
-            
-            # Add rate limit headers to response
-            response = await call_next(request)
-            response.headers["X-RateLimit-Limit"] = str(self.max_requests)
-            response.headers["X-RateLimit-Remaining"] = str(
-                max(0, self.max_requests - request_count)
-            )
-            return response
-            
-        except redis.RedisError:
-            # If Redis is down, allow the request but log warning
-            return await call_next(request)
-    
-    def _get_client_id(self, request: Request) -> str:
-        """Extract client identifier from request."""
-        # Try to get user ID from auth header
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            # Use a hash of the token as identifier
-            import hashlib
-            return hashlib.md5(auth_header.encode()).hexdigest()
-        
-        # Fall back to IP address
-        forwarded_for = request.headers.get("X-Forwarded-For")
-        if forwarded_for:
-            return forwarded_for.split(",")[0].strip()
-        
-        return request.client.host if request.client else "unknown"
-```
-
----
-
-### Step 4.4: Improve Error Handling
-
-**File to create/update:** `backend/app/core/exceptions.py`
-
-```python
-"""
-Custom exception classes and global error handler for Spetser AI.
-"""
-from fastapi import HTTPException, Request, status
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-
-
-class AppException(HTTPException):
-    """Base application exception with error code."""
-    
-    def __init__(self, status_code: int, detail: str, code: str):
-        super().__init__(status_code=status_code, detail=detail)
-        self.code = code
-
-
-class AuthenticationError(AppException):
-    def __init__(self, detail: str = "Authentication failed"):
-        super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=detail,
-            code="AUTH_ERROR",
-        )
-
-
-class AuthorizationError(AppException):
-    def __init__(self, detail: str = "Insufficient permissions"):
-        super().__init__(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=detail,
-            code="AUTHORIZATION_ERROR",
-        )
-
-
-class NotFoundError(AppException):
-    def __init__(self, detail: str = "Resource not found"):
-        super().__init__(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=detail,
-            code="NOT_FOUND",
-        )
-
-
-class ValidationError(AppException):
-    def __init__(self, detail: str = "Validation failed"):
-        super().__init__(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=detail,
-            code="VALIDATION_ERROR",
-        )
-
-
-class RateLimitError(AppException):
-    def __init__(self, detail: str = "Rate limit exceeded"):
-        super().__init__(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=detail,
-            code="RATE_LIMIT_EXCEEDED",
-        )
-
-
-class InsufficientCreditsError(AppException):
-    def __init__(self, detail: str = "Insufficient credits"):
-        super().__init__(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail=detail,
-            code="INSUFFICIENT_CREDITS",
-        )
-
-
-class ExternalServiceError(AppException):
-    def __init__(self, detail: str = "External service unavailable"):
-        super().__init__(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=detail,
-            code="EXTERNAL_SERVICE_ERROR",
-        )
-
-
-# === Global Exception Handlers ===
-
-async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
-    """Handle custom application exceptions."""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "error": {
-                "code": exc.code,
-                "message": exc.detail,
-            }
-        },
-    )
-
-
-async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-    """Handle Pydantic validation errors."""
-    errors = []
-    for error in exc.errors():
-        errors.append({
-            "field": ".".join(str(loc) for loc in error["loc"]),
-            "message": error["msg"],
-        })
-    
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={
-            "error": {
-                "code": "VALIDATION_ERROR",
-                "message": "Request validation failed",
-                "details": errors,
-            }
-        },
-    )
-
-
-async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Handle unexpected errors. Never leak internal details."""
-    # Log the actual error internally
-    import logging
-    logger = logging.getLogger("spetser_ai")
-    logger.exception(f"Unhandled exception: {exc}")
-    
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "error": {
-                "code": "INTERNAL_ERROR",
-                "message": "An unexpected error occurred. Please try again.",
-            }
-        },
-    )
-```
-
----
-
-### Step 4.5: Update main.py with Middleware and Handlers
-
-**File to update:** `backend/app/main.py`
-
-**Add these registrations (read existing file first, add missing parts):**
-```python
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-from app.core.config import settings
-from app.core.exceptions import (
-    AppException,
-    app_exception_handler,
-    validation_exception_handler,
-    generic_exception_handler,
-)
-from app.middleware.rate_limit import RateLimitMiddleware
-from fastapi.exceptions import RequestValidationError
-
-app = FastAPI(
-    title="Spetser AI API",
-    version="1.0.0",
-    description="Arabic-first educational AI platform",
-)
-
-# === MIDDLEWARE (order matters - first added = last executed) ===
-
-# Rate Limiting
-app.add_middleware(
-    RateLimitMiddleware,
-    max_requests=100,
-    window_seconds=60,
-)
-
-# CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,  # From config, not hardcoded
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allow_headers=["*"],
-    max_age=600,
-)
-
-# === EXCEPTION HANDLERS ===
-app.add_exception_handler(AppException, app_exception_handler)
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
-app.add_exception_handler(Exception, generic_exception_handler)
-```
-
----
-
-### Step 4.6: Run Backend Tests
+### Step 5.8: Test Feature 4
 
 ```bash
 cd backend
-python -m pytest tests/ -v --tb=short
+python -m pytest tests/test_api_keys.py -v
+
+cd ../frontend
+npm run lint && npm run build
 ```
 
-**ALL tests must pass. Fix any failures.**
-
----
-
-### Step 4.7: Commit Phase 4
-
+**Commit:**
 ```bash
 git add -A
-git commit -m "perf(phase-4): backend optimization - connection pool, caching, rate limiting, error handling"
+git commit -m "feat(developer): add API key management panel with custom prompts and controls"
 ```
-
-**PHASE 4 COMPLETE. Proceed to Phase 5.**
 
 ==================================================
-SECTION 8: PHASE 5 — PENETRATION TESTING
+SECTION 6: FEATURE 5 — DEFAULT CREDITS CONTROL
 ==================================================
 
-**Estimated Duration:** 45 minutes
-**Goal:** Validate security controls through controlled testing.
-**Methodology:** Based on `usestrix/strix` (simplified, safe, local-only).
+**Goal:** Allow admins to control the default credit balance given to new user accounts.
 
 ---
 
-### Step 5.1: Authentication Tests
+### Step 6.1: Backend — System Settings Model
 
-**Execute these curl commands and record results:**
+**File to create:** `backend/app/models/system_settings.py`
+
+```python
+from datetime import datetime, timezone
+from sqlalchemy import String, Integer, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.base import Base
+
+
+class SystemSettings(Base):
+    """Global system settings (single row)."""
+
+    __tablename__ = "system_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    default_new_user_credits: Mapped[int] = mapped_column(Integer, default=300)
+    daily_free_credits: Mapped[int] = mapped_column(Integer, default=300)
+    credits_per_message: Mapped[int] = mapped_column(Integer, default=1)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+```
+
+**Create migration:**
+```bash
+cd backend
+alembic revision --autogenerate -m "add system_settings table"
+alembic upgrade head
+```
+
+**Seed default settings:**
+```python
+# backend/app/db/init_db.py
+async def seed_settings(db: AsyncSession):
+    result = await db.execute(select(SystemSettings))
+    if not result.scalar_one_or_none():
+        settings = SystemSettings(
+            id=1,
+            default_new_user_credits=300,
+            daily_free_credits=300,
+            credits_per_message=1,
+        )
+        db.add(settings)
+        await db.commit()
+```
+
+---
+
+### Step 6.2: Backend — Settings Service
+
+**File to create:** `backend/app/services/settings_service.py`
+
+```python
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.system_settings import SystemSettings
+
+
+class SettingsService:
+    """Manages global system settings."""
+
+    async def get_settings(self, db: AsyncSession) -> SystemSettings:
+        result = await db.execute(select(SystemSettings).where(SystemSettings.id == 1))
+        settings = result.scalar_one_or_none()
+
+        if not settings:
+            # Create default if missing
+            settings = SystemSettings(id=1)
+            db.add(settings)
+            await db.commit()
+
+        return settings
+
+    async def update_settings(self, db: AsyncSession, **updates) -> SystemSettings:
+        settings = await self.get_settings(db)
+
+        allowed_fields = {
+            "default_new_user_credits",
+            "daily_free_credits",
+            "credits_per_message",
+        }
+
+        for field, value in updates.items():
+            if field in allowed_fields and value is not None:
+                setattr(settings, field, value)
+
+        await db.commit()
+        await db.refresh(settings)
+        return settings
+
+
+settings_service = SettingsService()
+```
+
+---
+
+### Step 6.3: Backend — Update Register to Use Settings
+
+**File to update:** `backend/app/api/v1/routes/auth.py`
+
+```python
+from app.services.settings_service import settings_service
+
+@router.post("/register")
+async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    # Get current settings
+    settings = await settings_service.get_settings(db)
+
+    # Create user with default credits from settings
+    user = User(
+        email=request.email,
+        name=request.name,
+        hashed_password=hash_password(request.password),
+        is_verified=False,
+        credit_balance=settings.default_new_user_credits,  # Dynamic!
+    )
+    db.add(user)
+    await db.commit()
+
+    # Send verification...
+    await verification_service.initiate_verification(db, user)
+
+    return {
+        "message": "Account created. Please verify your email.",
+        "credits_granted": settings.default_new_user_credits,
+    }
+```
+
+---
+
+### Step 6.4: Backend — Admin Settings Endpoints
+
+**File to update:** `backend/app/api/v1/routes/admin.py`
+
+```python
+@router.get("/settings")
+async def get_settings(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Get system settings (admin only)."""
+    settings = await settings_service.get_settings(db)
+    return {
+        "default_new_user_credits": settings.default_new_user_credits,
+        "daily_free_credits": settings.daily_free_credits,
+        "credits_per_message": settings.credits_per_message,
+    }
+
+
+@router.patch("/settings")
+async def update_settings(
+    request: UpdateSettingsRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Update system settings (admin only)."""
+    settings = await settings_service.update_settings(db, **request.dict(exclude_unset=True))
+    return {
+        "message": "Settings updated successfully.",
+        "default_new_user_credits": settings.default_new_user_credits,
+    }
+```
+
+---
+
+### Step 6.5: Frontend — Settings Control in Developer Panel
+
+**File to update:** `frontend/src/pages/DeveloperPage.tsx`
+
+**Add settings section:**
+```tsx
+const [defaultCredits, setDefaultCredits] = useState('300');
+
+useEffect(() => {
+  fetchSettings();
+}, []);
+
+const fetchSettings = async () => {
+  try {
+    const response = await api.get('/admin/settings');
+    setDefaultCredits(String(response.data.default_new_user_credits));
+  } catch (error) {
+    console.error('Failed to fetch settings:', error);
+  }
+};
+
+const handleUpdateSettings = async () => {
+  try {
+    await api.patch('/admin/settings', {
+      default_new_user_credits: parseInt(defaultCredits),
+    });
+    alert('تم تحديث الإعدادات بنجاح');
+  } catch (error) {
+    console.error('Failed to update settings:', error);
+  }
+};
+
+// In JSX, add a settings card:
+<div className="settings-card">
+  <h2>إعدادات الحسابات الجديدة</h2>
+  <Input
+    label="الرصيد الافتراضي للحسابات الجديدة"
+    type="number"
+    value={defaultCredits}
+    onChange={(e) => setDefaultCredits(e.target.value)}
+  />
+  <Button onClick={handleUpdateSettings}>
+    حفظ الإعدادات
+  </Button>
+</div>
+```
+
+---
+
+### Step 6.6: Test Feature 5
 
 ```bash
-# Test 1: Login with wrong password (should return 401)
-curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"wrong_password"}'
-# Expected: 401
+cd backend
+python -m pytest tests/test_settings.py -v
 
-# Test 2: Access protected endpoint without token (should return 401)
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/conversations
-# Expected: 401
-
-# Test 3: Access protected endpoint with invalid token (should return 401)
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/conversations \
-  -H "Authorization: Bearer invalid_token_here"
-# Expected: 401
-
-# Test 4: Access admin endpoint with regular user token (should return 403)
-# First get a valid token, then:
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/admin/users \
-  -H "Authorization: Bearer [REGULAR_USER_TOKEN]"
-# Expected: 403
+cd ../frontend
+npm run lint && npm run build
 ```
 
----
-
-### Step 5.2: Input Validation Tests
-
-```bash
-# Test 5: XSS attempt in chat message
-curl -s -X POST http://localhost:8000/api/v1/chat \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer [VALID_TOKEN]" \
-  -d '{"message":"<script>alert(1)</script>"}'
-# Expected: Script tags should be sanitized or escaped in response
-
-# Test 6: SQL Injection in login
-curl -s -X POST http://localhost:8000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@spetser.ai\" OR \"1\"=\"1","password":"anything"}'
-# Expected: 401 (not 200)
-
-# Test 7: Extremely long input (should be rejected)
-LONG_STRING=$(python3 -c "print('A' * 100000)")
-curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/api/v1/chat \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer [VALID_TOKEN]" \
-  -d "{\"message\":\"$LONG_STRING\"}"
-# Expected: 422 (validation error)
-```
-
----
-
-### Step 5.3: Rate Limiting Test
-
-```bash
-# Test 8: Send 110 rapid requests (should get 429 after ~100)
-for i in $(seq 1 110); do
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health)
-  if [ "$STATUS" = "429" ]; then
-    echo "Rate limit triggered at request $i"
-    break
-  fi
-done
-# Expected: 429 triggered around request 100-110
-```
-
----
-
-### Step 5.4: Generate Penetration Test Report
-
-**File to create/update:** `docs/PENETRATION_TEST.md`
-
-```markdown
-# Penetration Test Report — Spetser AI
-
-## Summary
-- **Test Date:** [DATE]
-- **Tester:** AI Security Agent
-- **Scope:** Authentication, Input Validation, Rate Limiting, Access Control
-- **Environment:** Local Development
-
-## Test Results
-
-### Authentication
-| # | Test | Expected | Actual | Status |
-|---|------|----------|--------|--------|
-| 1 | Wrong password login | 401 | [RESULT] | PASS/FAIL |
-| 2 | No token on protected route | 401 | [RESULT] | PASS/FAIL |
-| 3 | Invalid token | 401 | [RESULT] | PASS/FAIL |
-| 4 | Regular user on admin route | 403 | [RESULT] | PASS/FAIL |
-
-### Input Validation
-| # | Test | Expected | Actual | Status |
-|---|------|----------|--------|--------|
-| 5 | XSS in chat message | Sanitized | [RESULT] | PASS/FAIL |
-| 6 | SQL Injection in login | 401 | [RESULT] | PASS/FAIL |
-| 7 | Oversized input | 422 | [RESULT] | PASS/FAIL |
-
-### Rate Limiting
-| # | Test | Expected | Actual | Status |
-|---|------|----------|--------|--------|
-| 8 | 110 rapid requests | 429 after ~100 | [RESULT] | PASS/FAIL |
-
-## Vulnerabilities Found
-[List any vulnerabilities discovered]
-
-## Recommendations
-1. [Priority recommendations]
-
-## Sign-off
-- [ ] All critical tests passed
-- [ ] No exploitable vulnerabilities found
-- [ ] Rate limiting functional
-- [ ] Input validation comprehensive
-```
-
----
-
-### Step 5.5: Commit Phase 5
-
+**Commit:**
 ```bash
 git add -A
-git commit -m "security(phase-5): penetration testing complete - [X]/[Y] tests passed"
+git commit -m "feat(admin): add default credits control for new user accounts"
 ```
 
-**PHASE 5 COMPLETE. Proceed to Phase 6.**
-
 ==================================================
-SECTION 9: PHASE 6 — FINAL VERIFICATION AND DOCUMENTATION
+SECTION 7: FINAL VERIFICATION
 ==================================================
 
-**Estimated Duration:** 30 minutes
-**Goal:** Final verification, documentation, and deployment preparation.
-
----
-
-### Step 6.1: Run Full Test Suite
+### Step 7.1: Run All Tests
 
 ```bash
 # Backend
@@ -2461,236 +2078,128 @@ python -m pytest tests/ -v --tb=short
 cd ../frontend
 npm run lint
 npm run build
-npm run test 2>/dev/null || true
 ```
 
-**ALL must pass.**
+**ALL tests must pass.**
 
 ---
 
-### Step 6.2: Final Checklist Verification
+### Step 7.2: Manual Testing Checklist
 
-**Verify each item:**
+**Feature 1 — Password Toggle:**
+- [ ] Eye icon appears in login form.
+- [ ] Eye icon appears in register form.
+- [ ] Clicking toggles visibility.
+- [ ] Works in RTL mode.
 
-**Functionality:**
-- [ ] User registration works
-- [ ] Email verification works
-- [ ] Login works
-- [ ] Chat with AI works
-- [ ] Streaming responses work
-- [ ] Credits system works
-- [ ] Settings page works
-- [ ] Dark/Light mode works
-- [ ] RTL layout works
-- [ ] Mobile responsive works
+**Feature 2 — Email Verification:**
+- [ ] Register creates unverified account.
+- [ ] OTP email is sent (check console in dev mode).
+- [ ] Correct OTP activates account.
+- [ ] Wrong OTP shows error and decrements attempts.
+- [ ] Expired OTP is rejected.
+- [ ] Login blocked for unverified users.
 
-**Security:**
-- [ ] All protected endpoints require auth
-- [ ] No hardcoded secrets
-- [ ] Rate limiting active
-- [ ] Input validation on all endpoints
-- [ ] CORS restricted
-- [ ] Error messages don't leak internals
+**Feature 3 — Forgot Password:**
+- [ ] "Forgot password" link visible on login.
+- [ ] Entering email sends reset code.
+- [ ] Correct code allows password reset.
+- [ ] Wrong code shows error.
+- [ ] New password works for login.
+- [ ] Old password no longer works.
 
-**Performance:**
-- [ ] Database connection pooling configured
-- [ ] Caching layer implemented
-- [ ] Frontend bundle size reasonable (<500KB initial)
+**Feature 4 — Developer Panel:**
+- [ ] Admin can access /developer page.
+- [ ] Non-admin users are blocked.
+- [ ] Can create new API key.
+- [ ] Plain key shown only once.
+- [ ] Can edit key settings.
+- [ ] Can toggle key active/inactive.
+- [ ] Can delete key.
+- [ ] Custom system prompt is saved.
 
----
-
-### Step 6.3: Create Architecture Documentation
-
-**File:** `docs/ARCHITECTURE.md`
-
-```markdown
-# Spetser AI — Architecture Documentation
-
-## System Overview
-[Describe the high-level architecture]
-
-## Tech Stack
-- Backend: Python 3.11+, FastAPI, SQLAlchemy Async, PostgreSQL
-- Frontend: TypeScript, React, Vite, Tailwind CSS
-- Cache: Redis
-- Auth: JWT (Access + Refresh tokens)
-
-## Directory Structure
-[Document the final directory structure]
-
-## API Endpoints
-[List all endpoints with method, path, auth requirement]
-
-## Database Schema
-[Key tables and relationships]
-
-## Security Architecture
-[Auth flow, rate limiting, input validation]
-
-## Deployment
-[How to deploy frontend and backend]
-```
+**Feature 5 — Default Credits:**
+- [ ] Admin can view current default credits.
+- [ ] Admin can update default credits.
+- [ ] New users receive the configured amount.
 
 ---
 
-### Step 6.4: Create API Documentation
+### Step 7.3: Update Documentation
 
-**File:** `docs/API.md`
-
-Document every endpoint with:
-- Method and path
-- Auth requirement
-- Request body schema
-- Response schema
-- Error codes
-- Example curl command
-
----
-
-### Step 6.5: Update CHANGELOG
-
-**File:** `docs/CHANGELOG.md`
-
-```markdown
-# Changelog
-
-## [1.0.0] - [DATE]
-
-### Added
-- Comprehensive security audit (Phase 1)
-- Complete design system with tokens (Phase 2)
-- Rebuilt frontend component library (Phase 3)
-- Redis caching layer (Phase 4)
-- Rate limiting middleware (Phase 4)
-- Custom error handling (Phase 4)
-- Penetration testing (Phase 5)
-- Full documentation suite (Phase 6)
-
-### Security
-- Fixed [X] critical vulnerabilities
-- Fixed [Y] high-severity vulnerabilities
-- Added input validation to all endpoints
-- Implemented rate limiting (100 req/min)
-- Hardened CORS configuration
-
-### Changed
-- Database connection pool optimized (20 connections)
-- Error responses standardized
-- Frontend component architecture restructured
-
-### Fixed
-- [List specific bugs fixed]
-```
-
----
-
-### Step 6.6: Final Commit and Status Update
-
-```bash
-git add -A
-git commit -m "docs(phase-6): final verification, documentation, and release preparation"
-```
-
-**Update `docs/PROJECT_STATUS.md` to final state:**
+**Update `docs/PROJECT_STATUS.md`:**
 ```markdown
 # Spetser AI — Project Status Log
 
-## Current Phase: ALL PHASES COMPLETE
-## Last Updated: [ISO TIMESTAMP]
+## Completed Features
+- [x] Password visibility toggle (eye icon)
+- [x] Email verification with OTP
+- [x] Forgot password flow
+- [x] Developer panel for API keys
+- [x] Default credits control
+
+## Last Updated: [DATE]
 ## Status: READY FOR DEPLOYMENT
-
-### Completed Phases
-- [x] Phase 0: Preparation and Setup
-- [x] Phase 1: Security Audit ([X] findings, [Y] fixed)
-- [x] Phase 2: UI/UX Design System
-- [x] Phase 3: Frontend Rebuild
-- [x] Phase 4: Backend Optimization
-- [x] Phase 5: Penetration Testing ([X]/[Y] tests passed)
-- [x] Phase 6: Final Verification and Documentation
-
-### Test Summary
-- Backend: [X]/[X] PASS
-- Frontend Build: PASS
-- Frontend Lint: PASS
-- Pen Tests: [X]/[Y] PASS
-
-### Next Steps
-1. Deploy to staging environment
-2. Run smoke tests on staging
-3. Deploy to production
-4. Monitor for 48 hours
 ```
 
 ---
 
-### Step 6.7: Deployment Commands
+### Step 7.4: Final Commit
 
 ```bash
-# Build frontend for production
-cd frontend
-npm run build
+git add -A
+git commit -m "feat: complete auth enhancements and developer panel
 
-# Start backend for production
-cd ../backend
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
-
-# Or with Docker:
-docker compose up --build -d
+- Add password visibility toggle in login/register
+- Add email OTP verification for new accounts
+- Add forgot password flow with email verification
+- Add developer panel for API key management
+- Add default credits control for new accounts"
 ```
 
-**PHASE 6 COMPLETE. PROJECT REFACTOR FINISHED.**
-
 ==================================================
-SECTION 10: SUMMARY TABLE
+SECTION 8: SUMMARY
 ==================================================
 
-| Phase | Description | Est. Duration | Key Deliverables |
-|-------|-------------|---------------|------------------|
-| 0 | Preparation & Setup | 15 min | Backup, health check, docs structure |
-| 1 | Security Audit | 45 min | SECURITY_AUDIT.md, vulnerability fixes |
-| 2 | UI/UX Design System | 30 min | tokens.css, animations.css, design checklist |
-| 3 | Frontend Rebuild | 2-3 hrs | UI components, chat interface, CSS |
-| 4 | Backend Optimization | 1-2 hrs | Caching, rate limiting, error handling |
-| 5 | Penetration Testing | 45 min | PENETRATION_TEST.md, curl tests |
-| 6 | Final Verification | 30 min | Architecture docs, API docs, changelog |
-
-**Total Estimated Duration:** 5-7 hours
-
-==================================================
-SECTION 11: CRITICAL REMINDERS
-==================================================
-
-1. **NEVER skip tests.** If a test fails, stop and fix it.
-2. **NEVER hardcode secrets.** Use environment variables only.
-3. **ALWAYS commit after each phase.** This creates rollback points.
-4. **ALWAYS update PROJECT_STATUS.md.** This is the memory of the project.
-5. **ALWAYS log errors in ERROR_LOG.md.** This prevents repeating mistakes.
-6. **SECURITY FIRST.** Do not deploy any change without security verification.
-7. **BACKUP BEFORE DESTRUCTIVE OPERATIONS.** Always create a branch before major changes.
-8. **TEST ON MOBILE.** Verify responsive design at 375px width.
-9. **TEST RTL.** Verify Arabic layout renders correctly.
-10. **DOCUMENT EVERYTHING.** Future you will thank present you.
+| Feature | Files Created/Modified | Tests |
+|---------|----------------------|-------|
+| Password Toggle | PasswordInput.tsx, LoginForm.tsx, RegisterForm.tsx, input.css | Manual |
+| Email Verification | verification_service.py, email_service.py, VerifyEmailPage.tsx, auth.py | test_verification.py |
+| Forgot Password | password_reset_service.py, ForgotPasswordPage.tsx, security.py | test_password_reset.py |
+| Developer Panel | api_key.py, api_key_service.py, developer.py, DeveloperPage.tsx | test_api_keys.py |
+| Default Credits | system_settings.py, settings_service.py, admin.py | test_settings.py |
 
 ==================================================
 END OF PROMPT
 ==================================================
 
 **AWAITING USER COMMAND:**
-- Say "Start Phase 0" to begin execution.
-- Say "Continue" to resume from where we left off (reads PROJECT_STATUS.md).
-- Say "Skip to Phase [N]" to jump to a specific phase (use with caution).
+- Say "Start Feature 1" to begin with password toggle.
+- Say "Start Feature 2" to begin with email verification.
+- Say "Continue" to resume from PROJECT_STATUS.md.
+- Say "Execute All" to run all features sequentially.
 
 GO.
 ```
 
 ---
 
-هذا البرومبت الآن:
+## ملخص ما يغطيه هذا البرومت:
 
-1. **مفصل جداً** — كل خطوة تحتوي على الكود الفعلي، الأوامر الدقيقة، والملفات المستهدفة
-2. **باللغة الإنجليزية** — جاهز لأي أداة AI
-3. **خطوة بخطوة** — 6 مراحل، كل مرحلة مقسمة لخطوات فرعية مرقمة
-4. **يحتوي على بروتوكول صارم** — كل خطوة تتبع نفس التسلسل: أعلن ← افحص ← خطط ← نفذ ← تحقق ← أصلح ← وثق ← التزم ← أبلغ
-5. **معالجة أخطاء مدمجة** — بروتوكول واضح للتعامل مع أي فشل
-6. **ملف حالة مستمر** — `PROJECT_STATUS.md` يحدَّث بعد كل خطوة
-7. **سجل أخطاء** — `ERROR_LOG.md` يمنع تكرار الأخطاء
+| الميزة | التفاصيل |
+|--------|----------|
+| **1. أيقونة العين** | مكون `PasswordInput` قابل لإعادة الاستخدام، يعمل في تسجيل الدخول وإنشاء الحساب، يدعم العربية و RTL |
+| **2. التحقق بالبريد** | رمز عشوائي 6 أرقام، مشفر (SHA-256)، صالح 15 دقيقة، 5 محاولات كحد أقصى، الحساب لا يُفعّل إلا بالرمز الصحيح |
+| **3. نسيت كلمة المرور** | 3 خطوات: إدخال البريد ← إدخال الرمز ← كتابة كلمة المرور الجديدة، مع رمز مؤقت (reset token) قصير العمر |
+| **4. لوحة المطورين** | إضافة/تعديل/حذف مفاتيح API، تخصيص System Prompt لكل مفتاح، حد أقصى للكريدت اليومي، عرض المفتاح مرة واحدة فقط |
+| **5. الكريدت الافتراضي** | جدول إعدادات نظام، تحكم الأدمن في رصيد الحسابات الجديدة، يُطبق تلقائياً عند التسجيل |
+
+---
+
+## ملاحظات أمنية مهمة مدمجة في البرومت:
+
+1. **الرموز لا تُخزن نصاً صريحاً** — تُخزن كـ hash
+2. **مفاتيح API تُخزن مشفرة** — يظهر المفتاح مرة واحدة فقط عند الإنشاء
+3. **لا يتم كشف وجود البريد** — في نسيت كلمة المرور، الرسالة واحدة سواء كان البريد موجوداً أم لا
+4. **تحديد المحاولات** — 5 محاولات فقط للرمز، ثم يجب طلب رمز جديد
+5. **انتهاء الصلاحية** — الرمز صالح 15 دقيقة فقط

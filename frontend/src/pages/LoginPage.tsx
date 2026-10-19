@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../contexts/useAuth';
 import { AuthLayout } from '../components/layout/AuthLayout';
+import { PasswordInput } from '../components/ui/PasswordInput';
 
 const loginSchema = z.object({
   email: z.string().email('بريد إلكتروني غير صحيح'),
@@ -75,21 +76,18 @@ export function LoginPage() {
           )}
         </div>
 
-        <div className="field">
-          <label htmlFor="login-password" className="field__label field__label--required">
-            كلمة المرور
-          </label>
-          <input
-            id="login-password"
-            type="password"
-            autoComplete="current-password"
-            dir="ltr"
-            className={`input${errors.password ? ' input--error' : ''}`}
-            {...register('password')}
-          />
-          {errors.password && (
-            <span className="field__error" role="alert">{errors.password.message}</span>
-          )}
+        <PasswordInput
+          id="login-password"
+          label="كلمة المرور"
+          autoComplete="current-password"
+          error={errors.password?.message}
+          {...register('password')}
+        />
+
+        <div className="form__forgot-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-4px' }}>
+          <Link to="/forgot-password" className="link--forgot text-accent text-sm">
+            نسيت كلمة المرور؟
+          </Link>
         </div>
 
         <button

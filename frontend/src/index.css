@@ -2349,3 +2349,57 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     backdrop-filter: blur(2px);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Stitch Project 65770937400041676 — Exact Perplexity Replica Utilities
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.bg-parchment { background-color: #faf8f5 !important; }
+.bg-soft-paper { background-color: #fdfbfa !important; }
+.bg-warm-mist { background-color: #d1d1cd !important; }
+.bg-surface-container-low { background-color: #f9f3e8 !important; }
+.bg-surface-container { background-color: #f3ede2 !important; }
+.bg-surface-container-high { background-color: #ede8dc !important; }
+.bg-primary-container { background-color: #016a71 !important; }
+.bg-deep-teal { background-color: #016a71 !important; }
+.bg-ink { background-color: #27251e !important; }
+.bg-pure-black { background-color: #000000 !important; }
+
+.text-ink { color: #27251e !important; }
+.text-graphite { color: #72706b !important; }
+.text-ash { color: #92918b !important; }
+.text-deep-teal { color: #016a71 !important; }
+.text-on-primary { color: #ffffff !important; }
+.text-soft-paper { color: #fdfbfa !important; }
+
+.border-warm-mist { border-color: #d1d1cd !important; }
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 12px);
+}
+
+.shadow-card {
+  box-shadow: 0px 2px 8px 0px rgba(39, 37, 30, 0.05);
+}
+.shadow-subtle {
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.06);
+}
+
+/* Material Symbols Outlined settings */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+}
+

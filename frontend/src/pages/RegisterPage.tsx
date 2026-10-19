@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../contexts/useAuth';
 import { AuthLayout } from '../components/layout/AuthLayout';
+import { PasswordInput } from '../components/ui/PasswordInput';
 
 const registerSchema = z.object({
   display_name: z.string().min(2, 'الاسم يجب أن يحتوي على حرفين على الأقل').max(200),
@@ -97,22 +98,22 @@ export function RegisterPage() {
           {errors.email && <span className="field__error" role="alert">{errors.email.message}</span>}
         </div>
 
-        <div className="field">
-          <label htmlFor="reg-password" className="field__label field__label--required">كلمة المرور</label>
-          <input id="reg-password" type="password" autoComplete="new-password" dir="ltr"
-            className={`input${errors.password ? ' input--error' : ''}`}
-            {...register('password')} />
-          {errors.password && <span className="field__error" role="alert">{errors.password.message}</span>}
-          <span className="field__hint">8 أحرف على الأقل</span>
-        </div>
+        <PasswordInput
+          id="reg-password"
+          label="كلمة المرور"
+          autoComplete="new-password"
+          hint="8 أحرف على الأقل"
+          error={errors.password?.message}
+          {...register('password')}
+        />
 
-        <div className="field">
-          <label htmlFor="reg-confirm" className="field__label field__label--required">تأكيد كلمة المرور</label>
-          <input id="reg-confirm" type="password" autoComplete="new-password" dir="ltr"
-            className={`input${errors.confirm_password ? ' input--error' : ''}`}
-            {...register('confirm_password')} />
-          {errors.confirm_password && <span className="field__error" role="alert">{errors.confirm_password.message}</span>}
-        </div>
+        <PasswordInput
+          id="reg-confirm"
+          label="تأكيد كلمة المرور"
+          autoComplete="new-password"
+          error={errors.confirm_password?.message}
+          {...register('confirm_password')}
+        />
 
         <button type="submit"
           className={`btn btn--primary btn--full${isSubmitting ? ' btn--loading' : ''}`}

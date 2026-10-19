@@ -6,6 +6,104 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Spetser AI — مساعدك الأكاديمي الذكي" />
     <title>Spetser AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-container": "#e3dfd9",
+              "tertiary-fixed-dim": "#ffb688",
+              "tertiary-container": "#8b5128",
+              "surface-container-high": "#ede8dc",
+              "error": "#ba1a1a",
+              "inverse-on-surface": "#f6f0e5",
+              "on-secondary-fixed-variant": "#484742",
+              "error-container": "#ffdad6",
+              "on-secondary-fixed": "#1c1c18",
+              "secondary-fixed": "#e6e2dc",
+              "surface-container-lowest": "#ffffff",
+              "surface-tint": "#006970",
+              "on-primary": "#ffffff",
+              "primary-container": "#016a71",
+              "warm-mist": "#d1d1cd",
+              "surface-container-low": "#f9f3e8",
+              "surface-container": "#f3ede2",
+              "surface": "#fff9ed",
+              "ash": "#92918b",
+              "on-primary-fixed-variant": "#004f54",
+              "tertiary": "#6e3a13",
+              "surface-container-highest": "#e8e2d7",
+              "secondary": "#605e59",
+              "on-surface": "#1d1c15",
+              "tertiary-fixed": "#ffdbc7",
+              "on-primary-fixed": "#002022",
+              "surface-variant": "#e8e2d7",
+              "primary": "#005056",
+              "ink": "#27251e",
+              "inverse-surface": "#333029",
+              "on-surface-variant": "#3e494a",
+              "soft-paper": "#fdfbfa",
+              "surface-dim": "#dfd9cf",
+              "secondary-fixed-dim": "#c9c6c0",
+              "on-tertiary": "#ffffff",
+              "on-primary-container": "#98e7ef",
+              "deep-teal": "#016a71",
+              "on-secondary": "#ffffff",
+              "on-error-container": "#93000a",
+              "on-tertiary-container": "#ffd1b6",
+              "primary-fixed-dim": "#84d3db",
+              "on-secondary-container": "#64625e",
+              "on-tertiary-fixed-variant": "#6d3912",
+              "surface-bright": "#fff9ed",
+              "graphite": "#72706b",
+              "inverse-primary": "#84d3db",
+              "on-tertiary-fixed": "#311300",
+              "background": "#fff9ed",
+              "pure-black": "#000000",
+              "on-background": "#1d1c15",
+              "outline-variant": "#bec8c9",
+              "primary-fixed": "#a0f0f7",
+              "parchment": "#faf8f5",
+              "outline": "#6f797a",
+              "on-error": "#ffffff"
+            },
+            borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
+            spacing: {
+              "margin-desktop": "2rem",
+              margin: "1rem",
+              "space-xl": "1.5rem",
+              "space-xs": "0.25rem",
+              gutter: "1rem",
+              "space-sm": "0.5rem",
+              "space-md": "0.75rem",
+              "space-lg": "1rem"
+            },
+            fontFamily: {
+              sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+              "headline-sm": ["Inter"],
+              "body-sm": ["Inter"],
+              "label-xs": ["Inter"],
+              "label-md": ["Inter"],
+              "label-sm": ["Inter"],
+              "body-md": ["Inter"],
+              "headline-lg": ["Inter"],
+              "headline-md": ["Inter"],
+              "body-lg": ["Inter"]
+            },
+            boxShadow: {
+              subtle: '0px 1px 2px 0px rgba(0, 0, 0, 0.06)',
+              card: '0px 2px 8px 0px rgba(39, 37, 30, 0.05)',
+            }
+          }
+        }
+      };
+    </script>
     <script>
       // Apply the stored theme BEFORE first paint to avoid a flash of the
       // wrong palette. Default is light (the parchment design system);

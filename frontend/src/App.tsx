@@ -96,10 +96,11 @@ export function App() {
             {/* Referral landing (Phase 9, Lesson 9.3) — validates code, funnels to register */}
             <Route path="/r/:code" element={<ReferralLandingPage />} />
             
-            {/* Authenticated student routes inside AppShell */}
-            <Route element={<RequireAuth />}>
-              <Route element={<AppShell><Outlet /></AppShell>}>
-                <Route path="/" element={<HomePage />} />
+            {/* Routes inside AppShell */}
+            <Route element={<AppShell><Outlet /></AppShell>}>
+              <Route path="/" element={<HomePage />} />
+              {/* Authenticated student routes */}
+              <Route element={<RequireAuth />}>
                 {/* Placeholders for Phase 2+ */}
                 <Route path="/presentations/new" element={
                   <div className="empty-state">

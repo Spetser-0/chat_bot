@@ -1,9 +1,8 @@
 /**
- * AppShell — the authenticated layout: collapsible sidebar + top bar.
+ * AppShell — authenticated layout wrapper.
  *
- * The sidebar can be toggled via the hamburger button (three lines) in the
- * top bar, or by clicking the overlay on mobile. The collapsed state is
- * persisted in localStorage so the user's preference survives reloads.
+ * On the home page ('/'), it renders the exact Stitch Perplexity interface directly.
+ * On other pages (e.g. /chat, /settings), it provides the application shell.
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -29,6 +28,16 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [prevPath, setPrevPath] = useState(location.pathname);
+
+  // If on the home page, let HomePage render the exact Stitch layout directly
+  const isHome = location.pathname === '/';
+
+  // Derive mobile open reset on route change without effect warning
+  if (prevPath !== location.pathname) {
+    setPrevPath(location.pathname);
+    setMobileOpen(false);
+  }
 
   // Persist the desktop collapse preference.
   useEffect(() => {
@@ -38,11 +47,6 @@ export function AppShell({ children }: { children?: ReactNode }) {
       /* storage unavailable — ignore */
     }
   }, [collapsed]);
-
-  // Close the mobile drawer whenever the route changes.
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
 
   // Close the mobile drawer with Escape.
   useEffect(() => {
@@ -79,6 +83,10 @@ export function AppShell({ children }: { children?: ReactNode }) {
   };
   const closeMobile = () => setMobileOpen(false);
 
+  if (isHome) {
+    return <main className="w-full min-h-screen bg-parchment">{children ?? <Outlet />}</main>;
+  }
+
   return (
     <div
       className={`app-shell${collapsed ? ' app-shell--collapsed' : ''}`}
@@ -98,13 +106,13 @@ export function AppShell({ children }: { children?: ReactNode }) {
         </button>
 
         <div className="app-shell__topbar-title">
-          <span className="brand-mark__name">Spetser AI</span>
+          <span className="brand-mark__name">Perplexity</span>
         </div>
 
         <button
           type="button"
           className="btn btn--ghost btn--sm app-shell__new-chat-btn"
-          onClick={() => navigate('/chat')}
+          onClick={() => navigate('/')}
         >
           <span className="sr-only">محادثة جديدة</span>
           <ArrowRight size={16} aria-hidden="true" />
@@ -112,12 +120,11 @@ export function AppShell({ children }: { children?: ReactNode }) {
       </header>
 
       {/* ── Sidebar ───────────────────────────────────────────────────── */}
-      {/* Desktop: always in the layout, collapses to a strip. Mobile: drawer. */}
       <AppSidebar
         conversations={sidebarConversations}
         activeId={location_activeId}
         onSelect={(id) => navigate(`/chat/${id}`)}
-        onNewChat={() => navigate('/chat')}
+        onNewChat={() => navigate('/')}
       />
 
       {/* ── Mobile overlay ────────────────────────────────────────────── */}
@@ -136,3 +143,4 @@ export function AppShell({ children }: { children?: ReactNode }) {
     </div>
   );
 }
+export default AppShell;

@@ -84,3 +84,22 @@
   color: var(--color-text-tertiary);
   margin-top: var(--space-1);
 }
+
+.form__forgot-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-1);
+}
+
+.link--forgot {
+  font-size: var(--text-sm);
+  color: var(--color-brand, var(--color-deep-teal, #016a71));
+  text-decoration: none;
+  transition: opacity var(--transition-fast, 150ms);
+}
+
+.link--forgot:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
