@@ -13,6 +13,7 @@ import { ChatPage } from './pages/ChatPage';
 import { ReferralLandingPage } from './pages/ReferralLandingPage';
 import { ReferralPage } from './pages/ReferralPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 
 // Admin pages are code-split (Lesson 9.10) so the student bundle stays lean.
 const AdminDashboardPage = lazy(() =>
@@ -95,6 +96,7 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             {/* Referral landing (Phase 9, Lesson 9.3) — validates code, funnels to register */}
             <Route path="/r/:code" element={<ReferralLandingPage />} />
             

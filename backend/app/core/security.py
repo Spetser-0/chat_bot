@@ -145,6 +145,30 @@ def is_access_token(token: str) -> bool:
         return False
 
 
+def create_reset_token(user_id: str | Any, expires_minutes: int = 10) -> str:
+    """Create a short-lived password reset token (10 minutes)."""
+    settings = get_settings()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+    payload = {
+        "sub": str(user_id),
+        "type": "password_reset",
+        "exp": expire,
+    }
+    return jwt.encode(payload, settings.RESET_TOKEN_SECRET, algorithm="HS256")
+
+
+def decode_reset_token(token: str) -> str | None:
+    """Decode and validate reset token. Returns user_id or None."""
+    settings = get_settings()
+    try:
+        payload = jwt.decode(token, settings.RESET_TOKEN_SECRET, algorithms=["HS256"])
+        if payload.get("type") != "password_reset":
+            return None
+        return payload.get("sub")
+    except (jwt.PyJWTError, Exception):
+        return None
+
+
 # ───────────────────────────────────────────────────────────────────────────
 # Secret encryption (Fernet) for provider API keys at rest
 # ───────────────────────────────────────────────────────────────────────────

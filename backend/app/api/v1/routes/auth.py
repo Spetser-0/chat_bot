@@ -29,6 +29,8 @@ from app.services.auth import (
 )
 from app.services.referral_service import ReferralService
 from app.services.verification_service import verification_service
+from app.services.password_reset_service import password_reset_service
+from app.core.security import create_reset_token, decode_reset_token
 from app.core.config import get_settings
 from app.core.logging import get_logger
 
@@ -65,6 +67,20 @@ class VerifyEmailRequest(BaseModel):
 
 class ResendCodeRequest(BaseModel):
     email: EmailStr
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class VerifyResetCodeRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6)
+
+
+class ResetPasswordRequest(BaseModel):
+    reset_token: str
+    new_password: str = Field(min_length=8, max_length=72)
 
 
 class LoginRequest(BaseModel):
@@ -267,6 +283,97 @@ async def resend_code(
         "message": "A new verification code has been sent.",
         "data": {
             "message": "تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.",
+        },
+        "error": None,
+    }
+
+
+# ── Forgot Password Flow (spets.md Feature 3) ────────────────────────────────
+
+@router.post("/forgot-password")
+@limiter.limit(AUTH_RATE_LIMIT)
+async def forgot_password(
+    request: Request,
+    body: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Step 1: User requests password reset. Sends OTP to their email."""
+    email = body.email.lower().strip()
+    result = await db.execute(select(Student).where(Student.email == email))
+    student = result.scalar_one_or_none()
+
+    # Security: Don't reveal if email exists or not
+    if student:
+        await password_reset_service.initiate_reset(db, student)
+
+    return {
+        "message": "If this email exists, a reset code has been sent.",
+        "data": {
+            "message": "إذا كان هذا البريد مسجلاً، فقد تم إرسال رمز التحقق.",
+        },
+        "error": None,
+    }
+
+
+@router.post("/verify-reset-code")
+@limiter.limit(AUTH_RATE_LIMIT)
+async def verify_reset_code(
+    request: Request,
+    body: VerifyResetCodeRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Step 2: User enters OTP code. Returns temporary reset token if valid."""
+    email = body.email.lower().strip()
+    result = await db.execute(select(Student).where(Student.email == email))
+    student = result.scalar_one_or_none()
+
+    if not student:
+        raise ValidationError("رمز التحقق غير صحيح.")
+
+    await password_reset_service.verify_reset_code(db, student, body.code)
+    reset_token = create_reset_token(student.id, expires_minutes=10)
+
+    return {
+        "reset_token": reset_token,
+        "data": {
+            "reset_token": reset_token,
+        },
+        "error": None,
+    }
+
+
+@router.post("/reset-password")
+@limiter.limit(AUTH_RATE_LIMIT)
+async def reset_password(
+    request: Request,
+    body: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Step 3: User sets new password using the reset token."""
+    user_id_str = decode_reset_token(body.reset_token)
+    if not user_id_str:
+        raise ValidationError("رمز إعادة التعيين غير صالح أو منتهي الصلاحية.")
+
+    try:
+        user_uuid = uuid.UUID(user_id_str)
+    except ValueError:
+        raise ValidationError("رمز إعادة التعيين غير صالح.")
+
+    result = await db.execute(select(Student).where(Student.id == user_uuid))
+    student = result.scalar_one_or_none()
+
+    if not student:
+        raise NotFoundError("المستخدم غير موجود.")
+
+    if len(body.new_password) < 8:
+        raise ValidationError("يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.")
+
+    await password_reset_service.reset_password(db, student, body.new_password)
+
+    return {
+        "message": "Password has been reset successfully.",
+        "data": {
+            "message": "تم إعادة تعيين كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.",
         },
         "error": None,
     }
