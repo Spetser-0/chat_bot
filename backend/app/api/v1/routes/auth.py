@@ -30,6 +30,7 @@ from app.services.auth import (
 from app.services.referral_service import ReferralService
 from app.services.verification_service import verification_service
 from app.services.password_reset_service import password_reset_service
+from app.services.settings_service import settings_service
 from app.core.security import create_reset_token, decode_reset_token
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -157,6 +158,9 @@ async def register(
     # Extract device fingerprint from request headers
     device_fingerprint = request.headers.get("x-device-fingerprint")
 
+    # Get system settings for default new user credits
+    sys_settings = await settings_service.get_settings(db)
+
     # Create student first (unverified)
     effective_name = body.display_name or body.name
     student = Student(
@@ -165,7 +169,7 @@ async def register(
         password_hash=hash_password(body.password),
         role="student",
         status="active",
-        credit_balance=float(get_settings().default_new_user_credits),
+        credit_balance=float(sys_settings.default_new_user_credits),
         is_verified=False,
         referred_by_user_id=referrer.id if referrer else None,
     )

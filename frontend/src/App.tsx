@@ -30,6 +30,8 @@ const AdminReferralsPage = lazy(() =>
   import('./pages/admin/AdminReferralsPage').then((m) => ({ default: m.AdminReferralsPage })));
 const AdminAuditPage = lazy(() =>
   import('./pages/admin/AdminAuditPage').then((m) => ({ default: m.AdminAuditPage })));
+const DeveloperPage = lazy(() =>
+  import('./pages/DeveloperPage').then((m) => ({ default: m.DeveloperPage })));
 
 function RouteFallback() {
   return (
@@ -136,8 +138,7 @@ export function App() {
               <Route path="/admin/payments" element={<LazyAdminPage><AdminPaymentsPage /></LazyAdminPage>} />
               <Route path="/admin/referrals" element={<LazyAdminPage><AdminReferralsPage /></LazyAdminPage>} />
               <Route path="/admin/audit" element={<LazyAdminPage><AdminAuditPage /></LazyAdminPage>} />
-              {/* Legacy alias */}
-              <Route path="/developer" element={<Navigate to="/admin" replace />} />
+              <Route path="/developer" element={<LazyAdminPage><DeveloperPage /></LazyAdminPage>} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

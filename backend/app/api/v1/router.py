@@ -17,6 +17,8 @@ from app.api.v1.routes.admin.providers import router as admin_providers_router
 from app.api.v1.routes.admin.referrals import router as admin_referrals_router
 from app.api.v1.routes.admin.users import router as admin_users_router
 from app.api.v1.routes.admin.skills import router as admin_skills_router
+from app.api.v1.routes.admin.settings import router as admin_settings_router
+from app.api.v1.routes.developer import router as developer_router
 from app.api.v1.routes.auth import router as auth_router
 from app.api.v1.routes.chat import router as chat_router
 from app.api.v1.routes.conversations import router as conversations_router
@@ -50,6 +52,8 @@ api_v1_router.include_router(admin_payments_router, dependencies=_admin_rl)
 api_v1_router.include_router(admin_analytics_router, dependencies=_admin_rl)
 api_v1_router.include_router(admin_audit_router, dependencies=_admin_rl)
 api_v1_router.include_router(admin_metrics_router, dependencies=_admin_rl)
+api_v1_router.include_router(admin_settings_router, dependencies=_admin_rl)
+api_v1_router.include_router(developer_router, dependencies=_admin_rl)
 api_v1_router.include_router(skills_router)
 api_v1_router.include_router(credits_router)
 api_v1_router.include_router(payments_router)

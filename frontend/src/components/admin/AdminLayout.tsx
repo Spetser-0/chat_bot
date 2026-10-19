@@ -20,6 +20,7 @@ const ADMIN_TABS = [
   { to: '/admin/payments', icon: '💳', label: 'المدفوعات' },
   { to: '/admin/referrals', icon: '🎁', label: 'الدعوات' },
   { to: '/admin/audit', icon: '📜', label: 'سجل التدقيق' },
+  { to: '/developer', icon: '🛠️', label: 'المطورون ومفاتيح API' },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {
