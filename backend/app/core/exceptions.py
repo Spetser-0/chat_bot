@@ -93,16 +93,21 @@ class ExternalServiceError(AppException):
 # === Global Exception Handlers ===
 
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
-    """Handle custom application exceptions."""
-    return JSONResponse(
+    """Handle custom application exceptions (full envelope + CORS, P0.1/P0.2)."""
+    from app.core.cors import attach_cors_headers, request_id_of
+
+    return attach_cors_headers(request, JSONResponse(
         status_code=exc.status_code,
         content={
+            "data": None,
             "error": {
                 "code": exc.code,
                 "message": exc.detail,
-            }
+            },
+            "request_id": request_id_of(request),
         },
-    )
+        headers=getattr(exc, "headers", None),
+    ))
 
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
