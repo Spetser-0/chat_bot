@@ -227,13 +227,19 @@ async def register(
         "email": student.email,
         "requires_verification": True,
         "data": {
-            "message": "Account created. Please check your email for the verification code.",
-            "email": student.email,
-            "requires_verification": True,
+            "id": str(student.id),
             "user_id": str(student.id),
+            "email": student.email,
+            "display_name": student.display_name,
+            "role": student.role,
+            "credit_balance": student.credit_balance,
+            "referred_by_user_id": str(student.referred_by_user_id) if student.referred_by_user_id else None,
+            "message": "Account created. Please check your email for the verification code.",
+            "requires_verification": True,
         },
         "error": None,
     }
+
 
 
 @router.post("/verify-email")

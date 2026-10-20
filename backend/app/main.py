@@ -21,6 +21,13 @@ from slowapi.util import get_remote_address
 from app.api.v1.router import api_v1_router
 from app.api.v1.routes.auth import limiter as auth_limiter
 from app.core.config import get_settings
+from app.core.cors import (
+    CORS_ALLOW_HEADERS,
+    CORS_ALLOW_METHODS,
+    CORS_EXPOSE_HEADERS,
+    attach_cors_headers,
+    request_id_of,
+)
 from app.core.errors import SpetserError
 from app.core.logging import configure_logging
 from app.core.metrics import get_metrics
@@ -98,7 +105,7 @@ def create_app() -> FastAPI:
     app.state.limiter = auth_limiter
     app.add_exception_handler(
         RateLimitExceeded,
-        lambda request, exc: ORJSONResponse(
+        lambda request, exc: attach_cors_headers(request, ORJSONResponse(
             status_code=429,
             content={
                 "data": None,
@@ -106,10 +113,10 @@ def create_app() -> FastAPI:
                     "code": "RATE_LIMIT_EXCEEDED",
                     "message": "محاولات كثيرة. حاول لاحقاً.",
                 },
-                "request_id": request.headers.get("X-Request-ID"),
+                "request_id": request_id_of(request),
             },
             headers={"Retry-After": "60"},
-        ),
+        )),
     )
     app.add_middleware(SlowAPIMiddleware)
 
@@ -153,12 +160,89 @@ def create_app() -> FastAPI:
         if settings.is_production:
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         return response
+    @app.middleware("http")
+    async def envelope_success_responses(request: Request, call_next) -> Response:
+        """
+        Wrap successful JSON responses from /api/v1/* in the standard envelope:
+            {"data": <payload>, "error": null, "request_id": "<uuid>"}
+        
+        Exemptions (pass-through unchanged):
+            - Non-/api/v1/ paths (health probes, webhooks, etc. if needed)
+            - Non-2xx status codes (errors are wrapped by exception handlers)
+            - SSE / streaming responses (content-type: text/event-stream)
+            - Non-JSON responses (downloads, binary)
+        """
+        import json as _json
+        from starlette.responses import Response
+
+        response = await call_next(request)
+
+        path = request.url.path
+        is_api = path.startswith("/api/v1/")
+        is_success = 200 <= response.status_code < 300
+        content_type = response.headers.get("content-type", "")
+        is_json = "application/json" in content_type
+        is_stream = "text/event-stream" in content_type
+
+        if not (is_api and is_success and is_json and not is_stream):
+            return response
+
+        # Read the body bytes. StreamingResponse / SSE already bypassed above.
+        body_chunks = []
+        async for chunk in response.body_iterator:
+            if isinstance(chunk, str):
+                body_chunks.append(chunk.encode("utf-8"))
+            else:
+                body_chunks.append(chunk)
+        raw_bytes = b"".join(body_chunks)
+
+        try:
+            raw_payload = _json.loads(raw_bytes)
+        except _json.JSONDecodeError:
+            # Non-JSON content-type lied — pass through
+            return Response(
+                content=raw_bytes,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=content_type,
+            )
+
+        request_id = getattr(request.state, "request_id", None) or response.headers.get("X-Request-ID")
+
+        # Preserve original headers (except content-length, which we must recalc)
+        new_headers = {k: v for k, v in response.headers.items()
+                       if k.lower() != "content-length"}
+
+        # Avoid double-wrapping if the endpoint already returned an envelope
+        if isinstance(raw_payload, dict) and "data" in raw_payload and "error" in raw_payload:
+            if raw_payload.get("request_id") is None:
+                raw_payload["request_id"] = request_id
+            return ORJSONResponse(
+                content=raw_payload,
+                status_code=response.status_code,
+                headers=new_headers,
+            )
+
+        wrapped = {
+            "data": raw_payload,
+            "error": None,
+            "request_id": request_id,
+        }
+
+        return ORJSONResponse(
+            content=wrapped,
+            status_code=response.status_code,
+            headers=new_headers,
+        )
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins_list,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "X-Request-ID", "Idempotency-Key"],
+        allow_methods=CORS_ALLOW_METHODS,
+        allow_headers=CORS_ALLOW_HEADERS,  # P0.2: includes Authorization + X-API-Key
+        expose_headers=CORS_EXPOSE_HEADERS,
+        max_age=600,
     )
 
     # ── Exception handlers ─────────────────────────────────────────────────
@@ -188,7 +272,7 @@ def create_app() -> FastAPI:
             if msg.startswith("Value error, "):
                 message = msg[len("Value error, "):]
                 break
-        return ORJSONResponse(
+        return attach_cors_headers(request, ORJSONResponse(
             status_code=422,
             content={
                 "data": None,
@@ -200,9 +284,9 @@ def create_app() -> FastAPI:
                         for e in exc.errors()[:10]
                     ],
                 },
-                "request_id": request.headers.get("X-Request-ID"),
+                "request_id": request_id_of(request),
             },
-        )
+        ))
 
     from app.core.exceptions import AppException, app_exception_handler
     app.add_exception_handler(AppException, app_exception_handler)
@@ -216,7 +300,7 @@ def create_app() -> FastAPI:
             status=exc.http_status,
             # Never log exc.detail — may contain sensitive content
         )
-        return ORJSONResponse(
+        return attach_cors_headers(request, ORJSONResponse(
             status_code=exc.http_status,
             content={
                 "data": None,
@@ -224,9 +308,9 @@ def create_app() -> FastAPI:
                     "code": exc.error_code,
                     "message": exc.safe_message,
                 },
-                "request_id": request.headers.get("X-Request-ID"),
+                "request_id": request_id_of(request),
             },
-        )
+        ))
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> ORJSONResponse:
@@ -244,7 +328,7 @@ def create_app() -> FastAPI:
         else:
             error_code = "HTTP_ERROR"
             message = str(detail)
-        return ORJSONResponse(
+        return attach_cors_headers(request, ORJSONResponse(
             status_code=exc.status_code,
             content={
                 "data": None,
@@ -252,15 +336,16 @@ def create_app() -> FastAPI:
                     "code": error_code,
                     "message": message,
                 },
-                "request_id": request.headers.get("X-Request-ID"),
+                "request_id": request_id_of(request),
             },
-        )
+            headers=getattr(exc, "headers", None),
+        ))
 
     @app.exception_handler(Exception)
     async def generic_error_handler(request: Request, exc: Exception) -> ORJSONResponse:
         logger = structlog.get_logger("spetser.errors")
         logger.exception("Unhandled exception")
-        return ORJSONResponse(
+        return attach_cors_headers(request, ORJSONResponse(
             status_code=500,
             content={
                 "data": None,
@@ -268,9 +353,9 @@ def create_app() -> FastAPI:
                     "code": "INTERNAL_ERROR",
                     "message": "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.",
                 },
-                "request_id": request.headers.get("X-Request-ID"),
+                "request_id": request_id_of(request),
             },
-        )
+        ))
 
     # ── Routes ─────────────────────────────────────────────────────────────
 
@@ -284,9 +369,11 @@ def create_app() -> FastAPI:
     # Mount a catch-all so every miss uses the global error shape (Lesson 10.4).
     @app.middleware("http")
     async def unify_not_found(request: Request, call_next):
+        # Registered after CORSMiddleware → runs OUTSIDE it, so CORS headers
+        # must be attached explicitly (P0.2).
         response = await call_next(request)
         if response.status_code == 404 and request.url.path.startswith("/api/"):
-            return ORJSONResponse(
+            return attach_cors_headers(request, ORJSONResponse(
                 status_code=404,
                 content={
                     "data": None,
@@ -294,9 +381,10 @@ def create_app() -> FastAPI:
                         "code": "NOT_FOUND",
                         "message": "المورد المطلوب غير موجود.",
                     },
-                    "request_id": request.headers.get("X-Request-ID"),
+                    "request_id": request_id_of(request),
                 },
-            )
+                headers={"X-Request-ID": rid} if (rid := request_id_of(request)) else None,
+            ))
         return response
 
     return app

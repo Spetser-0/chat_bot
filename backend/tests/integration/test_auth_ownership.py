@@ -17,7 +17,9 @@ import uuid
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 from app.models.credit_ledger import CreditLedger, LedgerEntryType
 from app.models.deliverable import Deliverable, DeliverableStatus
@@ -256,14 +258,29 @@ class TestValidIdentityExtraction:
         assert SESSION_COOKIE_NAME in response.cookies
 
     @pytest.mark.asyncio
-    async def test_register_sets_cookie(self, client: AsyncClient):
-        """Register returns session cookie with valid token."""
+    async def test_register_sets_cookie(self, client: AsyncClient, db: AsyncSession):
+        """Register and verify email sets session cookie with valid token."""
         response = await client.post(
             "/api/v1/auth/register",
             json={"email": "newreg@test.com", "password": "password123", "display_name": "New Reg"},
         )
         assert response.status_code == 201
-        assert SESSION_COOKIE_NAME in response.cookies
+
+        from app.models.student import Student
+        from app.services.verification_service import verification_service
+        result = await db.execute(select(Student).where(Student.email == "newreg@test.com"))
+        student = result.scalar_one()
+        otp = "123456"
+        student.verification_code = verification_service._hash_code(otp)
+        await db.commit()
+
+        verify_resp = await client.post(
+            "/api/v1/auth/verify-email",
+            json={"email": "newreg@test.com", "code": otp},
+        )
+        assert verify_resp.status_code == 200
+        assert SESSION_COOKIE_NAME in verify_resp.cookies
+
 
     @pytest.mark.asyncio
     async def test_developer_role_preserved_in_token(self, developer_client: AsyncClient, developer: Student):

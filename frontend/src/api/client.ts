@@ -11,7 +11,7 @@ import axios, { AxiosError } from 'axios';
 export interface ApiResponse<T> {
   data: T | null;
   error: { code: string; message: string } | null;
-  request_id?: string;
+  request_id?: string | null;
 }
 
 export interface ApiError {
@@ -49,11 +49,53 @@ apiClient.interceptors.response.use(
   }
 );
 
-export function extractData<T>(response: { data: ApiResponse<T> }): T {
-  if (response.data.error) {
-    throw Object.assign(new Error(response.data.error.message), {
-      code: response.data.error.code,
+/**
+ * Defensive envelope extractor.
+ * Handles three shapes:
+ *   1. Wrapped success:  { data: <T>, error: null, request_id }
+ *   2. Wrapped error:    { data: null, error: {...}, request_id }
+ *   3. Legacy bare:       <T>  (array or object) — tolerated during rollout
+ */
+export function extractData<T>(response: { data: unknown }): T {
+  const body = response.data as Record<string, unknown> | unknown[] | null | undefined;
+
+  // ── Shape 2: wrapped error (explicit) ──
+  if (
+    body !== null &&
+    typeof body === "object" &&
+    !Array.isArray(body) &&
+    "error" in body &&
+    body.error !== null &&
+    typeof body.error === "object"
+  ) {
+    const err = body.error as { code: string; message: string };
+    const wrappedError = Object.assign(new Error(err.message), {
+      code: err.code,
     });
+    throw wrappedError;
   }
-  return response.data.data as T;
+
+  // ── Shape 1: wrapped success ──
+  if (
+    body !== null &&
+    typeof body === "object" &&
+    !Array.isArray(body) &&
+    "data" in body &&
+    "error" in body &&
+    "request_id" in body
+  ) {
+    return (body as unknown as ApiResponse<T>).data as T;
+  }
+
+  // ── Shape 3: legacy bare (tolerance mode) ──
+  // This branch should become dead code once P0.1 is fully deployed.
+  // Remove in a future cleanup commit.
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[extractData] Bare response received — backend envelope middleware may not be active.",
+      body,
+    );
+  }
+  return body as T;
 }

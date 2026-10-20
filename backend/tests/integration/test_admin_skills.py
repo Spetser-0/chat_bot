@@ -179,4 +179,5 @@ class TestSkillCRUD:
     async def test_meta_count_route_order(self, admin_client):
         resp = await admin_client.get("/api/v1/admin/skills/_meta/count")
         assert resp.status_code == 200
-        assert set(resp.json().keys()) == {"total", "public"}
+        assert set(resp.json()["data"].keys()) == {"total", "public"}
+

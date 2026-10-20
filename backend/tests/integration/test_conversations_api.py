@@ -97,11 +97,14 @@ class TestConversationCRUD:
         await _make_conversation(db, user, title="visible")
         await _make_conversation(db, user, title="hidden", archived=True)
         async with _client(app, user) as c:
-            items = (await c.get("/api/v1/conversations")).json()
+            resp = await c.get("/api/v1/conversations")
+            assert resp.status_code == 200
+            items = resp.json()["data"]
             assert [i["title"] for i in items] == ["visible"]
             items = (await c.get("/api/v1/conversations",
-                                 params={"include_archived": True})).json()
+                                 params={"include_archived": True})).json()["data"]
             assert len(items) == 2
+
 
     @pytest.mark.asyncio
     async def test_detail_includes_messages_chronological(self, app, db):

@@ -58,8 +58,9 @@ class TestPublicCatalogue:
         s = await _skill(db, f"vip-{uuid.uuid4().hex[:6]}",
                          public=True, premium=True)
         resp = await client.get("/api/v1/skills")
-        card = next(c for c in resp.json() if c["slug"] == s.slug)
+        card = next(c for c in resp.json()["data"] if c["slug"] == s.slug)
         assert card["is_premium"] is True
+
 
     @pytest.mark.asyncio
     async def test_private_skill_get_returns_404(self, client, db):
