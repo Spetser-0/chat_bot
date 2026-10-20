@@ -14,7 +14,7 @@ class CreateAPIKeyRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     system_prompt: str | None = Field(None, max_length=10000)
     max_credits_per_day: int | None = Field(None, ge=0)
-    allowed_skills: str | None = None
+    allowed_skills: list[str] | None = Field(None, max_length=100)
     expires_at: datetime | None = None
 
 
@@ -22,7 +22,7 @@ class UpdateAPIKeyRequest(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=100)
     system_prompt: str | None = Field(None, max_length=10000)
     max_credits_per_day: int | None = Field(None, ge=0)
-    allowed_skills: str | None = None
+    allowed_skills: list[str] | None = Field(None, max_length=100)
     is_active: bool | None = None
     expires_at: datetime | None = None
 
@@ -35,7 +35,7 @@ class APIKeyResponse(BaseModel):
     key_prefix: str
     system_prompt: str | None = None
     max_credits_per_day: int | None = None
-    allowed_skills: str | None = None
+    allowed_skills: list[str] | None = None
     is_active: bool
     expires_at: datetime | None = None
     created_at: datetime

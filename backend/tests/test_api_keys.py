@@ -64,8 +64,9 @@ async def test_list_and_update_api_key(developer_client: AsyncClient):
     # 2. List
     list_res = await developer_client.get("/api/v1/developer/api-keys")
     assert list_res.status_code == 200
-    keys = list_res.json()
+    keys = list_res.json()["data"]
     assert any(k["id"] == key_id for k in keys)
+
 
     # 3. Update
     patch_res = await developer_client.patch(

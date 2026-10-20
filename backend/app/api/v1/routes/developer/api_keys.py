@@ -51,7 +51,7 @@ async def create_api_key(
     api_key, plain_key = await api_key_service.create_key(
         db=db,
         name=request.name,
-        created_by=str(current_user.id),
+        created_by=current_user.id,
         system_prompt=request.system_prompt,
         max_credits_per_day=request.max_credits_per_day,
         allowed_skills=request.allowed_skills,

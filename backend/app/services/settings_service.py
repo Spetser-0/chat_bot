@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.system_settings import SystemSettings
@@ -20,6 +21,9 @@ class SettingsService:
         settings = result.scalar_one_or_none()
 
         if not settings:
+            # The migration seeds id=1 (P0.3 #6). This fallback only covers
+            # create_all() databases; a concurrent first read may win the race,
+            # in which case we roll back and read the row it inserted.
             settings = SystemSettings(
                 id=1,
                 default_new_user_credits=300,
@@ -27,7 +31,12 @@ class SettingsService:
                 credits_per_message=1,
             )
             db.add(settings)
-            await db.commit()
+            try:
+                await db.commit()
+            except IntegrityError:
+                await db.rollback()
+                result = await db.execute(select(SystemSettings).where(SystemSettings.id == 1))
+                return result.scalar_one()
             await db.refresh(settings)
 
         return settings

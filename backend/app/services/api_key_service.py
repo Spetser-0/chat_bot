@@ -44,10 +44,10 @@ class APIKeyService:
         self,
         db: AsyncSession,
         name: str,
-        created_by: str,
+        created_by: str | uuid.UUID,
         system_prompt: str | None = None,
         max_credits_per_day: int | None = None,
-        allowed_skills: str | None = None,
+        allowed_skills: list[str] | None = None,
         expires_at: datetime | None = None,
     ) -> tuple[APIKey, str]:
         """
@@ -62,9 +62,9 @@ class APIKeyService:
             key_prefix=plain_key[: len(self.KEY_PREFIX) + 4],
             system_prompt=system_prompt,
             max_credits_per_day=max_credits_per_day,
-            allowed_skills=allowed_skills,
+            allowed_skills=allowed_skills,  # stored as JSON/JSONB array
             expires_at=expires_at,
-            created_by=created_by,
+            created_by=created_by if isinstance(created_by, uuid.UUID) else uuid.UUID(str(created_by)),
         )
         db.add(api_key)
         await db.commit()

@@ -3,6 +3,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { api } from '../lib/api';
+import { extractData } from '../api/client';
 import {
   Copy,
   Check,
@@ -25,7 +26,7 @@ interface APIKey {
   key_prefix: string;
   system_prompt: string | null;
   max_credits_per_day: number | null;
-  allowed_skills: string | null;
+  allowed_skills: string[] | null;
   is_active: boolean;
   created_at: string;
   last_used_at: string | null;
@@ -59,7 +60,7 @@ export function DeveloperPage() {
   const fetchKeys = async () => {
     try {
       const response = await api.get('/developer/api-keys');
-      setApiKeys(response.data);
+      setApiKeys(extractData<APIKey[]>(response) ?? []);
     } catch (error) {
       console.error('Failed to fetch API keys:', error);
     } finally {
@@ -73,7 +74,7 @@ export function DeveloperPage() {
     api.get('/developer/api-keys')
       .then((response) => {
         if (!ignore) {
-          setApiKeys(response.data);
+          setApiKeys(extractData<APIKey[]>(response) ?? []);
           setIsLoadingKeys(false);
         }
       })
@@ -87,7 +88,8 @@ export function DeveloperPage() {
     api.get('/admin/settings')
       .then((response) => {
         if (!ignore) {
-          setDefaultCredits(String(response.data.default_new_user_credits));
+          const settings = extractData<{ default_new_user_credits: number }>(response);
+          setDefaultCredits(String(settings.default_new_user_credits));
           setIsLoadingSettings(false);
         }
       })
@@ -156,13 +158,13 @@ export function DeveloperPage() {
         max_credits_per_day: maxCredits ? parseInt(maxCredits, 10) : null,
       });
 
-      setNewKey(response.data.plain_key);
+      setNewKey(extractData<{ plain_key: string }>(response).plain_key);
       setShowCreateModal(false);
       setShowKeyModal(true);
       fetchKeys();
     } catch (error: any) {
       console.error('Failed to create key:', error);
-      setFormError(error?.response?.data?.detail || 'حدث خطأ أثناء إنشاء المفتاح.');
+      setFormError(error?.message || 'حدث خطأ أثناء إنشاء المفتاح.');
     } finally {
       setIsSubmitting(false);
     }
@@ -188,7 +190,7 @@ export function DeveloperPage() {
       fetchKeys();
     } catch (error: any) {
       console.error('Failed to update key:', error);
-      setFormError(error?.response?.data?.detail || 'حدث خطأ أثناء تحديث المفتاح.');
+      setFormError(error?.message || 'حدث خطأ أثناء تحديث المفتاح.');
     } finally {
       setIsSubmitting(false);
     }
@@ -227,7 +229,7 @@ export function DeveloperPage() {
 
     try {
       const response = await api.post(`/developer/api-keys/${key.id}/regenerate`);
-      setNewKey(response.data.plain_key);
+      setNewKey(extractData<{ plain_key: string }>(response).plain_key);
       setShowKeyModal(true);
       fetchKeys();
     } catch (error) {
