@@ -20,12 +20,33 @@
 - [x] Phase 5: Penetration Testing (8/8 tests passed: auth, validation, rate limiting)
 - [x] Phase 6: Final Verification and Documentation (API.md, CHANGELOG.md, verification suites)
 
-### Test Summary
-- Backend: 616/616 PASS (0 failures)
-- Frontend Build: PASS
-- Frontend Lint: PASS (0 errors)
-- Vitest: 8/8 PASS
-- Penetration Tests: 8/8 PASS
+## Test Summary — P0 Fixes (REAL OUTPUT, DO NOT EDIT MANUALLY)
+
+### Backend
+```
+$ python -m pytest tests/ -q
+658 passed, 630 warnings in 1873.50s (0:31:13)
+```
+
+### Frontend
+```
+$ npm run build
+✓ 2341 modules transformed.
+✓ built in 2.02s
+$ npm run lint
+Found 0 warnings and 0 errors.
+Finished in 457ms on 73 files with 116 rules using 4 threads.
+```
+
+### New Contract/Regression Tests
+- `test_api_contract.py`: 8 cases PASS (7 parametrized success routes + 1 error route)
+- `test_cors_headers.py`: 5 cases PASS (success, 404 error, 401 error, preflight, disallowed origin)
+- `test_migration_integrity.py`: 10 cases PASS (uniqueness, FK constraint, server default, dialect-agnostic, JSON type, singleton seed, column creation, round-trip, model parity, metadata completeness)
+
+### Status
+✅ P0.1 API Envelope — FIXED, under contract test (commit 4a04337)
+✅ P0.2 CORS Error Responses — FIXED, under regression test (commit d6e4dcd)
+✅ P0.3 Migration Defects — FIXED, under migration integrity test (commit f8a9595)
 
 ### Next Steps
 1. Deploy to staging environment
@@ -33,15 +54,8 @@
 3. Deploy to production
 4. Monitor for 48 hours
 
-
-### Test Summary
-- Backend: 616/616 PASS (0 failures)
-- Frontend Build: PASS
-- Frontend Lint: PASS (0 errors)
-- Vitest: 8/8 PASS
-- Penetration Tests: 8/8 PASS
-
 ### Resume Instructions
+
 - Read this file first.
 - Run: `cd backend && python -m pytest tests/integration/test_penetration_suite.py -q`
 - Continue from: Phase 6, Step 6.1

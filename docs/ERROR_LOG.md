@@ -89,3 +89,49 @@ git push --force-with-lease origin main
 ### استراتيجية المنع
 <كيف نتجنب تكراره>
 ```
+
+---
+
+## E-P01 — API Envelope Contract Breach
+
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-20 |
+| **Severity** | P0 |
+| **Phase** | P0.1 |
+| **Error** | After login, conversations and credits show as empty. Frontend `extractData()` returned `undefined` because successful responses returned bare JSON or bare arrays. |
+| **Root Cause** | Global error envelope `{data, error, request_id}` was applied only to error responses (Lesson 10.4). Success responses returned bare JSON or arrays without the `{data, error, request_id}` wrapper. |
+| **Fix** | Added `envelope_success_responses` HTTP middleware to FastAPI in `backend/app/main.py` to wrap all 2xx responses on `/api/v1/*` in `{data, error, request_id}` while exempting SSE streams and binary responses. Made frontend `extractData()` in `frontend/src/api/client.ts` defensive to handle wrapped success, wrapped error, and legacy bare shapes. Commit: `4a04337`. |
+| **Verification** | 8 contract tests in `backend/tests/integration/test_api_contract.py` pass. Full backend suite passes (658 passed, 0 failures). Frontend build & lint pass (0 errors). |
+| **Prevention** | Contract suite `test_api_contract.py` tests all critical endpoints (`/conversations`, `/credits/balance`, `/credits/history`, `/skills`, `/referrals/me`, `/health/live`, `/health/ready`). |
+
+---
+
+## E-P02 — CORS Headers Missing on Error Responses
+
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-20 |
+| **Severity** | P0 |
+| **Phase** | P0.2 |
+| **Error** | Backend errors (401, 404, 500) surfaced as opaque CORS failures in the browser, hiding the real error body and status. Preflight OPTIONS failed when using `Authorization` or `X-API-Key` headers. |
+| **Root Cause** | FastAPI's `CORSMiddleware` sits outside `ServerErrorMiddleware`, so custom exception handlers and error rewrites returning raw responses bypass CORS header attachment. Furthermore, `Authorization` and `X-API-Key` were missing from `allow_headers`. |
+| **Fix** | Created `backend/app/core/cors.py` with `attach_cors_headers()`. Attached CORS headers to all exception handlers (`AppException`, `RequestValidationError`, `HTTPException`, `generic_error_handler`, and 404 rewrite). Added `Authorization` and `X-API-Key` to `allow_headers`, and added expose headers. Commit: `d6e4dcd`. |
+| **Verification** | All 5 tests in `backend/tests/integration/test_cors_headers.py` pass (testing success, 404 error, 401 error, preflight OPTIONS, and disallowed origin). |
+| **Prevention** | `backend/tests/integration/test_cors_headers.py` runs on every CI/test cycle. |
+
+---
+
+## E-P03 — Migration 756afe1af465 Defects
+
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-20 |
+| **Severity** | P0 |
+| **Phase** | P0.3 |
+| **Error** | Multiple latent defects in migration `756afe1af465`: non-unique `ix_api_keys_key_hash`, `created_by` as `String(36)` instead of UUID with FK, `system_settings.updated_at` missing `server_default`, Postgres-only `now()`, `allowed_skills` plain `Text`, and missing singleton seed row. |
+| **Root Cause** | Migration was generated quickly without cross-dialect integrity tests or model alignment. |
+| **Fix** | Rewrote `backend/alembic/versions/20261019_1722_756afe1af465_add_email_verification_fields_to_user.py` with unique index, UUID + FK with CASCADE, `CURRENT_TIMESTAMP` dialect-agnostic default, JSON/JSONB cross-dialect column, and idempotent singleton seed. Updated SQLAlchemy models `APIKey` and `SystemSettings`, schemas, services, and DeveloperPage. Commit: `f8a9595`. |
+| **Verification** | 10 tests in `backend/tests/integration/test_migration_integrity.py` pass, verifying uniqueness, FK constraint enforcement, server defaults on raw insert, JSON serialization, singleton seeding, and upgrade/downgrade/upgrade round trip. |
+| **Prevention** | `backend/tests/integration/test_migration_integrity.py` exercises full migration DDL and ORM parity on SQLite. |
+
