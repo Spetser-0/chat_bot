@@ -10,7 +10,7 @@ from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator, ValidationInfo
+from pydantic import Field, ValidationInfo, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -98,7 +98,20 @@ class Settings(BaseSettings):
     referral_reward_percent: Decimal = Decimal("10")      # % of referred user's payment
     referral_reward_holding_days: int = 7                 # release delay (anti-fraud)
 
-    # ── Email & Verification (SMTP) ──────────────────────
+    # ── Email Delivery (Brevo & SMTP) ───────────────────
+    brevo_api_key: str = Field(
+        default="",
+        description="Brevo API Key (xkeysib-...) for transactional email via HTTPS"
+    )
+    brevo_sender_name: str = Field(
+        default="Spetser AI",
+        description="Sender display name for emails"
+    )
+    email_http_timeout_seconds: float = Field(
+        default=10.0,
+        description="HTTP client timeout for Brevo API requests in seconds"
+    )
+
     smtp_host: str = Field(
         default="",
         description="SMTP server hostname (e.g., smtp.gmail.com)"
@@ -124,20 +137,23 @@ class Settings(BaseSettings):
         description="Use TLS for SMTP connection"
     )
 
-    @field_validator("smtp_user", "smtp_password", "smtp_host")
-    @classmethod
-    def validate_smtp_in_production(cls, v: str, info: ValidationInfo) -> str:
-        """Fail fast in production if SMTP is not configured."""
-        values = info.data
-        app_env = values.get("app_env", "development")
-
-        if app_env == "production" and not v:
-            field_name = info.field_name
-            raise ValueError(
-                f"{field_name} is required in production. "
-                f"Set {field_name.upper()} environment variable."
+    @model_validator(mode="after")
+    def validate_email_provider_in_production(self) -> "Settings":
+        """Fail fast in production if neither Brevo nor SMTP is fully configured."""
+        if self.app_env == "production":
+            has_brevo = bool(self.brevo_api_key and self.brevo_api_key.strip())
+            has_smtp = bool(
+                self.smtp_host and self.smtp_host.strip()
+                and self.smtp_user and self.smtp_user.strip()
+                and self.smtp_password and self.smtp_password.strip()
             )
-        return v
+            if not (has_brevo or has_smtp):
+                raise ValueError(
+                    "Email provider configuration is required in production. "
+                    "Configure either BREVO_API_KEY (recommended for Render) "
+                    "or all three SMTP variables (SMTP_HOST, SMTP_USER, SMTP_PASSWORD)."
+                )
+        return self
 
     # ── Password Reset & Auth Enhancements ───────────────
     reset_token_secret: str = ""
@@ -146,6 +162,14 @@ class Settings(BaseSettings):
     @property
     def DEBUG(self) -> bool:
         return self.app_debug or self.app_env != "production"
+
+    @property
+    def BREVO_API_KEY(self) -> str:
+        return self.brevo_api_key
+
+    @property
+    def BREVO_SENDER_NAME(self) -> str:
+        return self.brevo_sender_name
 
     @property
     def SMTP_HOST(self) -> str:

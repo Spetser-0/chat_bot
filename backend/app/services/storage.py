@@ -143,9 +143,12 @@ class LocalStorageService(StorageService):
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dest)
         
-        # Calculate ETag (MD5 for simplicity)
+        # Calculate ETag (MD5 for simplicity, streamed in chunks to prevent MemoryError)
+        hasher = hashlib.md5()
         with open(dest, "rb") as f:
-            etag = hashlib.md5(f.read()).hexdigest()
+            while chunk := f.read(1024 * 1024):
+                hasher.update(chunk)
+            etag = hasher.hexdigest()
         
         return StoredObject(
             object_key=object_key,

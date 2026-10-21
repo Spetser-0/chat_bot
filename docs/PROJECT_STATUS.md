@@ -1,15 +1,19 @@
 # Spetser AI — Project Status Log
 
 ## Current Status: AUTH & DEVELOPER FEATURES IMPLEMENTATION
-## Last Updated: 2026-10-19
-## Status: READY FOR DEPLOYMENT
+## Last Updated: 2026-10-22
+## Status: READY FOR DEPLOYMENT (BREVO HTTP EMAIL ENABLED)
 
 ### Authentication & Developer Features (spets.md)
 - [x] Feature 1: Password visibility toggle (eye icon)
-- [x] Feature 2: Email verification with OTP
+- [x] Feature 2: Email verification with OTP (via Brevo HTTP API & async BackgroundTasks)
 - [x] Feature 3: Forgot password flow
 - [x] Feature 4: Developer panel for API keys
 - [x] Feature 5: Default credits control
+
+### Email Infrastructure (Render Free Tier Compatibility)
+- **Engineering Decision**: Replaced blocked outbound SMTP on Render Free Tier with Brevo Transactional Email HTTP API (HTTPS port 443), with non-blocking threaded SMTP as fallback.
+- **Status**: Production-ready, verified with mock transports, secret redaction, and background execution.
 
 ### Completed Phases
 - [x] Phase 0: Preparation and Setup

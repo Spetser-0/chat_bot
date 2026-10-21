@@ -151,3 +151,19 @@ git push --force-with-lease origin main
 | **Prevention** | - Production config validation prevents deployment without SMTP - Background tasks prevent registration slowdown - Error logging makes failures visible |
 | **Commits** | - `fix(config): fail fast in production without SMTP configuration` - `feat(email): send emails asynchronously via BackgroundTasks` |
 
+---
+
+## E-EMAIL-002 — Render Free Tier Outbound SMTP Port Blocking
+
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-22 |
+| **Severity** | P0 |
+| **Phase** | Email Delivery |
+| **Error** | Verification emails hang or time out when deploying on Render Free Tier. Outbound connections to SMTP ports (25, 465, 587) are blocked by Render network policy. |
+| **Root Cause** | Render free tier blocks egress connections to standard SMTP ports (25, 465, 587). Synchronous socket calls in `smtplib.SMTP(...)` block the worker thread or hang silently, preventing OTP delivery. |
+| **Fix** | 1. Implement transactional email via Brevo HTTP API (`https://api.brevo.com/v3/smtp/email`) over standard HTTPS (port 443) using `httpx`. 2. Update `config.py` with `brevo_api_key`, `brevo_sender_name`, `email_http_timeout_seconds` and Pydantic model validator requiring either Brevo or SMTP in production. 3. Modernize SMTP fallback with `timeout=10` and `asyncio.to_thread` non-blocking execution. 4. Enforce strict redaction of API keys, credentials, and OTPs with email masking in audit logs. |
+| **Verification** | - Unit tests for Brevo HTTP API (201 success, 401 error, timeout suppression, header/body validation) pass (6/6). - Provider precedence tests pass (Brevo > SMTP > Dev). - Integration tests `test_email_background.py` pass (3/3). - Config validation tests pass (7/7). - All 325 unit tests pass. |
+| **Prevention** | - Model validator enforces valid `BREVO_API_KEY` or complete SMTP triplet in production. - HTTPS port 443 traffic is universally permitted across cloud hosting providers (including Render). - Comprehensive unit and integration test coverage. |
+| **Decision** | Architecture decision: Use Brevo HTTP API over HTTPS (port 443) as primary email provider for cloud deployments to bypass hosting-level SMTP port blocks, keeping SMTP as a fallback. |
+

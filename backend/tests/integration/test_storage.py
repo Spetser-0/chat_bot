@@ -132,10 +132,11 @@ class TestLocalStorageService:
 
     @pytest.mark.asyncio
     async def test_upload_too_large(self, storage_service: LocalStorageService):
-        """Upload file exceeding 100MB limit raises ValueError."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
-            # Write 101MB
-            f.write(b"x" * (101 * 1024 * 1024))
+            # Write 101MB (seek to avoid MemoryError allocating huge byte-string in RAM)
+            f.seek(101 * 1024 * 1024 - 1)
+            f.write(b"x")
+            f.flush()
             tmp_path = f.name
         
         try:
@@ -565,8 +566,10 @@ class TestEdgeCases:
     async def test_upload_large_file_near_limit(self, storage_service: LocalStorageService):
         """Upload file near 100MB limit works."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
-            # 99MB
-            f.write(b"x" * (99 * 1024 * 1024))
+            # 99MB (seek to avoid MemoryError allocating huge byte-string in RAM)
+            f.seek(99 * 1024 * 1024 - 1)
+            f.write(b"x")
+            f.flush()
             tmp_path = f.name
         
         try:
