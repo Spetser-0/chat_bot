@@ -277,6 +277,9 @@ class TestConfigValidation:
             "APP_SECRET_KEY": "x" * 32,
             "DATABASE_URL": "sqlite+aiosqlite:///:memory:",
             "SESSION_SECRET_KEY": "y" * 32,
+            "SMTP_HOST": "smtp.gmail.com",
+            "SMTP_USER": "test@spetser.ai",
+            "SMTP_PASSWORD": "test-password",
         }
 
     def _set_env(self, monkeypatch, env: dict[str, str]) -> None:

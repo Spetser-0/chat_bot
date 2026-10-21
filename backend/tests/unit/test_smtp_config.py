@@ -14,7 +14,9 @@ def test_development_allows_empty_smtp():
         app_env="development",
         app_secret_key="test-secret-key-at-least-32-chars-long",
         session_secret_key="test-session-key-at-least-32-chars-long",
-        # SMTP fields intentionally empty
+        smtp_user="",
+        smtp_password="",
+        smtp_host="",
     )
     assert settings.smtp_user == ""
     assert settings.smtp_password == ""

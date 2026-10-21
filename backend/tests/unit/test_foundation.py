@@ -184,6 +184,9 @@ def test_settings_production_flag(monkeypatch):
         "LLM_MASTER_ENCRYPTION_KEY": "prod-test-llm-key",
         "CRYPTO_PAYMENT_API_KEY": "prod-test-pay-key",
         "CRYPTO_PAYMENT_WEBHOOK_SECRET": "prod-test-wh-secret",
+        "SMTP_HOST": "smtp.gmail.com",
+        "SMTP_USER": "test@spetser.ai",
+        "SMTP_PASSWORD": "test-password",
     }
     get_settings.cache_clear()
     for key, value in common.items():
