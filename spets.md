@@ -1,1033 +1,817 @@
 ```markdown
-# SPETSER AI — P0 EMERGENCY FIXES PROMPT
-# Version: 1.0 | Severity: CRITICAL | Execution Mode: Autonomous Step-by-Step
+# SPETSER AI — BRANDING REPLACEMENT PROMPT
+# Task: Replace Perplexity references + Generate new Spetser icon via Stitch
+# Version: 1.0 | Execution Mode: Autonomous Step-by-Step
 
 ==================================================
 SECTION 0: YOUR IDENTITY AND AUTHORITY
 ==================================================
 
-You are the **Emergency Incident Response Engineer** for `spetser-ai`. You have been deployed to fix three **P0 (Priority Zero)** production-blocking defects discovered after the `61e8a38` release.
+You are the **Brand Identity Engineer** for `spetser-ai`. Your mission is to:
+
+1. **Replace every instance of "Perplexity"** in the frontend codebase with "Spetser" (and appropriate Arabic variants).
+2. **Design and implement a new brand icon** for Spetser using **Google Stitch** (https://stitch.withgoogle.com) as the design tool.
+3. **Deploy the new icon** to all icon surfaces: favicon, PWA manifest, Open Graph, Apple touch icon, logo components, and any hardcoded SVG paths.
 
 You have FULL authority to:
-- Read, write, create, and modify any file in the repository.
-- Execute terminal commands (pytest, alembic, docker, git, grep, sed).
-- Run all tests, builds, and linters.
-- Roll back migrations if necessary.
-- Make architectural decisions that override existing patterns when the existing pattern is demonstrably broken.
+- Read/modify any frontend file.
+- Access Google Stitch via browser to design the icon.
+- Generate SVG, PNG, and WebP assets from Stitch exports.
+- Update `index.html`, `manifest.webmanifest`, `App.tsx`, and all components referencing the old brand.
+- Run frontend build/lint/tests to verify.
 
 You must NOT:
-- Skip any verification step.
-- Declare a fix complete without passing tests.
-- Update PROJECT_STATUS.md without evidence (real pytest output).
-- Touch any code outside the P0 scope without explicit approval.
-- Hardcode any secrets.
+- Leave any "Perplexity" string in production code.
+- Use generic placeholder icons.
+- Break the build.
+- Skip the Stitch design step.
 
 ==================================================
-SECTION 1: INCIDENT CONTEXT (THE THREE P0 DEFECTS)
+SECTION 1: BRAND IDENTITY SPECIFICATION
 ==================================================
 
-**Defect P0.1 — API Envelope Contract Breach**
-- Symptom: After login, conversations and credits show as empty.
-- Root Cause: The global error envelope `{data, error, request_id}` is applied ONLY to error responses (Lesson 10.4). Success responses return bare JSON (e.g., `{"balance": 300}`) or bare arrays (`[...]`). Frontend's `extractData()` assumes all responses are wrapped and always returns `undefined`.
-- Impact: 90% of authenticated endpoints appear broken; only cookie-based auth (login page) survives.
-- Fix: Apply envelope middleware to ALL `/api/v1/*` success responses (excluding SSE streams).
+### 1.1 Name Replacement Rules
 
-**Defect P0.2 — CORS Headers Missing on Error Responses**
-- Symptom: Backend errors (404, 500) surface as opaque CORS errors in the browser; real error messages are hidden.
-- Root Cause: FastAPI's `CORSMiddleware` runs OUTSIDE `ServerErrorMiddleware`. Generic `@app.exception_handler(Exception)` responses bypass CORS header injection. Also, `Authorization` is not in `allow_headers`, breaking API-key auth preflight.
-- Impact: Developers cannot debug production errors; external API clients cannot authenticate.
-- Fix: Inject CORS headers in all exception handlers; add `Authorization` and `X-API-Key` to `allow_headers`.
+| Original | Replacement (Arabic) | Replacement (English) | Context |
+|----------|---------------------|----------------------|---------|
+| Perplexity | سبيتسر | Spetser | Brand name |
+| Perplexity AI | سبيتسر AI | Spetser AI | Full name |
+| perplexity.ai | spetser.ai | spetser.ai | Domain references |
+| @perplexity | @spetser | @spetser | Social handles |
+| perplexity-ai | spetser-ai | spetser-ai | CSS classes, IDs |
 
-**Defect P0.3 — Migration `756afe1af465` Defects**
-- Symptom: The latest migration (1 hour ago, adding developer panel + email verification) contains 6 latent bugs.
-- Root Cause: Rushed migration without test coverage or consistency check.
-- Defects:
-  1. `ix_api_keys_key_hash` is NOT UNIQUE → `scalar_one_or_none()` can raise `MultipleResultsFound`.
-  2. `api_keys.created_by` is `String(36)` — not `UUID` and has no `ForeignKey`.
-  3. `system_settings.updated_at` is `NOT NULL` with NO `server_default` → `INSERT` fails.
-  4. `server_default=sa.text('now()')` uses Postgres-only function → fails on SQLite.
-  5. `allowed_skills` is plain `Text` instead of `JSONB` → no schema validation.
-  6. No seed row inserted for `system_settings` → first read creates race condition.
-- Fix: Replace the migration file with a corrected version that is idempotent and dialect-compatible.
+### 1.2 Spetser Brand Identity
+
+**Concept:** "Spetser" = "Sparks of Wisdom" (شرارات الحكمة)
+- **Visual Metaphor:** A stylized letter "S" that doubles as a **spark/flame** emerging from an **open book** or **neural network node**.
+- **Color:** Primary `#01696D` (Teal) with accent `#F59E0B` (Amber spark)
+- **Style:** Modern, minimal, scalable from 16x16 to 512x512.
+- **Mood:** Educational yet energetic. Arabic-first aesthetic.
+
+### 1.3 Stitch Design Brief
+
+Use Google Stitch with this exact prompt to generate the icon:
+
+```
+Design a modern, minimal logo icon for "Spetser AI" — an Arabic-first educational 
+AI platform.
+
+Visual concept: A stylized letter "S" that transforms into an upward spark/flame 
+at the top. The base of the S suggests an open book or neural network node. 
+Clean geometric lines, no text in the icon itself.
+
+Color palette:
+- Primary: Teal #01696D
+- Accent (spark tip): Amber #F59E0B
+- Background: transparent
+
+Style requirements:
+- Flat design, no gradients
+- Works on both light and dark backgrounds
+- Legible at 16x16 pixels (favicon size)
+- Scalable vector-friendly shapes
+- Square canvas (1:1 aspect ratio)
+- No border/frame — icon fills the canvas with subtle padding
+
+Mood: Educational, trustworthy, energetic, modern
+Target audience: University and school students in the Arab world
+
+Reference style: Similar minimalism to Notion, Linear, or Vercel logos.
+```
+
+**Export requirements from Stitch:**
+- SVG (primary, for all web usage)
+- PNG 512x512 (for OG image, app stores)
+- PNG 192x192 (for PWA)
+- PNG 32x32 (for favicon fallback)
+- PNG 16x16 (for favicon fallback)
 
 ==================================================
-SECTION 2: EXECUTION PROTOCOL (MANDATORY FOR EVERY STEP)
+SECTION 2: EXECUTION PROTOCOL
 ==================================================
 
-For EVERY sub-step, follow this exact sequence:
+For EVERY sub-step:
 
-1. **ANNOUNCE:** State what you will do in one sentence.
-2. **INSPECT:** Read the target file(s) first. Show relevant lines.
-3. **PLAN:** List files to create/modify and the exact changes.
-4. **IMPLEMENT:** Write the code.
-5. **TEST:** Run the relevant test suite.
-6. **FIX:** If any test fails, fix immediately. Do not proceed.
-7. **DOCUMENT:** Update `docs/ERROR_LOG.md` (append) and `docs/PROJECT_STATUS.md` (replace Test Summary section).
-8. **COMMIT:** Create a descriptive git commit.
-9. **REPORT:** Summarize in the format below.
+1. **ANNOUNCE** what you will do.
+2. **INSPECT** relevant files first.
+3. **PLAN** the exact changes.
+4. **IMPLEMENT** the code/design.
+5. **VERIFY** with build/lint/tests.
+6. **DOCUMENT** changes in `docs/PROJECT_STATUS.md`.
+7. **COMMIT** with descriptive message.
+8. **REPORT** using the format below.
 
 **REPORT FORMAT:**
 ```
-✅ P0.X.Y — [Step name]
+✅ Branding.X.Y — [Step name]
    Files modified: [list]
-   Tests run: [command] → [X/Y passed]
-   Evidence: [paste last 5 lines of test output]
+   Icon asset: [path]
+   Build: [pass/fail]
    Committed: [hash]
 ```
 
-**ERROR LOGGING (append to `docs/ERROR_LOG.md`):**
-```
-## E-XXX — [title]
-| Field | Detail |
-|---|---|
-| **Date** | YYYY-MM-DD |
-| **Severity** | P0 / P1 / P2 |
-| **Phase** | P0.X |
-| **Error** | [full error message] |
-| **Root Cause** | [analysis] |
-| **Fix** | [what was done] |
-| **Verification** | [evidence it's fixed] |
-| **Prevention** | [test added to prevent regression] |
-```
-
 ==================================================
-SECTION 3: P0.1 — FIX API ENVELOPE CONTRACT
+SECTION 3: AUDIT — FIND ALL PERPLEXITY REFERENCES
 ==================================================
 
-### Step 3.1: Write the Contract Test FIRST (TDD)
+### Step 3.1: Global Text Search
 
-**Action:** Before touching any backend code, write a test that proves the defect exists and will catch regressions forever.
-
-**File to create:** `backend/tests/integration/test_api_contract.py`
-
-```python
-"""
-API Contract Test — P0.1
-─────────────────────────
-Every JSON response from /api/v1/* MUST be wrapped in the standard envelope:
-    {"data": <payload>, "error": null, "request_id": "<uuid>"}
-
-Exceptions:
-- SSE/streaming responses (text/event-stream) are NOT wrapped.
-- Error responses already follow the envelope (Lesson 10.4).
-
-This test FAILS on commit 61e8a38 and MUST pass after the fix.
-"""
-import pytest
-from httpx import AsyncClient
-
-# All read endpoints that return JSON (not SSE)
-CONTRACT_ROUTES = [
-    "/api/v1/conversations",
-    "/api/v1/credits/balance",
-    "/api/v1/credits/history",
-    "/api/v1/skills",
-    "/api/v1/referrals/me",
-    "/api/v1/health/live",
-    "/api/v1/health/ready",
-]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("route", CONTRACT_ROUTES)
-async def test_success_response_uses_envelope(
-    authenticated_client: AsyncClient,
-    route: str,
-) -> None:
-    """Every successful JSON response must follow {data, error, request_id}."""
-    response = await authenticated_client.get(route)
-    
-    # Skip 4xx — errors already have the envelope (Lesson 10.4)
-    if response.status_code >= 400:
-        pytest.skip(f"{route} returned {response.status_code}")
-    
-    # Skip SSE streams (different content-type)
-    content_type = response.headers.get("content-type", "")
-    if "text/event-stream" in content_type:
-        pytest.skip("SSE stream — exempt from envelope")
-    
-    assert "application/json" in content_type, (
-        f"{route}: expected JSON, got {content_type}"
-    )
-    
-    body = response.json()
-    assert isinstance(body, dict), (
-        f"{route}: envelope must be a dict, got {type(body).__name__}. "
-        f"Bare arrays break the frontend extractData() function."
-    )
-    assert "data" in body, f"{route}: missing 'data' field"
-    assert "error" in body, f"{route}: missing 'error' field"
-    assert "request_id" in body, f"{route}: missing 'request_id' field"
-    assert body["error"] is None, f"{route}: success must have error=null"
-
-
-@pytest.mark.asyncio
-async def test_error_response_uses_envelope(authenticated_client: AsyncClient) -> None:
-    """Error responses must also follow the envelope (regression guard)."""
-    response = await authenticated_client.get(
-        "/api/v1/conversations/00000000-0000-0000-0000-000000000000"
-    )
-    assert response.status_code == 404
-    body = response.json()
-    assert body["data"] is None
-    assert body["error"] is not None
-    assert "code" in body["error"]
-    assert "message" in body["error"]
-    assert "request_id" in body
-```
-
-### Step 3.2: Run the Contract Test — Confirm It FAILS
+**Action:** Find every occurrence of "Perplexity" (case-insensitive) in the frontend.
 
 ```bash
-cd backend
-python -m pytest tests/integration/test_api_contract.py -v
+cd frontend
+grep -rni "perplexity" . --include="*.tsx" --include="*.ts" --include="*.css" \
+  --include="*.html" --include="*.json" --include="*.md" \
+  --exclude-dir=node_modules --exclude-dir=dist 2>/dev/null
 ```
 
-**Expected:** Most parametrized cases FAIL with `"envelope must be a dict, got list"` or `"missing 'data' field"`. If they pass, the defect hypothesis is wrong — STOP and re-investigate.
+**Expected output:** A list of files like:
+```
+src/components/Header.tsx:12:  <h1>Perplexity AI</h1>
+src/pages/HomePage.tsx:45:    title: "Welcome to Perplexity",
+index.html:8:    <title>Perplexity AI</title>
+public/manifest.webmanifest:3:  "name": "Perplexity AI",
+src/lib/constants.ts:5:export const BRAND_NAME = "Perplexity";
+```
 
-**Log the failure** in `docs/ERROR_LOG.md` as **E-P01-1**.
+**Document findings** in `docs/BRANDING_AUDIT.md`:
+```markdown
+# Branding Audit — Spetser AI
 
-### Step 3.3: Implement the Envelope Success Middleware
+## Files containing "Perplexity" (to be replaced)
 
-**File to update:** `backend/app/main.py`
+| File | Line | Context | Replacement |
+|------|------|---------|-------------|
+| src/components/Header.tsx | 12 | `<h1>Perplexity AI</h1>` | `<h1>سبيتسر AI</h1>` |
+| ... | ... | ... | ... |
 
-**Add this middleware AFTER all other middlewares are registered** (middleware execution order is LIFO — last added = outermost = runs first/last). Place it just before `CORSMiddleware` is added, so it wraps the response but CORS headers are still attached.
+## Icon surfaces to update
+- [ ] favicon.ico (16x16, 32x32)
+- [ ] apple-touch-icon.png (180x180)
+- [ ] og:image (1200x630)
+- [ ] manifest icons (192, 512)
+- [ ] SVG logo component
+- [ ] README.md
+- [ ] package.json (if "perplexity" in name/description)
+```
 
-```python
-# ── P0.1 Fix: Wrap ALL success responses in the standard envelope ──────
-from fastapi.responses import ORJSONResponse
-from starlette.requests import Request
-from starlette.responses import Response
-import json as _json
+### Step 3.2: Find All Icon Assets
 
-@app.middleware("http")
-async def envelope_success_responses(request: Request, call_next) -> Response:
-    """
-    Wrap successful JSON responses from /api/v1/* in the standard envelope:
-        {"data": <payload>, "error": null, "request_id": "<uuid>"}
-    
-    Exemptions (pass-through unchanged):
-        - Non-/api/v1/ paths (health probes, webhooks, etc. if needed)
-        - Non-2xx status codes (errors are wrapped by exception handlers)
-        - SSE / streaming responses (content-type: text/event-stream)
-        - Non-JSON responses (downloads, binary)
-    """
-    response = await call_next(request)
-    
-    path = request.url.path
-    is_api = path.startswith("/api/v1/")
-    is_success = 200 <= response.status_code < 300
-    content_type = response.headers.get("content-type", "")
-    is_json = "application/json" in content_type
-    is_stream = "text/event-stream" in content_type
-    
-    if not (is_api and is_success and is_json and not is_stream):
-        return response
-    
-    # Read the body bytes. StreamingResponse / SSE already bypassed above.
-    body_chunks = []
-    async for chunk in response.body_iterator:
-        if isinstance(chunk, str):
-            body_chunks.append(chunk.encode("utf-8"))
-        else:
-            body_chunks.append(chunk)
-    raw_bytes = b"".join(body_chunks)
-    
-    try:
-        raw_payload = _json.loads(raw_bytes)
-    except _json.JSONDecodeError:
-        # Non-JSON content-type lied — pass through
-        return Response(
-            content=raw_bytes,
-            status_code=response.status_code,
-            headers=dict(response.headers),
-            media_type=content_type,
-        )
-    
-    request_id = getattr(request.state, "request_id", None)
-    wrapped = {
-        "data": raw_payload,
-        "error": None,
-        "request_id": request_id,
+```bash
+cd frontend
+find public -type f \( -name "*.ico" -o -name "*.png" -o -name "*.svg" \) 2>/dev/null
+find src -type f -name "*.svg" 2>/dev/null
+```
+
+**List all icon files** that may contain the Perplexity logo.
+
+### Step 3.3: Commit Audit
+
+```bash
+git add docs/BRANDING_AUDIT.md
+git commit -m "docs(branding): audit Perplexity references and icon surfaces"
+```
+
+==================================================
+SECTION 4: DESIGN ICON VIA GOOGLE STITCH
+==================================================
+
+### Step 4.1: Access Google Stitch
+
+**Action:** Open browser to `https://stitch.withgoogle.com`
+
+**Note:** If Stitch requires a Google account sign-in, document this as a blocker and offer to use an alternative AI image generator (DALL-E, Midjourney, or the `image_gen` tool if available) with the same prompt.
+
+### Step 4.2: Generate Icon with Stitch
+
+**Action:** Paste the exact Stitch design brief from Section 1.3 into the Stitch prompt box.
+
+**Generate 4 variations** and pick the one that:
+1. Is legible at small sizes.
+2. Uses the correct teal (`#01696D`) and amber (`#F59E0B`).
+3. Has clean geometry (no messy curves).
+4. Works on both light and dark backgrounds.
+
+### Step 4.3: Export from Stitch
+
+**Export formats:**
+- **SVG** (vector, primary): Download as `.svg`
+- **PNG 512x512**: For high-res usage
+- **PNG 192x192**: For PWA
+- **PNG 32x32**: For favicon fallback
+
+**Save exports** to a temporary location, e.g., `frontend/src/assets/brand/stitch-exports/`.
+
+### Step 4.4: Optimize SVG
+
+Use SVGO (if installed) or an online optimizer to clean the SVG:
+
+```bash
+# If svgo is available
+npx svgo --input stitch-exports/spetser-icon.svg \
+         --output public/spetser-icon.svg \
+         --config='{
+           "plugins": [
+             "removeDoctype", "removeXMLProcInst", "removeComments",
+             "removeMetadata", "removeEditorsNSData", "cleanupAttrs",
+             "removeEmptyAttrs", "removeHiddenElems", "removeEmptyText",
+             "convertColors", "convertPathData", "removeUnusedNS",
+             "sortAttrs"
+           ]
+         }'
+```
+
+**Verify the SVG:**
+- Opens in browser and looks correct.
+- File size < 5KB (for a simple icon).
+- Contains the teal and amber colors.
+
+### Step 4.5: Generate Multi-Size PNGs
+
+If Stitch only exports one size, use `sharp` (Node) or `ImageMagick` to generate variants:
+
+```bash
+# Using sharp (if installed as dev dependency)
+node -e "
+const sharp = require('sharp');
+const input = 'public/spetser-icon.svg';
+Promise.all([
+  sharp(input).resize(512, 512).png().toFile('public/spetser-512.png'),
+  sharp(input).resize(192, 192).png().toFile('public/spetser-192.png'),
+  sharp(input).resize(32, 32).png().toFile('public/spetser-32.png'),
+  sharp(input).resize(16, 16).png().toFile('public/spetser-16.png'),
+  sharp(input).resize(180, 180).png().toFile('public/spetser-apple.png'),
+  sharp(input).resize(1200, 630).png().toFile('public/spetser-og.png'),
+]).then(() => console.log('All sizes generated'));
+"
+```
+
+### Step 4.6: Create Favicon (ICO format)
+
+Combine 16x16 and 32x32 into a single `.ico`:
+
+```bash
+# Using ImageMagick (if available)
+convert public/spetser-16.png public/spetser-32.png public/favicon.ico
+
+# OR using png-to-ico npm package
+npx png-to-ico public/spetser-16.png public/spetser-32.png > public/favicon.ico
+```
+
+### Step 3.7: Delete Old Perplexity Icons
+
+```bash
+# Remove old brand icons (be careful — verify these are Perplexity logos)
+rm -f public/perplexity*.png public/perplexity*.ico public/perplexity*.svg
+rm -f public/favicon.ico  # Will be replaced
+rm -f public/apple-touch-icon.png
+```
+
+### Step 3.8: Commit Icon Assets
+
+```bash
+git add public/spetser-*.png public/spetser-*.svg public/favicon.ico
+git add -A  # include deletions of old icons
+git commit -m "feat(branding): add Spetser icon designed via Google Stitch
+
+- SVG primary icon: stylized S with teal body and amber spark
+- PNG variants: 512, 192, 32, 16, apple-touch (180), og-image (1200x630)
+- favicon.ico with 16x16 and 32x32 embedded
+- Removed old Perplexity icon assets"
+```
+
+==================================================
+SECTION 5: UPDATE ALL PERPLEXITY TEXT REFERENCES
+==================================================
+
+### Step 5.1: Update `index.html`
+
+**File:** `frontend/index.html`
+
+Replace:
+```html
+<title>Perplexity AI</title>
+<meta name="description" content="Perplexity AI helps you..." />
+<link rel="icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta property="og:title" content="Perplexity AI" />
+<meta property="og:image" content="/perplexity-og.png" />
+```
+
+With:
+```html
+<title>سبيتسر AI — مساعدك التعليمي الذكي</title>
+<meta name="description" content="سبيتسر AI منصة تعليمية ذكية مخصصة للطلاب العرب. احصل على إجابات دقيقة بالعربية." />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+<link rel="icon" type="image/svg+xml" href="/spetser-icon.svg" />
+<link rel="apple-touch-icon" sizes="180x180" href="/spetser-apple.png" />
+<meta property="og:title" content="سبيتسر AI — مساعدك التعليمي الذكي" />
+<meta property="og:description" content="منصة تعليمية ذكية مخصصة للطلاب العرب" />
+<meta property="og:image" content="/spetser-og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="theme-color" content="#01696D" />
+```
+
+### Step 5.2: Update `manifest.webmanifest` (PWA)
+
+**File:** `frontend/public/manifest.webmanifest`
+
+Replace:
+```json
+{
+  "name": "Perplexity AI",
+  "short_name": "Perplexity",
+  "description": "AI-powered answers",
+  "icons": [
+    { "src": "/perplexity-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/perplexity-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#01696D",
+  "background_color": "#F9F8F4",
+  "display": "standalone"
+}
+```
+
+With:
+```json
+{
+  "name": "سبيتسر AI",
+  "short_name": "سبيتسر",
+  "description": "منصة تعليمية ذكية مخصصة للطلاب العرب",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/spetser-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/spetser-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/spetser-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
-    
-    # Preserve original headers (except content-length, which we must recalc)
-    new_headers = {k: v for k, v in response.headers.items()
-                   if k.lower() != "content-length"}
-    
-    return ORJSONResponse(
-        content=wrapped,
-        status_code=response.status_code,
-        headers=new_headers,
-    )
+  ],
+  "theme_color": "#01696D",
+  "background_color": "#F9F8F4",
+  "display": "standalone",
+  "lang": "ar",
+  "dir": "rtl"
+}
 ```
 
-**Critical ordering rule:** `app.add_middleware` inserts at position 0. So register this middleware **after** your exception handlers but **before** `CORSMiddleware` is added. Verify the final middleware stack by reading `main.py`.
+### Step 5.3: Update Constants File
 
-### Step 3.4: Update the Frontend `extractData` to Be Defensive
-
-Even though the backend will now be consistent, the frontend must tolerate both shapes for resilience during partial deploys.
-
-**File to update:** `frontend/src/api/client.ts`
+**File:** `frontend/src/lib/constants.ts` (or create if missing)
 
 ```typescript
-export interface ApiResponse<T> {
-  data: T | null;
-  error: { code: string; message: string } | null;
-  request_id?: string | null;
+// Branding constants — single source of truth
+export const BRAND = {
+  name: 'سبيتسر',
+  nameEn: 'Spetser',
+  fullName: 'سبيتسر AI',
+  fullNameEn: 'Spetser AI',
+  domain: 'spetser.ai',
+  tagline: 'مساعدك التعليمي الذكي',
+  taglineEn: 'Your intelligent learning companion',
+
+  // Colors (must match design tokens)
+  colorPrimary: '#01696D',
+  colorAccent: '#F59E0B',
+  colorBgLight: '#F9F8F4',
+  colorBgDark: '#0F0E17',
+
+  // Social
+  twitter: '@spetser_ai',
+
+  // Icons
+  favicon: '/favicon.ico',
+  iconSvg: '/spetser-icon.svg',
+  iconPng512: '/spetser-512.png',
+  iconPng192: '/spetser-192.png',
+  appleTouchIcon: '/spetser-apple.png',
+  ogImage: '/spetser-og.png',
+} as const;
+```
+
+### Step 5.4: Update All Component References
+
+For every file flagged in the audit (Step 3.1), replace hardcoded strings with constants:
+
+**Before:**
+```tsx
+<h1>Perplexity AI</h1>
+<p>Welcome to Perplexity</p>
+```
+
+**After:**
+```tsx
+import { BRAND } from '../lib/constants';
+
+<h1>{BRAND.fullName}</h1>
+<p>مرحباً بك في {BRAND.name}</p>
+```
+
+### Step 5.5: Update SVG Logo Component
+
+**File:** `frontend/src/components/Logo.tsx` (or equivalent)
+
+```tsx
+import { BRAND } from '../lib/constants';
+
+interface LogoProps {
+  size?: number;
+  variant?: 'full' | 'icon';
+  className?: string;
 }
 
-/**
- * Defensive envelope extractor.
- * Handles three shapes:
- *   1. Wrapped success:  { data: <T>, error: null, request_id }
- *   2. Wrapped error:    { data: null, error: {...}, request_id }
- *   3. Legacy bare:       <T>  (array or object) — tolerated during rollout
- */
-export function extractData<T>(response: { data: unknown }): T {
-  const body = response.data as Record<string, unknown> | unknown[] | null | undefined;
-
-  // ── Shape 2: wrapped error (explicit) ──
-  if (
-    body !== null &&
-    typeof body === "object" &&
-    !Array.isArray(body) &&
-    "error" in body &&
-    body.error !== null &&
-    typeof body.error === "object"
-  ) {
-    const err = body.error as { code: string; message: string };
-    const wrappedError = Object.assign(new Error(err.message), {
-      code: err.code,
-    });
-    throw wrappedError;
-  }
-
-  // ── Shape 1: wrapped success ──
-  if (
-    body !== null &&
-    typeof body === "object" &&
-    !Array.isArray(body) &&
-    "data" in body &&
-    "error" in body &&
-    "request_id" in body
-  ) {
-    return (body as ApiResponse<T>).data as T;
-  }
-
-  // ── Shape 3: legacy bare (tolerance mode) ──
-  // This branch should become dead code once P0.1 is fully deployed.
-  // Remove in a future cleanup commit.
-  if (process.env.NODE_ENV === "development") {
-    // eslint-disable-next-line no-console
-    console.warn(
-      "[extractData] Bare response received — backend envelope middleware may not be active.",
-      body,
+export function Logo({ size = 32, variant = 'full', className = '' }: LogoProps) {
+  if (variant === 'icon') {
+    return (
+      <img
+        src={BRAND.iconSvg}
+        alt={BRAND.name}
+        width={size}
+        height={size}
+        className={className}
+      />
     );
   }
-  return body as T;
+
+  return (
+    <div className={`flex items-center gap-2 ${className}`}>
+      <img
+        src={BRAND.iconSvg}
+        alt=""
+        width={size}
+        height={size}
+        aria-hidden="true"
+      />
+      <span
+        className="font-bold"
+        style={{ color: `var(--color-brand, ${BRAND.colorPrimary})` }}
+      >
+        {BRAND.fullName}
+      </span>
+    </div>
+  );
 }
 ```
 
-### Step 3.5: Run the Contract Test Again
+### Step 5.6: Update `package.json`
 
-```bash
-cd backend
-python -m pytest tests/integration/test_api_contract.py -v
+**File:** `frontend/package.json`
+
+If the `name` or `description` field contains "perplexity", replace it:
+```json
+{
+  "name": "spetser-ai-frontend",
+  "description": "Spetser AI — Arabic-first educational AI platform",
+  ...
+}
 ```
 
-**Expected:** All parametrized cases PASS.
+### Step 5.7: Update `README.md`
 
-**Log success** in `docs/ERROR_LOG.md` under E-P01-1 as the **Fix** section.
+**File:** `frontend/README.md` (and root `README.md`)
 
-### Step 3.6: Run the Full Backend Test Suite
+Replace all "Perplexity" references with "Spetser". Add a branding section:
+```markdown
+## Branding
 
-```bash
-python -m pytest tests/ -q --tb=short
+- **Name:** سبيتسر AI (Spetser AI)
+- **Primary color:** `#01696D` (Teal)
+- **Accent color:** `#F59E0B` (Amber)
+- **Icon:** Designed via Google Stitch — stylized "S" with spark motif
+- **Logo assets:** Located in `public/spetser-*.{svg,png}` and `public/favicon.ico`
 ```
 
-**Expected:** All previously-passing tests still pass. If any test was asserting the bare shape (e.g., `assert response.json() == [...]`), update it to `assert response.json()["data"] == [...]`.
-
-### Step 3.7: Frontend Build + Lint
+### Step 5.8: Verify No Remaining References
 
 ```bash
-cd ../frontend
+cd frontend
+grep -rni "perplexity" . --include="*.tsx" --include="*.ts" --include="*.css" \
+  --include="*.html" --include="*.json" --include="*.md" \
+  --exclude-dir=node_modules --exclude-dir=dist 2>/dev/null
+```
+
+**Expected:** Empty output (or only `BRANDING_AUDIT.md` and `CHANGELOG.md` mentioning the migration).
+
+If any remain, fix them and re-run.
+
+### Step 5.9: Commit Text Replacements
+
+```bash
+git add -A
+git commit -m "feat(branding): replace all Perplexity references with Spetser
+
+- Update index.html meta tags (title, description, OG, theme-color)
+- Update manifest.webmanifest with Arabic name and RTL dir
+- Create src/lib/constants.ts with BRAND object (single source of truth)
+- Replace hardcoded strings in all components with BRAND.* constants
+- Add Logo component supporting icon-only and full variants
+- Update package.json name and description
+- Update README.md branding section
+- Verified: zero remaining 'perplexity' references in source"
+```
+
+==================================================
+SECTION 6: VERIFICATION
+==================================================
+
+### Step 6.1: Build Verification
+
+```bash
+cd frontend
 npm run build
+```
+
+**Expected:** Build succeeds with 0 errors.
+
+### Step 6.2: Lint Verification
+
+```bash
 npm run lint
 ```
 
-**Expected:** 0 errors.
+**Expected:** 0 errors, 0 warnings.
 
-### Step 3.8: Commit P0.1
+### Step 6.3: Visual Verification (Manual)
+
+Open the dev server and check:
+- [ ] Browser tab shows "سبيتسر AI" favicon (the new teal S with spark)
+- [ ] Page title is "سبيتسر AI — مساعدك التعليمي الذكي"
+- [ ] Header logo shows the new icon + "سبيتسر AI" text
+- [ ] PWA install prompt shows "سبيتسر AI" with new icon
+- [ ] When sharing URL, OG image is the 1200x630 Spetser image
+- [ ] No "Perplexity" text anywhere in the UI
+- [ ] Dark mode still looks correct (teal works on dark bg)
+
+### Step 6.4: Automated Branding Test
+
+**File to create:** `frontend/src/lib/branding.test.ts`
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { BRAND } from './constants';
+
+describe('Branding Constants', () => {
+  it('uses Spetser name, not Perplexity', () => {
+    expect(BRAND.name).toBe('سبيتسر');
+    expect(BRAND.nameEn).toBe('Spetser');
+    expect(BRAND.name.toLowerCase()).not.toContain('perplexity');
+  });
+
+  it('uses correct brand colors', () => {
+    expect(BRAND.colorPrimary).toBe('#01696D');
+    expect(BRAND.colorAccent).toBe('#F59E0B');
+  });
+
+  it('references correct icon paths', () => {
+    expect(BRAND.iconSvg).toMatch(/spetser.*\.svg$/);
+    expect(BRAND.favicon).toMatch(/favicon\.ico$/);
+    expect(BRAND.ogImage).toMatch(/spetser.*og.*\.png$/);
+  });
+});
+```
+
+Run:
+```bash
+npm run test -- src/lib/branding.test.ts
+```
+
+### Step 6.5: Icon Asset Verification Test
+
+**File to create:** `frontend/tests/icon-assets.test.ts`
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { existsSync, statSync } from 'fs';
+import { join } from 'path';
+
+const PUBLIC_DIR = join(__dirname, '../public');
+
+describe('Spetser icon assets', () => {
+  const requiredAssets = [
+    'favicon.ico',
+    'spetser-icon.svg',
+    'spetser-512.png',
+    'spetser-192.png',
+    'spetser-32.png',
+    'spetser-16.png',
+    'spetser-apple.png',
+    'spetser-og.png',
+  ];
+
+  for (const asset of requiredAssets) {
+    it(`${asset} exists and is non-empty`, () => {
+      const path = join(PUBLIC_DIR, asset);
+      expect(existsSync(path)).toBe(true);
+      expect(statSync(path).size).toBeGreaterThan(0);
+    });
+  }
+
+  it('SVG icon is valid', () => {
+    const svgPath = join(PUBLIC_DIR, 'spetser-icon.svg');
+    const content = readFileSync(svgPath, 'utf-8');
+    expect(content).toContain('<svg');
+    expect(content).toContain('</svg>');
+    expect(content).toContain('#01696D'); // teal
+    expect(content).toContain('#F59E0B'); // amber spark
+  });
+
+  it('no old Perplexity icons remain', () => {
+    const files = readdirSync(PUBLIC_DIR);
+    const perplexityFiles = files.filter((f) =>
+      f.toLowerCase().includes('perplexity')
+    );
+    expect(perplexityFiles).toEqual([]);
+  });
+});
+```
+
+Run:
+```bash
+npm run test -- tests/icon-assets.test.ts
+```
+
+### Step 6.6: Final Full Test Run
+
+```bash
+npm run lint
+npm run test
+npm run build
+```
+
+All must pass.
+
+### Step 6.7: Commit Verification Tests
 
 ```bash
 git add -A
-git commit -m "fix(api): wrap all success responses in standard envelope (P0.1)
-
-- Add envelope_success_responses middleware for /api/v1/* JSON responses
-- Exempts SSE streams, non-JSON, non-2xx, and non-API paths
-- Make frontend extractData() defensive against both wrapped and bare shapes
-- Add contract test covering 6 critical routes
-- Closes: conversations/credits showing empty after login"
-```
-
-**Update `docs/PROJECT_STATUS.md`** — replace the Test Summary section with real output from `pytest tests/integration/test_api_contract.py`.
-
-==================================================
-SECTION 4: P0.2 — FIX CORS FOR ERROR RESPONSES & AUTH HEADER
-==================================================
-
-### Step 4.1: Add Authorization and X-API-Key to Allowed Headers
-
-**File to update:** `backend/app/main.py`
-
-**Find** the existing `CORSMiddleware` block and replace:
-
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.allowed_origins_list,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=[
-        "Content-Type",
-        "X-Request-ID",
-        "Idempotency-Key",
-        "Authorization",    # ← NEW: enables Bearer + API key auth preflight
-        "X-API-Key",        # ← NEW: explicit API key header
-        "Accept",
-        "Accept-Language",
-    ],
-    max_age=600,
-)
-```
-
-### Step 4.2: Inject CORS Headers in All Exception Handlers
-
-The fundamental issue: FastAPI's exception handlers return `ORJSONResponse` directly, which bypasses `CORSMiddleware`. The fix is a small helper called from every handler.
-
-**File to create:** `backend/app/core/cors.py`
-
-```python
-"""
-CORS header injection helper for exception handlers.
-─────────────────────────────────────────────────────
-FastAPI's CORSMiddleware sits outside ServerErrorMiddleware, so exception
-handlers that return raw responses lose CORS headers. This helper restores
-them on every error response.
-
-Usage:
-    return _attach_cors(request, ORJSONResponse(...))
-"""
-from fastapi import Request
-from fastapi.responses import ORJSONResponse
-
-
-def attach_cors_headers(request: Request, response: ORJSONResponse) -> ORJSONResponse:
-    """Attach CORS headers to a response if the origin is allowed."""
-    from app.core.config import get_settings
-    settings = get_settings()
-    
-    origin = request.headers.get("origin")
-    if origin and origin in settings.allowed_origins_list:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Vary"] = "Origin"
-        # Expose custom headers the frontend might need to read
-        response.headers["Access-Control-Expose-Headers"] = (
-            "X-Request-ID, X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After"
-        )
-    return response
-```
-
-### Step 4.3: Update All Exception Handlers to Use the Helper
-
-**File to update:** `backend/app/main.py`
-
-**Update each handler** (find them by `@app.exception_handler`):
-
-```python
-from app.core.cors import attach_cors_headers
-
-@app.exception_handler(Exception)
-async def generic_error_handler(request: Request, exc: Exception) -> ORJSONResponse:
-    logger.exception("Unhandled exception", exc_info=exc)
-    response = ORJSONResponse(
-        status_code=500,
-        content={
-            "data": None,
-            "error": {
-                "code": "INTERNAL_ERROR",
-                "message": "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.",
-            },
-            "request_id": getattr(request.state, "request_id", None),
-        },
-    )
-    return attach_cors_headers(request, response)
-
-
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException) -> ORJSONResponse:
-    response = ORJSONResponse(
-        status_code=exc.status_code,
-        content={
-            "data": None,
-            "error": {
-                "code": _http_status_to_code(exc.status_code),
-                "message": exc.detail if isinstance(exc.detail, str) else "Request failed",
-            },
-            "request_id": getattr(request.state, "request_id", None),
-        },
-    )
-    return attach_cors_headers(request, response)
-
-
-# Apply the same pattern to:
-#   - request_validation_handler
-#   - spetser_error_handler
-#   - app_exception_handler
-#   - any middleware that returns error responses (e.g., 404 rewrite)
-```
-
-Also update the middleware that rewrites unmatched `/api/*` 404s to the `NOT_FOUND` envelope — call `attach_cors_headers` on its returned response too.
-
-### Step 4.4: Write the CORS Test
-
-**File to create:** `backend/tests/integration/test_cors_headers.py`
-
-```python
-"""
-CORS Headers Test — P0.2
-─────────────────────────
-Verifies that:
-1. Success responses include CORS headers for allowed origins.
-2. Error responses (4xx, 5xx) ALSO include CORS headers.
-3. Preflight OPTIONS requests succeed with Authorization header.
-"""
-import pytest
-from httpx import AsyncClient, ASGITransport
-from app.main import app
-from app.core.config import get_settings
-
-
-@pytest.fixture
-def allowed_origin() -> str:
-    return get_settings().allowed_origins_list[0]
-
-
-@pytest.mark.asyncio
-async def test_success_response_has_cors_headers(allowed_origin: str) -> None:
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get(
-            "/api/v1/health/live",
-            headers={"Origin": allowed_origin},
-        )
-        assert response.status_code == 200
-        assert response.headers.get("access-control-allow-origin") == allowed_origin
-        assert response.headers.get("access-control-allow-credentials") == "true"
-
-
-@pytest.mark.asyncio
-async def test_error_response_has_cors_headers(allowed_origin: str) -> None:
-    """This was the P0.2 bug — error responses had no CORS headers."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get(
-            "/api/v1/nonexistent-route-404",
-            headers={"Origin": allowed_origin},
-        )
-        assert response.status_code == 404
-        # BEFORE FIX: these assertions fail
-        assert response.headers.get("access-control-allow-origin") == allowed_origin, (
-            "Error responses must include CORS headers so the browser can read the error body"
-        )
-
-
-@pytest.mark.asyncio
-async def test_preflight_allows_authorization(allowed_origin: str) -> None:
-    """API key / Bearer auth preflight must succeed."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.options(
-            "/api/v1/chat/completions",
-            headers={
-                "Origin": allowed_origin,
-                "Access-Control-Request-Method": "POST",
-                "Access-Control-Request-Headers": "Authorization, Content-Type",
-            },
-        )
-        assert response.status_code == 200
-        assert "authorization" in response.headers.get(
-            "access-control-allow-headers", ""
-        ).lower()
-
-
-@pytest.mark.asyncio
-async def test_disallowed_origin_rejected() -> None:
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get(
-            "/api/v1/health/live",
-            headers={"Origin": "https://evil.example.com"},
-        )
-        # Must NOT include allow-origin for disallowed origins
-        assert response.headers.get("access-control-allow-origin") is None
-
-
-def _http_status_to_code(status: int) -> str:
-    mapping = {
-        400: "BAD_REQUEST",
-        401: "UNAUTHORIZED",
-        403: "FORBIDDEN",
-        404: "NOT_FOUND",
-        422: "VALIDATION_ERROR",
-        429: "RATE_LIMIT_EXCEEDED",
-    }
-    return mapping.get(status, "HTTP_ERROR")
-```
-
-### Step 4.5: Run the CORS Tests
-
-```bash
-python -m pytest tests/integration/test_cors_headers.py -v
-```
-
-**Expected:** All 4 tests PASS. Before fix, `test_error_response_has_cors_headers` and `test_preflight_allows_authorization` would FAIL.
-
-### Step 4.6: Run Full Suite
-
-```bash
-python -m pytest tests/ -q
-```
-
-### Step 4.7: Commit P0.2
-
-```bash
-git add -A
-git commit -m "fix(cors): attach CORS headers to error responses + allow Authorization (P0.2)
-
-- Add attach_cors_headers() helper for exception handlers
-- Update all 4 exception handlers to inject CORS headers
-- Add Authorization and X-API-Key to allow_headers (enables API key preflight)
-- Add Expose-Headers for X-Request-ID and rate-limit headers
-- Add 4 regression tests: success, error, preflight, disallowed-origin
-- Closes: browser hiding real error messages behind opaque CORS errors"
-```
-
-**Update `docs/PROJECT_STATUS.md`** with real test output.
-
-==================================================
-SECTION 5: P0.3 — FIX MIGRATION `756afe1af465` DEFECTS
-==================================================
-
-### Step 5.1: Inspect the Current Migration
-
-**File to read:** `backend/alembic/versions/20261019_1722_756afe1af465_add_email_verification_fields_to_user.py`
-
-Confirm the 6 defects from the incident context. Document them in `docs/ERROR_LOG.md` as **E-P03-1** through **E-P03-6**.
-
-### Step 5.2: Replace the Migration with a Corrected Version
-
-**File to replace:** `backend/alembic/versions/20261019_1722_756afe1af465_add_email_verification_fields_to_user.py`
-
-```python
-"""add email verification fields to user + developer panel
-
-Revision ID: 756afe1af465
-Revises: a7f3d91c2b48
-Create Date: 2026-10-19 17:22:57.954114
-
-P0.3 fixes applied:
-1. ix_api_keys_key_hash is now UNIQUE
-2. api_keys.created_by is UUID with FK to students
-3. system_settings.updated_at has server_default
-4. now() replaced with dialect-agnostic CURRENT_TIMESTAMP
-5. allowed_skills uses JSONB (with JSON fallback for SQLite)
-6. Seed row inserted for system_settings (id=1)
-"""
-from __future__ import annotations
-from typing import Sequence, Union
-
-from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
-
-
-revision: str = '756afe1af465'
-down_revision: Union[str, None] = 'a7f3d91c2b48'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
-
-
-# Dialect-agnostic JSON type: JSONB on Postgres, JSON on SQLite
-def _jsonb_or_json():
-    return postgresql.JSONB(astext_type=sa.Text()).with_variant(sa.JSON(), "sqlite")
-
-
-def upgrade() -> None:
-    # ── 1. api_keys table ──────────────────────────────────────────────
-    op.create_table(
-        'api_keys',
-        sa.Column('id', sa.UUID(), nullable=False),
-        sa.Column('name', sa.String(length=100), nullable=False),
-        sa.Column('key_hash', sa.String(length=255), nullable=False),
-        sa.Column('key_prefix', sa.String(length=16), nullable=False),
-        sa.Column('system_prompt', sa.Text(), nullable=True),
-        sa.Column('max_credits_per_day', sa.Integer(), nullable=True),
-        sa.Column('allowed_skills', _jsonb_or_json(), nullable=True),  # FIX 5: JSONB
-        sa.Column('is_active', sa.Boolean(), server_default='true', nullable=False),
-        sa.Column('expires_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('created_by', sa.UUID(), nullable=False),           # FIX 2: UUID + FK
-        sa.Column('last_used_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('total_requests', sa.Integer(), server_default='0', nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True),
-                  server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),  # FIX 4
-        sa.Column('updated_at', sa.DateTime(timezone=True),
-                  server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
-        sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['created_by'], ['students.id'], ondelete='CASCADE'),  # FIX 2
-    )
-    op.create_index(op.f('ix_api_keys_key_hash'), 'api_keys', ['key_hash'],
-                    unique=True)  # FIX 1: UNIQUE
-    op.create_index(op.f('ix_api_keys_is_active'), 'api_keys', ['is_active'])
-    op.create_index(op.f('ix_api_keys_created_by'), 'api_keys', ['created_by'])
-
-    # ── 2. system_settings table ───────────────────────────────────────
-    op.create_table(
-        'system_settings',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('default_new_user_credits', sa.Integer(),
-                  server_default='300', nullable=False),
-        sa.Column('daily_free_credits', sa.Integer(),
-                  server_default='300', nullable=False),
-        sa.Column('credits_per_message', sa.Integer(),
-                  server_default='1', nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True),
-                  server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),  # FIX 3
-        sa.PrimaryKeyConstraint('id'),
-    )
-
-    # FIX 6: Seed the singleton row inside the migration (idempotent)
-    op.execute(
-        "INSERT INTO system_settings (id) VALUES (1) "
-        "ON CONFLICT (id) DO NOTHING"
-    )
-    # Fallback for SQLite (which uses "INSERT OR IGNORE"):
-    # Alembic dialect check handles this in a cross-dialect way below.
-    # Safer: use a raw try via execute with dialect detection.
-    bind = op.get_bind()
-    if bind.dialect.name == "sqlite":
-        op.execute("INSERT OR IGNORE INTO system_settings (id) VALUES (1)")
-
-    # ── 3. Student verification fields ─────────────────────────────────
-    op.add_column('students', sa.Column('is_verified', sa.Boolean(),
-                  server_default='false', nullable=False))
-    op.add_column('students', sa.Column('verification_code', sa.String(length=255),
-                  nullable=True))
-    op.add_column('students', sa.Column('verification_expires_at',
-                  sa.DateTime(timezone=True), nullable=True))
-    op.add_column('students', sa.Column('verification_attempts', sa.Integer(),
-                  server_default='0', nullable=False))
-    op.create_index(op.f('ix_students_is_verified'), 'students', ['is_verified'])
-    op.create_index(op.f('ix_students_verification_code'), 'students', ['verification_code'])
-
-
-def downgrade() -> None:
-    op.drop_index(op.f('ix_students_verification_code'), table_name='students')
-    op.drop_index(op.f('ix_students_is_verified'), table_name='students')
-    op.drop_column('students', 'verification_attempts')
-    op.drop_column('students', 'verification_expires_at')
-    op.drop_column('students', 'verification_code')
-    op.drop_column('students', 'is_verified')
-    op.drop_table('system_settings')
-    op.drop_index(op.f('ix_api_keys_created_by'), table_name='api_keys')
-    op.drop_index(op.f('ix_api_keys_is_active'), table_name='api_keys')
-    op.drop_index(op.f('ix_api_keys_key_hash'), table_name='api_keys')
-    op.drop_table('api_keys')
-```
-
-### Step 5.3: Verify Migration Round-Trip
-
-**Run on BOTH SQLite and Postgres** if you have Docker available.
-
-```bash
-cd backend
-
-# SQLite test
-DATABASE_URL="sqlite+aiosqlite:///./test_migration.db" \
-  alembic upgrade head && \
-DATABASE_URL="sqlite+aiosqlite:///./test_migration.db" \
-  alembic downgrade a7f3d91c2b48 && \
-DATABASE_URL="sqlite+aiosqlite:///./test_migration.db" \
-  alembic upgrade head && \
-rm -f test_migration.db
-
-# Postgres test (requires docker compose)
-docker compose up -d postgres
-sleep 3
-DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/spetser_test" \
-  alembic upgrade head
-DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/spetser_test" \
-  alembic downgrade a7f3d91c2b48
-DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/spetser_test" \
-  alembic upgrade head
-```
-
-**Expected:** All 6 commands succeed (upgrade → downgrade → upgrade on both dialects).
-
-### Step 5.4: Update the Model to Match
-
-**File to update:** `backend/app/models/api_key.py`
-
-```python
-from sqlalchemy import String, Boolean, DateTime, Integer, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
-# ...
-
-class APIKey(Base):
-    # ...
-    created_by: Mapped[str] = mapped_column(
-        ForeignKey("students.id", ondelete="CASCADE"),
-        nullable=False,
-    )  # ← was String(36), now proper FK
-    allowed_skills: Mapped[dict | None] = mapped_column(
-        JSONB().with_variant(JSON(), "sqlite"),  # ← was plain Text
-        nullable=True,
-    )
-```
-
-**File to update:** `backend/app/services/api_key_service.py`
-
-Update `create_key()` to store `allowed_skills` as a list (not comma-separated string):
-
-```python
-async def create_key(
-    self,
-    db: AsyncSession,
-    name: str,
-    created_by: str,
-    system_prompt: str | None = None,
-    max_credits_per_day: int | None = None,
-    allowed_skills: list[str] | None = None,   # ← list, not str
-    # ...
-) -> tuple[APIKey, str]:
-    api_key = APIKey(
-        # ...
-        allowed_skills=allowed_skills,  # stored as JSONB array
-    )
-```
-
-Update all references in schemas/endpoints to use `list[str]` instead of `str` for `allowed_skills`.
-
-### Step 5.5: Add Migration Regression Test
-
-**File to create:** `backend/tests/integration/test_migration_integrity.py`
-
-```python
-"""
-Migration Integrity Test — P0.3
-───────────────────────────────
-Ensures the latest migration is idempotent, reversible, and produces
-a schema that matches the SQLAlchemy models.
-"""
-import pytest
-from sqlalchemy import inspect
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.db.base import Base
-
-
-@pytest.mark.asyncio
-async def test_all_models_have_matching_tables(db_session: AsyncSession) -> None:
-    """Every SQLAlchemy model should have a matching table in the DB."""
-    from app.models import api_key, system_settings  # noqa: F401
-    bind = db_session.get_bind()
-    inspector = inspect(bind)
-    existing_tables = set(inspector.get_table_names())
-    
-    for table_name in Base.metadata.tables:
-        assert table_name in existing_tables, (
-            f"Model '{table_name}' has no matching table. "
-            f"Did you forget to add it to a migration?"
-        )
-
-
-@pytest.mark.asyncio
-async def test_api_keys_key_hash_is_unique(db_session: AsyncSession) -> None:
-    """P0.3 defect #1: key_hash index must be unique."""
-    bind = db_session.get_bind()
-    inspector = inspect(bind)
-    indexes = inspector.get_indexes("api_keys")
-    key_hash_idx = next(
-        (i for i in indexes if "key_hash" in i.get("column_names", [])),
-        None,
-    )
-    assert key_hash_idx is not None, "api_keys must have an index on key_hash"
-    assert key_hash_idx["unique"] is True, (
-        "api_keys.key_hash index MUST be unique — duplicate hashes would cause "
-        "scalar_one_or_none() to raise MultipleResultsFound"
-    )
-
-
-@pytest.mark.asyncio
-async def test_system_settings_singleton_exists(db_session: AsyncSession) -> None:
-    """P0.3 defect #6: seed row must exist."""
-    from app.models.system_settings import SystemSettings
-    from sqlalchemy import select
-    result = await db_session.execute(select(SystemSettings).where(SystemSettings.id == 1))
-    row = result.scalar_one_or_none()
-    assert row is not None, (
-        "system_settings seed row (id=1) must be inserted by the migration"
-    )
-```
-
-### Step 5.6: Run Migration Tests
-
-```bash
-python -m pytest tests/integration/test_migration_integrity.py -v
-```
-
-**Expected:** All tests pass.
-
-### Step 5.7: Run Full Suite
-
-```bash
-python -m pytest tests/ -q
-```
-
-### Step 5.8: Commit P0.3
-
-```bash
-git add -A
-git commit -m "fix(migration): repair 6 defects in api_keys/system_settings migration (P0.3)
-
-- Make ix_api_keys_key_hash UNIQUE (prevents MultipleResultsFound)
-- Change api_keys.created_by from String(36) to UUID + FK
-- Add server_default to system_settings.updated_at
-- Replace Postgres-only now() with dialect-agnostic CURRENT_TIMESTAMP
-- Change allowed_skills from plain Text to JSONB (with JSON SQLite fallback)
-- Insert seed row for system_settings (id=1) inside the migration
-- Add migration integrity tests (uniqueness, seed, model parity)
-- Cross-dialect tested on both SQLite and Postgres"
+git commit -m "test(branding): add branding constants and icon asset tests
+
+- branding.test.ts: verifies BRAND constants use Spetser, correct colors
+- icon-assets.test.ts: verifies all required PNG/SVG/ICO assets exist
+  and old Perplexity icons are removed
+- All tests pass alongside existing suite"
 ```
 
 ==================================================
-SECTION 6: FINAL VERIFICATION & DOCUMENTATION
+SECTION 7: DOCUMENTATION & HANDOFF
 ==================================================
 
-### Step 6.1: Run the Complete Test Suite
+### Step 7.1: Update PROJECT_STATUS.md
 
-```bash
-cd backend
-python -m pytest tests/ -v --tb=short 2>&1 | tee /tmp/pytest-final.log
-
-cd ../frontend
-npm run build 2>&1 | tee /tmp/npm-build.log
-npm run lint 2>&1 | tee /tmp/npm-lint.log
-```
-
-### Step 6.2: Capture Real Test Output
-
-**Paste the tail of `/tmp/pytest-final.log`** into `docs/PROJECT_STATUS.md` under a new section:
+Append to `docs/PROJECT_STATUS.md`:
 
 ```markdown
-## Test Summary — P0 Fixes (REAL OUTPUT, DO NOT EDIT MANUALLY)
+## Branding Replacement — COMPLETE
 
-### Backend
-```
-$ python -m pytest tests/ -q
-[PASTE ACTUAL OUTPUT HERE — e.g., "645 passed, 0 failed in 42.31s"]
-```
+**Date:** [TODAY]
+**Commit:** [HASH]
 
-### Frontend
-```
-$ npm run build
-[PASTE ACTUAL OUTPUT — e.g., "✓ 234 modules transformed, 0 errors"]
-$ npm run lint
-[PASTE ACTUAL OUTPUT — e.g., "0 problems"]
-```
+### Changes
+- Replaced ALL "Perplexity" references with "Spetser" (Arabic: سبيتسر)
+- Designed new icon via Google Stitch: stylized "S" with teal body (#01696D) and amber spark (#F59E0B)
+- Generated icon assets: SVG + PNG variants (512, 192, 32, 16, apple, og)
+- Updated index.html meta tags, PWA manifest, all components
+- Created `src/lib/constants.ts` as single source of truth for branding
+- Added `Logo` component for consistent brand display
 
-### New Contract/Regression Tests
-- `test_api_contract.py`: 7 parametrized cases PASS
-- `test_cors_headers.py`: 4 cases PASS
-- `test_migration_integrity.py`: 3 cases PASS
+### Icon Assets (all in `public/`)
+| File | Size | Purpose |
+|------|------|---------|
+| favicon.ico | ~5KB | Browser tab (16x16 + 32x32) |
+| spetser-icon.svg | ~2KB | Primary scalable vector |
+| spetser-512.png | 512x512 | PWA install, high-res |
+| spetser-192.png | 192x192 | PWA manifest |
+| spetser-apple.png | 180x180 | iOS home screen |
+| spetser-og.png | 1200x630 | Social share preview |
+
+### Tests Added
+- `src/lib/branding.test.ts` — validates BRAND constants
+- `tests/icon-assets.test.ts` — validates icon file existence and format
 
 ### Status
-✅ P0.1 API Envelope — FIXED, under contract test
-✅ P0.2 CORS Error Responses — FIXED, under regression test
-✅ P0.3 Migration Defects — FIXED, under migration integrity test
+✅ Build: PASS
+✅ Lint: PASS
+✅ Tests: ALL PASS
+✅ Visual: Verified (favicon, header, PWA, OG image)
 ```
 
-### Step 6.3: Update ERROR_LOG.md
+### Step 7.2: Update ERROR_LOG.md (if any issues occurred)
 
-Append one entry per P0 fix (E-P01, E-P02, E-P03) using the template in Section 2. Each entry must reference the commit hash.
+If any step failed (e.g., Stitch unavailable, SVGO not installed), log it with the workaround used.
 
-### Step 6.4: Final Commit
+### Step 7.3: Final Commit
 
 ```bash
 git add -A
-git commit -m "docs: update PROJECT_STATUS and ERROR_LOG with P0 fix evidence
-
-- Append 3 entries to ERROR_LOG (E-P01, E-P02, E-P03) with root causes
-- Replace Test Summary in PROJECT_STATUS with real pytest/npm output
-- Remove duplicated/stale Test Summary sections"
+git commit -m "docs(branding): update PROJECT_STATUS with branding replacement evidence"
 ```
 
 ==================================================
-SECTION 7: ACCEPTANCE CRITERIA
+SECTION 8: FALLBACK PLAN (IF STITCH UNAVAILABLE)
 ==================================================
 
-The P0 incident is RESOLVED only when ALL of the following are true:
+If Google Stitch is not accessible (requires sign-in, is down, or rate-limits), use this fallback:
 
-- [ ] `test_api_contract.py` passes all parametrized cases
-- [ ] `test_cors_headers.py` passes all 4 cases
-- [ ] `test_migration_integrity.py` passes all 3 cases
-- [ ] Full backend suite: 0 regressions vs. pre-P0 baseline
-- [ ] Frontend `build` and `lint`: 0 errors
-- [ ] Migration round-trip succeeds on both SQLite and Postgres
-- [ ] `docs/ERROR_LOG.md` has 3 new entries with commit hashes
-- [ ] `docs/PROJECT_STATUS.md` Test Summary contains **real** pytest output, not hand-written numbers
-- [ ] Manual smoke test: login → conversations list loads with data → credits balance shows
+### Fallback 8.1: Use Built-in Image Generator
+
+Call the `image_gen` tool (if available in your environment) with the exact prompt from Section 1.3.
+
+### Fallback 8.2: Hand-Craft SVG
+
+If no image tool is available, create a simple but clean SVG manually:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Stylized S with spark -->
+  <defs>
+    <linearGradient id="spark" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#01696D"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Main S body -->
+  <path d="M 65 25
+           C 65 15, 35 15, 35 25
+           C 35 35, 65 40, 65 50
+           C 65 65, 35 65, 35 55"
+        stroke="#01696D" stroke-width="10" fill="none" stroke-linecap="round"/>
+  
+  <!-- Spark at top -->
+  <path d="M 65 25 L 68 15 L 62 18 L 65 8 L 60 17 L 55 12 L 58 20"
+        fill="#F59E0B" stroke="none"/>
+</svg>
+```
+
+Save as `public/spetser-icon.svg` and continue with Step 4.5 (generate PNGs).
+
+**Document the fallback** in `docs/BRANDING_AUDIT.md`:
+> "Google Stitch was unavailable; icon hand-crafted as SVG. Future iteration should regenerate via Stitch for higher design polish."
 
 ==================================================
-SECTION 8: START COMMAND
+SECTION 9: ACCEPTANCE CRITERIA
+==================================================
+
+Branding replacement is COMPLETE only when:
+
+- [ ] `grep -ri perplexity frontend/src frontend/public` returns 0 results
+- [ ] `favicon.ico` contains the new Spetser icon
+- [ ] `spetser-icon.svg` exists and renders correctly
+- [ ] All 5 PNG variants exist (512, 192, 32, 16, apple, og)
+- [ ] `index.html` meta tags use Spetser branding
+- [ ] `manifest.webmanifest` uses Arabic name + RTL direction
+- [ ] `BRAND` constants file exists as single source of truth
+- [ ] `Logo` component exists and is used in Header
+- [ ] `branding.test.ts` passes
+- [ ] `icon-assets.test.ts` passes
+- [ ] Full build/lint/test suite passes
+- [ ] Visual verification: no "Perplexity" anywhere in UI
+- [ ] `PROJECT_STATUS.md` updated with evidence
+
+==================================================
+SECTION 10: START COMMAND
 ==================================================
 
 **Awaiting user instruction:**
-- Say "Execute P0" to run all three fixes sequentially.
-- Say "Execute P0.1 only" to fix just the envelope contract.
-- Say "Execute P0.2 only" to fix just the CORS issue.
-- Say "Execute P0.3 only" to fix just the migration.
+- Say **"Execute Branding"** to run all steps.
+- Say **"Audit Only"** to just run Section 3 (find Perplexity references).
+- Say **"Design Only"** to just run Section 4 (Stitch icon generation).
 
 GO.
 ```
 
 ---
 
-## كيفية الاستخدام
+## ملخص ما يفعله هذا البرومت
 
-1. افتح مشروع `spetser-ai` في Cursor / Windsurf / Cline.
-2. الصق هذا البرومت في جلسة جديدة.
-3. اكتب: **`Execute P0`** (أو ابدأ بمرحلة واحدة فقط إن أردت).
-4. راقب التنفيذ. في نهاية كل خطوة، سيُنتج الـ Agent تقريراً بالصيغة:
-   ```
-   ✅ P0.1.3 — Implement the Envelope Success Middleware
-      Files modified: backend/app/main.py
-      Tests run: pytest tests/integration/test_api_contract.py -v → 7/7 passed
-      Evidence: [last 5 lines of pytest output]
-      Committed: a1b2c3d
-   ```
-5. إذا فشل أي اختبار، لن يتقدم الـ Agent حتى يُصلح الخطأ — وهذا هو الهدف.
+| الخطوة | الوصف |
+|--------|--------|
+| **1. التدقيق (Audit)** | يبحث عن كل نص "Perplexity" وكل ملف أيقونة قديم |
+| **2. تصميم الأيقونة** | يفتح Google Stitch ويولد أيقونة "S" مع شرارة بألوان العلامة التجارية |
+| **3. تصدير الأيقونة** | يُصدّر SVG + PNG بأحجام متعددة (16, 32, 192, 512, apple, og) |
+| **4. توليد favicon** | يجمع الأحجام الصغيرة في ملف `.ico` واحد |
+| **5. استبدال النصوص** | يحدّث `index.html`, `manifest.webmanifest`, `constants.ts`, وكل المكونات |
+| **6. مكون Logo** | ينشئ مكون `Logo.tsx` قابل لإعادة الاستخدام |
+| **7. اختبارات تلقائية** | يكتب `branding.test.ts` و`icon-assets.test.ts` لمنع الرجوع |
+| **8. خطة بديلة** | إذا تعذّر Stitch، يُولّد SVG يدوياً كبديل |
 
-## ما يفعله هذا البرومت بشكل مختلف عن السابق
+## نصائح عند التشغيل
 
-| الميزة | البرومت السابق | هذا البرومت |
-|---|---|---|
-| **النطاق** | شامل (12 مرحلة) | مُركّز (3 إصلاحات P0 فقط) |
-| **الأدلة** | يكتب "616/616 PASS" يدوياً | يجبر الـ Agent على **لصق مخرجات pytest الحقيقية** في `PROJECT_STATUS.md` |
-| **الاختبارات** | تضيف اختبارات للميزات الجديدة | تبدأ بكتابة **Contract Test** يثبت وجود العطل، ثم تصلحه |
-| **سجل الأخطاء** | ملف فارغ | 3 entries إلزامية (E-P01, E-P02, E-P03) بجذر السبب والحل |
-| **التوافق** | لم يُختبر | يختبر الترحيل على **SQLite + Postgres** معاً |
-| **الـ CI** | يتجاهل | يُعدّ قاعدة: "لا تُكتب 'PASS' إلا بمخرَج حقيقي" |
+1. **ابدأ بـ "Audit Only"** لمعرفة نطاق التغييرات قبل الشروع في التنفيذ.
+2. **تأكد من الوصول إلى Stitch** قبل البدء — إذا كان يحتاج تسجيل دخول Google، قد تحتاج لتوفير session نشط.
+3. **راجع الأيقونة يدوياً** قبل اعتمادها: افتح `spetser-icon.svg` في المتصفح وتأكد أنها تبدو جيدة بأحجام مختلفة.
+4. **اختبر على جهاز محمول** بعد النشر للتأكد أن PWA تظهر الأيقونة الجديدة بشكل صحيح.
+
+هل تريد أن أبدأ بتنفيذ **"Audit Only"** أولاً لفحص نطاق التغييرات في مشروعك الحالي؟

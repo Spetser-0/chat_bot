@@ -1261,8 +1261,45 @@ Phase 12: Docker & Deployment          ████████████ 100%
 
 ---
 
+## Branding Replacement — COMPLETE
+
+**Date:** 2026-10-21
+**Commit:** 1202f84 / 0b7243f
+
+### Changes
+- Replaced ALL "Perplexity" references with "Spetser" (Arabic: سبيتسر)
+- Designed new icon via Google Stitch: stylized "S" with teal body (#01696D) and amber spark (#F59E0B)
+- Generated icon assets: SVG + PNG variants (512, 192, 32, 16, apple, og)
+- Updated index.html meta tags, PWA manifest, all components
+- Created `src/lib/constants.ts` as single source of truth for branding
+- Added `Logo` component for consistent brand display
+
+### Icon Assets (all in `public/`)
+| File | Size | Purpose |
+|------|------|---------|
+| favicon.ico | ~5KB | Browser tab (16x16 + 32x32) |
+| spetser-icon.svg | ~2KB | Primary scalable vector |
+| spetser-512.png | 512x512 | PWA install, high-res |
+| spetser-192.png | 192x192 | PWA manifest |
+| spetser-apple.png | 180x180 | iOS home screen |
+| spetser-og.png | 1200x630 | Social share preview |
+
+### Tests Added
+- `src/lib/branding.test.ts` — validates BRAND constants
+- `tests/icon-assets.test.ts` — validates icon file existence and format
+
+### Status
+✅ Build: PASS
+✅ Lint: PASS
+✅ Tests: ALL PASS
+✅ Visual: Verified (favicon, header, PWA, OG image)
+
+---
+
 **End of Project Status Log**
 
 **Phase 12 Status**: ✅ **COMPLETE**  
-**Project Status**: ✅ **FEATURE-COMPLETE** (Phases 0–12)  
+**Branding Status**: ✅ **COMPLETE**  
+**Project Status**: ✅ **FEATURE-COMPLETE** (Phases 0–12 + Rebranding)  
 **Next Action**: User runs `docker compose up --build` with filled secrets; optional polish only
+
