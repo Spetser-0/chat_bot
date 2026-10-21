@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -110,6 +110,7 @@ async def register(
     request: Request,
     body: RegisterRequest,
     response: Response,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     ref: str | None = None,
 ) -> dict:
@@ -219,7 +220,7 @@ async def register(
             await db.commit()
 
     # Initiate email verification
-    await verification_service.initiate_verification(db, student)
+    await verification_service.initiate_verification(db, student, background_tasks=background_tasks)
 
     # Note: Session cookie is NOT set until email is verified!
     return {
@@ -278,6 +279,7 @@ async def verify_email(
 async def resend_code(
     request: Request,
     body: ResendCodeRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Resend a new verification code."""
@@ -288,7 +290,7 @@ async def resend_code(
     if not student:
         raise NotFoundError("المستخدم غير موجود.")
 
-    await verification_service.resend_code(db, student)
+    await verification_service.resend_code(db, student, background_tasks=background_tasks)
     return {
         "message": "A new verification code has been sent.",
         "data": {
@@ -305,6 +307,7 @@ async def resend_code(
 async def forgot_password(
     request: Request,
     body: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Step 1: User requests password reset. Sends OTP to their email."""
@@ -314,7 +317,7 @@ async def forgot_password(
 
     # Security: Don't reveal if email exists or not
     if student:
-        await password_reset_service.initiate_reset(db, student)
+        await password_reset_service.initiate_reset(db, student, background_tasks=background_tasks)
 
     return {
         "message": "If this email exists, a reset code has been sent.",

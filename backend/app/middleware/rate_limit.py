@@ -44,6 +44,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return self._redis
     
     async def dispatch(self, request: Request, call_next: Callable):
+        settings = get_settings()
+        if settings.rate_limit_backend != "redis":
+            return await call_next(request)
+
         # Skip rate limiting for health checks and doc endpoints
         if request.url.path in (
             "/api/v1/health/live",

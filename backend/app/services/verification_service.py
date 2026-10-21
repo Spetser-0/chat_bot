@@ -10,6 +10,9 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 
+from typing import Optional
+
+from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AuthenticationError, ValidationError
@@ -38,8 +41,9 @@ class VerificationService:
         self,
         db: AsyncSession,
         user: Student,
+        background_tasks: Optional[BackgroundTasks] = None,
     ) -> str:
-        """Generate OTP, store hash, and send email. Returns the plaintext OTP."""
+        """Generate OTP, store hash, and send email (optionally async). Returns the plaintext OTP."""
         otp = self.generate_otp()
 
         user.verification_code = self._hash_code(otp)
@@ -50,8 +54,12 @@ class VerificationService:
         await db.commit()
         await db.refresh(user)
 
-        # Send email with OTP
-        await send_verification_email(to_email=user.email, code=otp)
+        # Send email with OTP (async if background_tasks provided)
+        await send_verification_email(
+            to_email=user.email,
+            code=otp,
+            background_tasks=background_tasks,
+        )
         return otp
 
     async def verify_code(
@@ -100,11 +108,16 @@ class VerificationService:
 
         return True
 
-    async def resend_code(self, db: AsyncSession, user: Student) -> str:
+    async def resend_code(
+        self,
+        db: AsyncSession,
+        user: Student,
+        background_tasks: Optional[BackgroundTasks] = None,
+    ) -> str:
         """Resend a new verification code."""
         if user.is_verified:
             raise ValidationError("الحساب مفعّل بالفعل.")
-        return await self.initiate_verification(db, user)
+        return await self.initiate_verification(db, user, background_tasks=background_tasks)
 
 
 verification_service = VerificationService()

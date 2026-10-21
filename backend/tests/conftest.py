@@ -22,6 +22,7 @@ os.environ.setdefault("LLM_MASTER_ENCRYPTION_KEY", Fernet.generate_key().decode(
 os.environ.setdefault("CRYPTO_PAYMENT_WEBHOOK_SECRET", "dev-webhook-secret")
 os.environ["SUPABASE_URL"] = ""
 os.environ["SUPABASE_SERVICE_ROLE_KEY"] = ""
+os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
 
 from app.core.config import Settings  # noqa: E402
 Settings.model_config["env_file"] = None

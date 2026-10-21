@@ -8,6 +8,9 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+from typing import Optional
+
+from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AuthenticationError, ValidationError
@@ -20,7 +23,12 @@ from app.services.verification_service import VerificationService
 class PasswordResetService:
     """Handles forgot password flow."""
 
-    async def initiate_reset(self, db: AsyncSession, user: Student) -> str:
+    async def initiate_reset(
+        self,
+        db: AsyncSession,
+        user: Student,
+        background_tasks: Optional[BackgroundTasks] = None,
+    ) -> str:
         """Generate reset OTP code and send email. Returns plaintext OTP."""
         otp = VerificationService.generate_otp()
 
@@ -30,7 +38,7 @@ class PasswordResetService:
         await db.commit()
         await db.refresh(user)
 
-        await send_reset_email(to_email=user.email, code=otp)
+        await send_reset_email(to_email=user.email, code=otp, background_tasks=background_tasks)
         return otp
 
     async def verify_reset_code(self, db: AsyncSession, user: Student, code: str) -> bool:
