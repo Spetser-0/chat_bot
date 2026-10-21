@@ -10,7 +10,7 @@ from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator, ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -99,12 +99,45 @@ class Settings(BaseSettings):
     referral_reward_holding_days: int = 7                 # release delay (anti-fraud)
 
     # ── Email & Verification (SMTP) ──────────────────────
-    smtp_host: str = "smtp.gmail.com"
-    smtp_port: int = 587
-    smtp_user: str = ""
-    smtp_password: str = ""
-    smtp_from: str = "noreply@spetser.ai"
-    smtp_tls: bool = True
+    smtp_host: str = Field(
+        default="",
+        description="SMTP server hostname (e.g., smtp.gmail.com)"
+    )
+    smtp_port: int = Field(
+        default=587,
+        description="SMTP server port (587 for TLS, 465 for SSL)"
+    )
+    smtp_user: str = Field(
+        default="",
+        description="SMTP username (email address)"
+    )
+    smtp_password: str = Field(
+        default="",
+        description="SMTP password or app-specific password"
+    )
+    smtp_from: str = Field(
+        default="noreply@spetser.ai",
+        description="Sender email address"
+    )
+    smtp_use_tls: bool = Field(
+        default=True,
+        description="Use TLS for SMTP connection"
+    )
+
+    @field_validator("smtp_user", "smtp_password", "smtp_host")
+    @classmethod
+    def validate_smtp_in_production(cls, v: str, info: ValidationInfo) -> str:
+        """Fail fast in production if SMTP is not configured."""
+        values = info.data
+        app_env = values.get("app_env", "development")
+
+        if app_env == "production" and not v:
+            field_name = info.field_name
+            raise ValueError(
+                f"{field_name} is required in production. "
+                f"Set {field_name.upper()} environment variable."
+            )
+        return v
 
     # ── Password Reset & Auth Enhancements ───────────────
     reset_token_secret: str = ""
@@ -133,6 +166,18 @@ class Settings(BaseSettings):
     @property
     def SMTP_FROM(self) -> str:
         return self.smtp_from
+
+    @property
+    def smtp_tls(self) -> bool:
+        return self.smtp_use_tls
+
+    @property
+    def SMTP_TLS(self) -> bool:
+        return self.smtp_use_tls
+
+    @property
+    def SMTP_USE_TLS(self) -> bool:
+        return self.smtp_use_tls
 
     @property
     def RESET_TOKEN_SECRET(self) -> str:
