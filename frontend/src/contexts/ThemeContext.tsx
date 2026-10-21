@@ -5,7 +5,7 @@
  * data-theme on <html> so CSS variables switch atomically.
  *
  * Default is LIGHT: the design system is a parchment-on-paper palette
- * (matching the Perplexity reference). OS preference is intentionally
+ * (matching the Spetser reference). OS preference is intentionally
  * NOT followed — dark is an explicit opt-in via the toggle, because a
  * dark default contradicts the product's visual identity.
  */

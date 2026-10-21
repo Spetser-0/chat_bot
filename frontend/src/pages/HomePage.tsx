@@ -2,11 +2,11 @@
  * pages/HomePage.tsx
  * ────────────────────
  * Exact replica of Stitch Project 65770937400041676:
- * - Desktop View (>= 768px): Stitch Perplexity Search Desk with Left Sidebar,
+ * - Desktop View (>= 768px): Stitch Spetser Search Desk with Left Sidebar,
  *   Top Header chips, Mode Badge, Hero, Dominant Search Box, Inquiry Cards Grid,
  *   Live Academic Index, and Keyboard Shortcuts.
- * - Mobile View (< 768px): Stitch Perplexity Mobile with Top Bar (Hamburger, Brand, Profile),
- *   Centered 12-arm Teal Starburst, "Where knowledge begins", and Bottom Floating Dock.
+ * - Mobile View (< 768px): Stitch Spetser Mobile with Top Bar (Hamburger, Brand, Profile),
+ *   Centered Teal & Amber Spetser Brand Mark, "Where knowledge begins", and Bottom Floating Dock.
  */
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';

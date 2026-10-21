@@ -83,6 +83,14 @@ CSS custom properties (see `frontend/src/index.css`):
 - `--color-ink: #27251e`
 - RTL-first layout with logical CSS properties
 
+## Branding
+
+- **Name:** سبيتسر AI (Spetser AI)
+- **Primary color:** `#01696D` (Teal)
+- **Accent color:** `#F59E0B` (Amber)
+- **Icon:** Designed via Google Stitch — stylized "S" with spark motif
+- **Logo assets:** Located in `frontend/public/spetser-*.{svg,png}` and `frontend/public/favicon.ico`
+
 ## License
 
 Private — developer beta only.

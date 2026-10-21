@@ -1,7 +1,7 @@
 /**
  * AppShell — authenticated layout wrapper.
  *
- * On the home page ('/'), it renders the exact Stitch Perplexity interface directly.
+ * On the home page ('/'), it renders the exact Stitch Spetser interface directly.
  * On other pages (e.g. /chat, /settings), it provides the application shell.
  */
 import { useEffect, useState, type ReactNode } from 'react';
@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/useAuth';
 import { AppSidebar } from './layout/AppSidebar';
 import { useQuery } from '@tanstack/react-query';
 import { conversationsApi } from '../api/conversations';
+import { BRAND } from '../lib/constants';
 
 const STORAGE_KEY = 'spetser.sidebarCollapsed';
 
@@ -106,7 +107,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
         </button>
 
         <div className="app-shell__topbar-title">
-          <span className="brand-mark__name">Perplexity</span>
+          <span className="brand-mark__name">{BRAND.nameEn}</span>
         </div>
 
         <button

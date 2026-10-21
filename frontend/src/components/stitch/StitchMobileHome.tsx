@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type KeyboardEvent, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BRAND } from '../../lib/constants';
 
 interface StitchMobileHomeProps {
   onSearch: (query: string, mode?: string) => void;
@@ -86,7 +87,7 @@ export function StitchMobileHome({ onSearch, onOpenMenu, isStreaming = false }: 
 
           {/* Wordmark / Center Brand */}
           <div className="flex items-center gap-1.5">
-            <span className="font-sans font-medium text-[15px] tracking-tight text-ink">Perplexity</span>
+            <span className="font-sans font-medium text-[15px] tracking-tight text-ink">{BRAND.nameEn}</span>
           </div>
 
           {/* Profile Avatar Outline / Settings */}
@@ -102,30 +103,13 @@ export function StitchMobileHome({ onSearch, onOpenMenu, isStreaming = false }: 
 
       {/* ── Central Focal Hero Area ──────────────────────────────────────── */}
       <main className="flex-1 flex flex-col items-center justify-center -mt-16 px-6 text-center z-10">
-        {/* Stylized Perplexity Asterisk / Starburst in Deep Teal (Stitch exact SVG) */}
-        <div className="mb-5 text-deep-teal flex items-center justify-center">
-          <svg
-            className="text-deep-teal transition-transform hover:scale-105 duration-200"
-            fill="currentColor"
-            height="42"
-            viewBox="0 0 24 24"
-            width="42"
-          >
-            <g transform="translate(12,12)">
-              <path d="M-1,-11.5 C-1,-12 1,-12 1,-11.5 L1,-2.5 C1,-1.5 -1,-1.5 -1,-2.5 Z"></path>
-              <path d="M-1,-11.5 C-1,-12 1,-12 1,-11.5 L1,-2.5 C1,-1.5 -1,-1.5 -1,-2.5 Z" transform="rotate(30)"></path>
-              <path d="M-1,-11.5 C-1,-12 1,-12 1,-11.5 L1,-2.5 C1,-1.5 -1,-1.5 -1,-2.5 Z" transform="rotate(60)"></path>
-              <path d="M-1,-11.5 C-1,-12 1,-12 1,-11.5 L1,-2.5 C1,-1.5 -1,-1.5 -1,-2.5 Z" transform="rotate(90)"></path>
-              <path d="M-1,-11.5 C-1,-12 1,-12 1,-11.5 L1,-2.5 C1,-1.5 -1,-1.5 -1,-2.5 Z" transform="rotate(120)"></path>
-              <path d="M-1,-11.5 C-1,-12 1,-12 1,-11.5 L1,-2.5 C1,-1.5 -1,-1.5 -1,-2.5 Z" transform="rotate(150)"></path>
-              <path d="M-1,-11.5 C-1,-12 1,-12 1,-11.5 L1,-2.5 C1,-1.5 -1,-1.5 -1,-2.5 Z" transform="rotate(180)"></path>
-              <path d="M-1,-11.5 C-1,-12 1,-12 1,-11.5 L1,-2.5 C1,-1.5 -1,-1.5 -1,-2.5 Z" transform="rotate(210)"></path>
-              <path d="M-1,-11.5 C-1,-12 1,-12 1,-11.5 L1,-2.5 C1,-1.5 -1,-1.5 -1,-2.5 Z" transform="rotate(240)"></path>
-              <path d="M-1,-11.5 C-1,-12 1,-12 1,-11.5 L1,-2.5 C1,-1.5 -1,-1.5 -1,-2.5 Z" transform="rotate(270)"></path>
-              <path d="M-1,-11.5 C-1,-12 1,-12 1,-11.5 L1,-2.5 C1,-1.5 -1,-1.5 -1,-2.5 Z" transform="rotate(300)"></path>
-              <path d="M-1,-11.5 C-1,-12 1,-12 1,-11.5 L1,-2.5 C1,-1.5 -1,-1.5 -1,-2.5 Z" transform="rotate(330)"></path>
-            </g>
-          </svg>
+        {/* Stylized Spetser Brand Mark (S with Spark tip) */}
+        <div className="mb-5 flex items-center justify-center">
+          <img
+            src={BRAND.iconSvg}
+            alt={BRAND.name}
+            className="w-12 h-12 transition-transform hover:scale-105 duration-200"
+          />
         </div>
 
         {/* Scholar's Parchment Clean Sans Title */}

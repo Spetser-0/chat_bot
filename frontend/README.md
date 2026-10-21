@@ -1,32 +1,29 @@
-# React + TypeScript + Vite
+# Spetser AI — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Arabic-first educational AI platform frontend application built with React, Vite, TypeScript, and Tailwind CSS.
 
-Currently, two official plugins are available:
+## Branding
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Name:** سبيتسر AI (Spetser AI)
+- **Primary color:** `#01696D` (Teal)
+- **Accent color:** `#F59E0B` (Amber)
+- **Icon:** Designed via Google Stitch — stylized "S" with spark motif
+- **Logo assets:** Located in `public/spetser-*.{svg,png}` and `public/favicon.ico`
 
-## React Compiler
+## Tech Stack & Tooling
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+This project uses React 19, TypeScript, Vite, and Oxlint.
 
-## Expanding the Oxlint configuration
+```bash
+# Development
+npm run dev
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+# Linting
+npm run lint
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+# Testing
+npm run test
+
+# Production Build
+npm run build
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.

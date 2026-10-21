@@ -1,0 +1,30 @@
+{
+  "name": "سبيتسر AI",
+  "short_name": "سبيتسر",
+  "description": "منصة تعليمية ذكية مخصصة للطلاب العرب",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/spetser-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/spetser-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/spetser-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#01696D",
+  "background_color": "#F9F8F4",
+  "display": "standalone",
+  "lang": "ar",
+  "dir": "rtl"
+}

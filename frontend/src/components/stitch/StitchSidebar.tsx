@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { conversationsApi } from '../../api/conversations';
+import { BRAND } from '../../lib/constants';
 
 interface StitchSidebarProps {
   onNewThread?: () => void;
@@ -42,11 +43,13 @@ export function StitchSidebar({ onNewThread }: StitchSidebarProps) {
           onClick={() => navigate('/')}
           className="flex items-center gap-space-sm px-space-xs py-space-xs cursor-pointer group"
         >
-          <span className="material-symbols-outlined text-primary text-[24px] group-hover:rotate-180 transition-transform duration-500">
-            all_inclusive
-          </span>
+          <img
+            src={BRAND.iconSvg}
+            alt=""
+            className="w-6 h-6 object-contain group-hover:scale-110 transition-transform duration-300"
+          />
           <span className="font-headline-md text-headline-md tracking-tight text-ink font-semibold">
-            Perplexity
+            {BRAND.nameEn}
           </span>
         </div>
 

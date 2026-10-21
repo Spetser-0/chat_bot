@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { conversationsApi } from '../../api/conversations';
+import { BRAND } from '../../lib/constants';
 
 interface StitchMobileDrawerProps {
   isOpen: boolean;
@@ -50,9 +51,13 @@ export function StitchMobileDrawer({ isOpen, onClose, onNewThread }: StitchMobil
               onClick={() => handleNav('/')}
               className="flex items-center gap-space-sm cursor-pointer"
             >
-              <span className="material-symbols-outlined text-primary text-[24px]">all_inclusive</span>
+              <img
+                src={BRAND.iconSvg}
+                alt=""
+                className="w-6 h-6 object-contain"
+              />
               <span className="font-headline-md text-headline-md tracking-tight text-ink font-semibold">
-                Perplexity
+                {BRAND.nameEn}
               </span>
             </div>
             <button

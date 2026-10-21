@@ -1,5 +1,6 @@
 {
-  "name": "frontend",
+  "name": "spetser-ai-frontend",
+  "description": "Spetser AI — Arabic-first educational AI platform",
   "private": true,
   "version": "0.0.0",
   "type": "module",
