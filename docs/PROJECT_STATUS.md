@@ -1296,10 +1296,63 @@ Phase 12: Docker & Deployment          ████████████ 100%
 
 ---
 
+## Email Delivery Fix — COMPLETE
+
+**Date:** 2026-10-19  
+**Severity:** P0 (Production Blocker)  
+**Status:** ✅ FIXED
+
+### Problem
+- Users could register but never received verification emails
+- Server silently skipped email sending when SMTP not configured
+- No error or warning — silent failure in production
+
+### Root Cause
+- `email_service.py` returned early without error when `SMTP_USER` was empty
+- `config.py` had empty defaults for SMTP settings
+- Production server (Render) had no SMTP credentials → all emails skipped
+
+### Solution
+1. **Fail fast in production**: Pydantic validator rejects empty SMTP vars at startup
+2. **Async email sending**: Use FastAPI BackgroundTasks (non-blocking)
+3. **Proper error handling**: Log SMTP failures instead of silent skip
+4. **Deployment docs**: Clear guide for configuring SMTP in Render
+
+### Files Modified
+- `backend/app/core/config.py` — SMTP validation
+- `backend/app/services/email_service.py` — async sending
+- `backend/app/services/verification_service.py` — background task support
+- `backend/app/api/v1/routes/auth.py` — inject BackgroundTasks
+- `docs/DEPLOYMENT.md` — SMTP configuration guide
+- `scripts/setup-render-env.sh` — env var verification script
+
+### Tests Added
+- `tests/unit/test_smtp_config.py` (5 tests)
+- `tests/integration/test_email_background.py` (3 tests)
+
+### Deployment Checklist for Render
+- [ ] Set `SMTP_HOST=smtp.gmail.com` (or your provider)
+- [ ] Set `SMTP_PORT=587`
+- [ ] Set `SMTP_USER=your-email@gmail.com`
+- [ ] Set `SMTP_PASSWORD=your-app-password`
+- [ ] Set `SMTP_FROM=noreply@spetser.ai`
+- [ ] Set `APP_ENV=production`
+- [ ] Deploy and verify emails are sent (check Render logs)
+
+### Status
+✅ Config validation: PASS (server refuses to start without SMTP in production)  
+✅ Async sending: PASS (registration returns immediately, email sent in background)  
+✅ Error logging: PASS (SMTP failures logged, not silent)  
+✅ Tests: 8/8 PASS
+
+---
+
 **End of Project Status Log**
 
 **Phase 12 Status**: ✅ **COMPLETE**  
 **Branding Status**: ✅ **COMPLETE**  
-**Project Status**: ✅ **FEATURE-COMPLETE** (Phases 0–12 + Rebranding)  
+**Email Delivery Fix Status**: ✅ **COMPLETE**  
+**Project Status**: ✅ **FEATURE-COMPLETE** (Phases 0–12 + Rebranding + Email Fix)  
 **Next Action**: User runs `docker compose up --build` with filled secrets; optional polish only
+
 

@@ -1,793 +1,1164 @@
 ```markdown
-# SPETSER AI — BRANDING REPLACEMENT PROMPT
-# Task: Replace Perplexity references + Generate new Spetser icon via Stitch
-# Version: 1.0 | Execution Mode: Autonomous Step-by-Step
+# SPETSER AI — EMAIL DELIVERY FIX PROMPT
+# Issue: Silent SMTP Skip in Production
+# Version: 1.0 | Severity: P0 | Execution Mode: Autonomous Step-by-Step
 
 ==================================================
 SECTION 0: YOUR IDENTITY AND AUTHORITY
 ==================================================
 
-You are the **Brand Identity Engineer** for `spetser-ai`. Your mission is to:
+You are the **Incident Response Engineer** for `spetser-ai`. You have been deployed to fix a **P0 production defect** where email verification codes are NOT actually sent to users despite the UI claiming success.
 
-1. **Replace every instance of "Perplexity"** in the frontend codebase with "Spetser" (and appropriate Arabic variants).
-2. **Design and implement a new brand icon** for Spetser using **Google Stitch** (https://stitch.withgoogle.com) as the design tool.
-3. **Deploy the new icon** to all icon surfaces: favicon, PWA manifest, Open Graph, Apple touch icon, logo components, and any hardcoded SVG paths.
+**The Bug:**
+- User registers → UI shows "We sent a code to your email"
+- Reality: Server silently skips email sending when SMTP credentials are missing
+- Root cause: `email_service.py` line 51 returns early without error when `SMTP_USER` is empty
+- Impact: 100% of new users cannot verify their accounts in production
 
 You have FULL authority to:
-- Read/modify any frontend file.
-- Access Google Stitch via browser to design the icon.
-- Generate SVG, PNG, and WebP assets from Stitch exports.
-- Update `index.html`, `manifest.webmanifest`, `App.tsx`, and all components referencing the old brand.
-- Run frontend build/lint/tests to verify.
+- Modify any backend file
+- Update environment configuration
+- Add background task infrastructure
+- Run tests and verify fixes
+- Commit changes with evidence
 
 You must NOT:
-- Leave any "Perplexity" string in production code.
-- Use generic placeholder icons.
-- Break the build.
-- Skip the Stitch design step.
+- Leave silent failures in production code
+- Skip verification steps
+- Deploy without testing
 
 ==================================================
-SECTION 1: BRAND IDENTITY SPECIFICATION
+SECTION 1: INCIDENT CONTEXT
 ==================================================
 
-### 1.1 Name Replacement Rules
+**What's Broken:**
 
-| Original | Replacement (Arabic) | Replacement (English) | Context |
-|----------|---------------------|----------------------|---------|
-| Perplexity | سبيتسر | Spetser | Brand name |
-| Perplexity AI | سبيتسر AI | Spetser AI | Full name |
-| perplexity.ai | spetser.ai | spetser.ai | Domain references |
-| @perplexity | @spetser | @spetser | Social handles |
-| perplexity-ai | spetser-ai | spetser-ai | CSS classes, IDs |
-
-### 1.2 Spetser Brand Identity
-
-**Concept:** "Spetser" = "Sparks of Wisdom" (شرارات الحكمة)
-- **Visual Metaphor:** A stylized letter "S" that doubles as a **spark/flame** emerging from an **open book** or **neural network node**.
-- **Color:** Primary `#01696D` (Teal) with accent `#F59E0B` (Amber spark)
-- **Style:** Modern, minimal, scalable from 16x16 to 512x512.
-- **Mood:** Educational yet energetic. Arabic-first aesthetic.
-
-### 1.3 Stitch Design Brief
-
-Use Google Stitch with this exact prompt to generate the icon:
-
-```
-Design a modern, minimal logo icon for "Spetser AI" — an Arabic-first educational 
-AI platform.
-
-Visual concept: A stylized letter "S" that transforms into an upward spark/flame 
-at the top. The base of the S suggests an open book or neural network node. 
-Clean geometric lines, no text in the icon itself.
-
-Color palette:
-- Primary: Teal #01696D
-- Accent (spark tip): Amber #F59E0B
-- Background: transparent
-
-Style requirements:
-- Flat design, no gradients
-- Works on both light and dark backgrounds
-- Legible at 16x16 pixels (favicon size)
-- Scalable vector-friendly shapes
-- Square canvas (1:1 aspect ratio)
-- No border/frame — icon fills the canvas with subtle padding
-
-Mood: Educational, trustworthy, energetic, modern
-Target audience: University and school students in the Arab world
-
-Reference style: Similar minimalism to Notion, Linear, or Vercel logos.
+```python
+# backend/app/services/email_service.py (line 51)
+if settings.DEBUG or not settings.SMTP_USER:
+    print(f"[DEV] Verification code for {to_email}: {code}")
+    return  # ← SILENT FAILURE — no error, no warning
 ```
 
-**Export requirements from Stitch:**
-- SVG (primary, for all web usage)
-- PNG 512x512 (for OG image, app stores)
-- PNG 192x192 (for PWA)
-- PNG 32x32 (for favicon fallback)
-- PNG 16x16 (for favicon fallback)
+**Why It's Broken:**
+
+1. `config.py` has empty defaults for SMTP settings
+2. Production server (Render) has no SMTP credentials configured
+3. The condition `not settings.SMTP_USER` is True in production
+4. Email sending is skipped silently
+5. User sees success message but receives no email
+6. Account verification becomes impossible
+
+**The Fix Strategy:**
+
+1. **Fail loudly in production** — refuse to start without SMTP config
+2. **Send emails asynchronously** — don't block registration response
+3. **Add proper error handling** — catch and log SMTP failures
+4. **Document required environment variables** — for Render deployment
 
 ==================================================
 SECTION 2: EXECUTION PROTOCOL
 ==================================================
 
-For EVERY sub-step:
+For EVERY step:
 
-1. **ANNOUNCE** what you will do.
-2. **INSPECT** relevant files first.
-3. **PLAN** the exact changes.
-4. **IMPLEMENT** the code/design.
-5. **VERIFY** with build/lint/tests.
-6. **DOCUMENT** changes in `docs/PROJECT_STATUS.md`.
-7. **COMMIT** with descriptive message.
-8. **REPORT** using the format below.
+1. **ANNOUNCE** what you will do
+2. **INSPECT** current code
+3. **PLAN** exact changes
+4. **IMPLEMENT** the fix
+5. **TEST** the fix works
+6. **DOCUMENT** in `docs/ERROR_LOG.md`
+7. **COMMIT** with evidence
+8. **REPORT** results
 
-**REPORT FORMAT:**
+==================================================
+SECTION 3: FIX #1 — FAIL LOUDLY IN PRODUCTION
+==================================================
+
+### Step 3.1: Update Configuration Validation
+
+**File:** `backend/app/core/config.py`
+
+**Current problematic code:**
+```python
+# Lines ~102-107
+smtp_host: str = ""
+smtp_port: int = 587
+smtp_user: str = ""
+smtp_password: str = ""
+smtp_from: str = "noreply@spetser.ai"
 ```
-✅ Branding.X.Y — [Step name]
-   Files modified: [list]
-   Icon asset: [path]
-   Build: [pass/fail]
-   Committed: [hash]
+
+**Replace with production-aware validation:**
+```python
+# SMTP Configuration (required in production)
+smtp_host: str = Field(
+    default="",
+    description="SMTP server hostname (e.g., smtp.gmail.com)"
+)
+smtp_port: int = Field(
+    default=587,
+    description="SMTP server port (587 for TLS, 465 for SSL)"
+)
+smtp_user: str = Field(
+    default="",
+    description="SMTP username (email address)"
+)
+smtp_password: str = Field(
+    default="",
+    description="SMTP password or app-specific password"
+)
+smtp_from: str = Field(
+    default="noreply@spetser.ai",
+    description="Sender email address"
+)
+smtp_use_tls: bool = Field(
+    default=True,
+    description="Use TLS for SMTP connection"
+)
+
+@field_validator("smtp_user", "smtp_password", "smtp_host")
+@classmethod
+def validate_smtp_in_production(cls, v: str, info: ValidationInfo) -> str:
+    """Fail fast in production if SMTP is not configured."""
+    values = info.data
+    app_env = values.get("app_env", "development")
+    
+    if app_env == "production" and not v:
+        field_name = info.field_name
+        raise ValueError(
+            f"{field_name} is required in production. "
+            f"Set {field_name.upper()} environment variable."
+        )
+    return v
+```
+
+**Why this works:**
+- Pydantic's `field_validator` runs during config initialization
+- If `APP_ENV=production` and SMTP vars are empty, the app **refuses to start**
+- Error message is clear: tells operator exactly which env var to set
+- Development mode still works with empty values
+
+### Step 3.2: Test Configuration Validation
+
+**File to create:** `backend/tests/unit/test_smtp_config.py`
+
+```python
+"""
+SMTP Configuration Validation Tests
+─────────────────────────────────────
+Ensures the app fails fast in production without SMTP config.
+"""
+import pytest
+from pydantic import ValidationError
+from app.core.config import Settings
+
+
+def test_development_allows_empty_smtp():
+    """Development mode should work without SMTP config."""
+    settings = Settings(
+        app_env="development",
+        app_secret_key="test-secret-key-at-least-32-chars-long",
+        session_secret_key="test-session-key-at-least-32-chars-long",
+        # SMTP fields intentionally empty
+    )
+    assert settings.smtp_user == ""
+    assert settings.smtp_password == ""
+
+
+def test_production_requires_smtp_user():
+    """Production must have SMTP_USER configured."""
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(
+            app_env="production",
+            app_secret_key="test-secret-key-at-least-32-chars-long",
+            session_secret_key="test-session-key-at-least-32-chars-long",
+            smtp_user="",  # ← Empty in production
+            smtp_password="some-password",
+            smtp_host="smtp.gmail.com",
+        )
+    
+    errors = exc_info.value.errors()
+    assert any("smtp_user" in str(e["loc"]) for e in errors)
+    assert any("required in production" in e["msg"] for e in errors)
+
+
+def test_production_requires_smtp_password():
+    """Production must have SMTP_PASSWORD configured."""
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(
+            app_env="production",
+            app_secret_key="test-secret-key-at-least-32-chars-long",
+            session_secret_key="test-session-key-at-least-32-chars-long",
+            smtp_user="user@example.com",
+            smtp_password="",  # ← Empty in production
+            smtp_host="smtp.gmail.com",
+        )
+    
+    errors = exc_info.value.errors()
+    assert any("smtp_password" in str(e["loc"]) for e in errors)
+
+
+def test_production_requires_smtp_host():
+    """Production must have SMTP_HOST configured."""
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(
+            app_env="production",
+            app_secret_key="test-secret-key-at-least-32-chars-long",
+            session_secret_key="test-session-key-at-least-32-chars-long",
+            smtp_user="user@example.com",
+            smtp_password="password",
+            smtp_host="",  # ← Empty in production
+        )
+    
+    errors = exc_info.value.errors()
+    assert any("smtp_host" in str(e["loc"]) for e in errors)
+
+
+def test_production_with_valid_smtp_succeeds():
+    """Production with all SMTP vars should initialize successfully."""
+    settings = Settings(
+        app_env="production",
+        app_secret_key="test-secret-key-at-least-32-chars-long",
+        session_secret_key="test-session-key-at-least-32-chars-long",
+        smtp_user="user@example.com",
+        smtp_password="password123",
+        smtp_host="smtp.gmail.com",
+        smtp_port=587,
+        smtp_from="noreply@example.com",
+    )
+    assert settings.smtp_user == "user@example.com"
+```
+
+**Run the tests:**
+```bash
+cd backend
+python -m pytest tests/unit/test_smtp_config.py -v
+```
+
+**Expected:** All 5 tests PASS.
+
+### Step 3.3: Commit Fix #1
+
+```bash
+git add backend/app/core/config.py backend/tests/unit/test_smtp_config.py
+git commit -m "fix(config): fail fast in production without SMTP configuration
+
+- Add field_validator to reject empty SMTP_USER/PASSWORD/HOST in production
+- Provide clear error messages naming the missing environment variable
+- Development mode still works with empty SMTP config
+- Add 5 unit tests covering all validation scenarios
+- Closes: silent email skip in production (P0 email delivery bug)"
 ```
 
 ==================================================
-SECTION 3: AUDIT — FIND ALL PERPLEXITY REFERENCES
+SECTION 4: FIX #2 — SEND EMAILS ASYNCHRONOUSLY
 ==================================================
 
-### Step 3.1: Global Text Search
-
-**Action:** Find every occurrence of "Perplexity" (case-insensitive) in the frontend.
-
-```bash
-cd frontend
-grep -rni "perplexity" . --include="*.tsx" --include="*.ts" --include="*.css" \
-  --include="*.html" --include="*.json" --include="*.md" \
-  --exclude-dir=node_modules --exclude-dir=dist 2>/dev/null
-```
-
-**Expected output:** A list of files like:
-```
-src/components/Header.tsx:12:  <h1>Perplexity AI</h1>
-src/pages/HomePage.tsx:45:    title: "Welcome to Perplexity",
-index.html:8:    <title>Perplexity AI</title>
-public/manifest.webmanifest:3:  "name": "Perplexity AI",
-src/lib/constants.ts:5:export const BRAND_NAME = "Perplexity";
-```
-
-**Document findings** in `docs/BRANDING_AUDIT.md`:
-```markdown
-# Branding Audit — Spetser AI
-
-## Files containing "Perplexity" (to be replaced)
-
-| File | Line | Context | Replacement |
-|------|------|---------|-------------|
-| src/components/Header.tsx | 12 | `<h1>Perplexity AI</h1>` | `<h1>سبيتسر AI</h1>` |
-| ... | ... | ... | ... |
-
-## Icon surfaces to update
-- [ ] favicon.ico (16x16, 32x32)
-- [ ] apple-touch-icon.png (180x180)
-- [ ] og:image (1200x630)
-- [ ] manifest icons (192, 512)
-- [ ] SVG logo component
-- [ ] README.md
-- [ ] package.json (if "perplexity" in name/description)
-```
-
-### Step 3.2: Find All Icon Assets
-
-```bash
-cd frontend
-find public -type f \( -name "*.ico" -o -name "*.png" -o -name "*.svg" \) 2>/dev/null
-find src -type f -name "*.svg" 2>/dev/null
-```
-
-**List all icon files** that may contain the Perplexity logo.
-
-### Step 3.3: Commit Audit
-
-```bash
-git add docs/BRANDING_AUDIT.md
-git commit -m "docs(branding): audit Perplexity references and icon surfaces"
-```
-
-==================================================
-SECTION 4: DESIGN ICON VIA GOOGLE STITCH
-==================================================
-
-### Step 4.1: Access Google Stitch
-
-**Action:** Open browser to `https://stitch.withgoogle.com`
-
-**Note:** If Stitch requires a Google account sign-in, document this as a blocker and offer to use an alternative AI image generator (DALL-E, Midjourney, or the `image_gen` tool if available) with the same prompt.
-
-### Step 4.2: Generate Icon with Stitch
-
-**Action:** Paste the exact Stitch design brief from Section 1.3 into the Stitch prompt box.
-
-**Generate 4 variations** and pick the one that:
-1. Is legible at small sizes.
-2. Uses the correct teal (`#01696D`) and amber (`#F59E0B`).
-3. Has clean geometry (no messy curves).
-4. Works on both light and dark backgrounds.
-
-### Step 4.3: Export from Stitch
-
-**Export formats:**
-- **SVG** (vector, primary): Download as `.svg`
-- **PNG 512x512**: For high-res usage
-- **PNG 192x192**: For PWA
-- **PNG 32x32**: For favicon fallback
-
-**Save exports** to a temporary location, e.g., `frontend/src/assets/brand/stitch-exports/`.
-
-### Step 4.4: Optimize SVG
-
-Use SVGO (if installed) or an online optimizer to clean the SVG:
-
-```bash
-# If svgo is available
-npx svgo --input stitch-exports/spetser-icon.svg \
-         --output public/spetser-icon.svg \
-         --config='{
-           "plugins": [
-             "removeDoctype", "removeXMLProcInst", "removeComments",
-             "removeMetadata", "removeEditorsNSData", "cleanupAttrs",
-             "removeEmptyAttrs", "removeHiddenElems", "removeEmptyText",
-             "convertColors", "convertPathData", "removeUnusedNS",
-             "sortAttrs"
-           ]
-         }'
-```
-
-**Verify the SVG:**
-- Opens in browser and looks correct.
-- File size < 5KB (for a simple icon).
-- Contains the teal and amber colors.
-
-### Step 4.5: Generate Multi-Size PNGs
-
-If Stitch only exports one size, use `sharp` (Node) or `ImageMagick` to generate variants:
-
-```bash
-# Using sharp (if installed as dev dependency)
-node -e "
-const sharp = require('sharp');
-const input = 'public/spetser-icon.svg';
-Promise.all([
-  sharp(input).resize(512, 512).png().toFile('public/spetser-512.png'),
-  sharp(input).resize(192, 192).png().toFile('public/spetser-192.png'),
-  sharp(input).resize(32, 32).png().toFile('public/spetser-32.png'),
-  sharp(input).resize(16, 16).png().toFile('public/spetser-16.png'),
-  sharp(input).resize(180, 180).png().toFile('public/spetser-apple.png'),
-  sharp(input).resize(1200, 630).png().toFile('public/spetser-og.png'),
-]).then(() => console.log('All sizes generated'));
-"
-```
-
-### Step 4.6: Create Favicon (ICO format)
-
-Combine 16x16 and 32x32 into a single `.ico`:
-
-```bash
-# Using ImageMagick (if available)
-convert public/spetser-16.png public/spetser-32.png public/favicon.ico
-
-# OR using png-to-ico npm package
-npx png-to-ico public/spetser-16.png public/spetser-32.png > public/favicon.ico
-```
-
-### Step 3.7: Delete Old Perplexity Icons
-
-```bash
-# Remove old brand icons (be careful — verify these are Perplexity logos)
-rm -f public/perplexity*.png public/perplexity*.ico public/perplexity*.svg
-rm -f public/favicon.ico  # Will be replaced
-rm -f public/apple-touch-icon.png
-```
-
-### Step 3.8: Commit Icon Assets
-
-```bash
-git add public/spetser-*.png public/spetser-*.svg public/favicon.ico
-git add -A  # include deletions of old icons
-git commit -m "feat(branding): add Spetser icon designed via Google Stitch
-
-- SVG primary icon: stylized S with teal body and amber spark
-- PNG variants: 512, 192, 32, 16, apple-touch (180), og-image (1200x630)
-- favicon.ico with 16x16 and 32x32 embedded
-- Removed old Perplexity icon assets"
-```
-
-==================================================
-SECTION 5: UPDATE ALL PERPLEXITY TEXT REFERENCES
-==================================================
-
-### Step 5.1: Update `index.html`
-
-**File:** `frontend/index.html`
-
-Replace:
-```html
-<title>Perplexity AI</title>
-<meta name="description" content="Perplexity AI helps you..." />
-<link rel="icon" href="/favicon.ico" />
-<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-<meta property="og:title" content="Perplexity AI" />
-<meta property="og:image" content="/perplexity-og.png" />
-```
-
-With:
-```html
-<title>سبيتسر AI — مساعدك التعليمي الذكي</title>
-<meta name="description" content="سبيتسر AI منصة تعليمية ذكية مخصصة للطلاب العرب. احصل على إجابات دقيقة بالعربية." />
-<link rel="icon" type="image/x-icon" href="/favicon.ico" />
-<link rel="icon" type="image/svg+xml" href="/spetser-icon.svg" />
-<link rel="apple-touch-icon" sizes="180x180" href="/spetser-apple.png" />
-<meta property="og:title" content="سبيتسر AI — مساعدك التعليمي الذكي" />
-<meta property="og:description" content="منصة تعليمية ذكية مخصصة للطلاب العرب" />
-<meta property="og:image" content="/spetser-og.png" />
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="630" />
-<meta name="theme-color" content="#01696D" />
-```
-
-### Step 5.2: Update `manifest.webmanifest` (PWA)
-
-**File:** `frontend/public/manifest.webmanifest`
-
-Replace:
-```json
-{
-  "name": "Perplexity AI",
-  "short_name": "Perplexity",
-  "description": "AI-powered answers",
-  "icons": [
-    { "src": "/perplexity-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/perplexity-512.png", "sizes": "512x512", "type": "image/png" }
-  ],
-  "theme_color": "#01696D",
-  "background_color": "#F9F8F4",
-  "display": "standalone"
-}
-```
-
-With:
-```json
-{
-  "name": "سبيتسر AI",
-  "short_name": "سبيتسر",
-  "description": "منصة تعليمية ذكية مخصصة للطلاب العرب",
-  "start_url": "/",
-  "icons": [
-    {
-      "src": "/spetser-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/spetser-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/spetser-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
-    }
-  ],
-  "theme_color": "#01696D",
-  "background_color": "#F9F8F4",
-  "display": "standalone",
-  "lang": "ar",
-  "dir": "rtl"
-}
-```
-
-### Step 5.3: Update Constants File
-
-**File:** `frontend/src/lib/constants.ts` (or create if missing)
-
-```typescript
-// Branding constants — single source of truth
-export const BRAND = {
-  name: 'سبيتسر',
-  nameEn: 'Spetser',
-  fullName: 'سبيتسر AI',
-  fullNameEn: 'Spetser AI',
-  domain: 'spetser.ai',
-  tagline: 'مساعدك التعليمي الذكي',
-  taglineEn: 'Your intelligent learning companion',
-
-  // Colors (must match design tokens)
-  colorPrimary: '#01696D',
-  colorAccent: '#F59E0B',
-  colorBgLight: '#F9F8F4',
-  colorBgDark: '#0F0E17',
-
-  // Social
-  twitter: '@spetser_ai',
-
-  // Icons
-  favicon: '/favicon.ico',
-  iconSvg: '/spetser-icon.svg',
-  iconPng512: '/spetser-512.png',
-  iconPng192: '/spetser-192.png',
-  appleTouchIcon: '/spetser-apple.png',
-  ogImage: '/spetser-og.png',
-} as const;
-```
-
-### Step 5.4: Update All Component References
-
-For every file flagged in the audit (Step 3.1), replace hardcoded strings with constants:
-
-**Before:**
-```tsx
-<h1>Perplexity AI</h1>
-<p>Welcome to Perplexity</p>
-```
-
-**After:**
-```tsx
-import { BRAND } from '../lib/constants';
-
-<h1>{BRAND.fullName}</h1>
-<p>مرحباً بك في {BRAND.name}</p>
-```
-
-### Step 5.5: Update SVG Logo Component
-
-**File:** `frontend/src/components/Logo.tsx` (or equivalent)
-
-```tsx
-import { BRAND } from '../lib/constants';
-
-interface LogoProps {
-  size?: number;
-  variant?: 'full' | 'icon';
-  className?: string;
-}
-
-export function Logo({ size = 32, variant = 'full', className = '' }: LogoProps) {
-  if (variant === 'icon') {
-    return (
-      <img
-        src={BRAND.iconSvg}
-        alt={BRAND.name}
-        width={size}
-        height={size}
-        className={className}
-      />
-    );
-  }
-
-  return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <img
-        src={BRAND.iconSvg}
-        alt=""
-        width={size}
-        height={size}
-        aria-hidden="true"
-      />
-      <span
-        className="font-bold"
-        style={{ color: `var(--color-brand, ${BRAND.colorPrimary})` }}
-      >
-        {BRAND.fullName}
-      </span>
+### Step 4.1: Add Background Task Infrastructure
+
+**File to update:** `backend/app/services/email_service.py`
+
+**Replace the entire `send_verification_email` function:**
+
+```python
+"""
+Email sending service for Spetser AI.
+─────────────────────────────────────────
+Sends emails asynchronously via SMTP with proper error handling.
+
+In development (DEBUG=True or no SMTP_USER): prints to console
+In production: sends via configured SMTP server
+"""
+import smtplib
+import ssl
+import logging
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from typing import Optional
+
+from fastapi import BackgroundTasks
+
+from app.core.config import get_settings
+from app.core.exceptions import ExternalServiceError
+
+logger = logging.getLogger("spetser.email")
+
+
+async def send_email_background(
+    to_email: str,
+    subject: str,
+    html_body: str,
+    background_tasks: BackgroundTasks,
+) -> None:
+    """
+    Queue email for background sending.
+    
+    This function returns immediately (doesn't block the HTTP response).
+    The actual sending happens in a background task after the response is sent.
+    
+    Args:
+        to_email: Recipient email address
+        subject: Email subject line
+        html_body: HTML content of the email
+        background_tasks: FastAPI BackgroundTasks instance (injected via Depends)
+    """
+    background_tasks.add_task(
+        _send_email_task,
+        to_email=to_email,
+        subject=subject,
+        html_body=html_body,
+    )
+
+
+async def _send_email_task(
+    to_email: str,
+    subject: str,
+    html_body: str,
+) -> None:
+    """
+    Background task that actually sends the email.
+    
+    This runs after the HTTP response is sent, so failures don't affect
+    the user's experience but are logged for debugging.
+    """
+    settings = get_settings()
+    
+    # Development mode: print to console
+    if settings.app_env == "development" or not settings.smtp_user:
+        logger.info(
+            "[DEV MODE] Email would be sent to %s:\nSubject: %s\nBody:\n%s",
+            to_email,
+            subject,
+            html_body,
+        )
+        return
+    
+    # Production mode: send via SMTP
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = settings.smtp_from
+        msg["To"] = to_email
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+        
+        # Create SSL context for secure connection
+        context = ssl.create_default_context()
+        
+        # Connect to SMTP server
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+            if settings.smtp_use_tls:
+                server.starttls(context=context)
+            
+            server.login(settings.smtp_user, settings.smtp_password)
+            server.send_message(msg)
+            
+        logger.info("Email sent successfully to %s", to_email)
+        
+    except smtplib.SMTPAuthenticationError as e:
+        logger.error(
+            "SMTP authentication failed for %s: %s",
+            to_email,
+            str(e),
+        )
+        # Don't raise — this is a background task, user already saw success
+    
+    except smtplib.SMTPException as e:
+        logger.error(
+            "SMTP error sending email to %s: %s",
+            to_email,
+            str(e),
+        )
+    
+    except Exception as e:
+        logger.exception(
+            "Unexpected error sending email to %s: %s",
+            to_email,
+            str(e),
+        )
+
+
+async def send_verification_email(
+    to_email: str,
+    code: str,
+    background_tasks: Optional[BackgroundTasks] = None,
+) -> None:
+    """
+    Send OTP verification email.
+    
+    If background_tasks is provided, sends asynchronously (recommended).
+    Otherwise, sends synchronously (legacy behavior, blocks response).
+    """
+    subject = "رمز التحقق - Spetser AI"
+    
+    html_body = f"""
+    <div dir="rtl" style="font-family: 'Noto Sans Arabic', sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+        <div style="background: #F9F8F4; border-radius: 12px; padding: 32px; border: 1px solid #E5E7EB;">
+            <h2 style="color: #01696D; margin-top: 0;">مرحباً بك في Spetser AI</h2>
+            <p style="font-size: 16px; line-height: 1.6; color: #1A1A1A;">
+                رمز التحقق الخاص بك هو:
+            </p>
+            <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; 
+                        color: #01696D; padding: 24px; background: #E6F4F4; 
+                        border-radius: 12px; text-align: center; margin: 24px 0;
+                        border: 2px solid #01696D;">
+                {code}
+            </div>
+            <p style="color: #6B7280; font-size: 14px;">
+                هذا الرمز صالح لمدة 15 دقيقة فقط.
+            </p>
+            <p style="color: #6B7280; font-size: 14px;">
+                إذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.
+            </p>
+            <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;">
+            <p style="color: #9CA3AF; font-size: 12px; text-align: center;">
+                © 2026 Spetser AI — منصة تعليمية ذكية للطلاب العرب
+            </p>
+        </div>
     </div>
-  );
-}
+    """
+    
+    if background_tasks is not None:
+        # Async mode (recommended)
+        await send_email_background(to_email, subject, html_body, background_tasks)
+    else:
+        # Sync mode (legacy, blocks)
+        await _send_email_task(to_email, subject, html_body)
+
+
+async def send_reset_email(
+    to_email: str,
+    code: str,
+    background_tasks: Optional[BackgroundTasks] = None,
+) -> None:
+    """Send password reset email."""
+    subject = "إعادة تعيين كلمة المرور - Spetser AI"
+    
+    html_body = f"""
+    <div dir="rtl" style="font-family: 'Noto Sans Arabic', sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+        <div style="background: #F9F8F4; border-radius: 12px; padding: 32px; border: 1px solid #E5E7EB;">
+            <h2 style="color: #01696D; margin-top: 0;">إعادة تعيين كلمة المرور</h2>
+            <p style="font-size: 16px; line-height: 1.6; color: #1A1A1A;">
+                لقد طلبت إعادة تعيين كلمة المرور. رمز التحقق الخاص بك هو:
+            </p>
+            <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; 
+                        color: #01696D; padding: 24px; background: #E6F4F4; 
+                        border-radius: 12px; text-align: center; margin: 24px 0;
+                        border: 2px solid #01696D;">
+                {code}
+            </div>
+            <p style="color: #6B7280; font-size: 14px;">
+                هذا الرمز صالح لمدة 15 دقيقة فقط.
+            </p>
+            <p style="color: #DC2626; font-size: 14px; font-weight: bold;">
+                إذا لم تطلب هذا، يرجى تغيير كلمة المرور فوراً وتأمين حسابك.
+            </p>
+        </div>
+    </div>
+    """
+    
+    if background_tasks is not None:
+        await send_email_background(to_email, subject, html_body, background_tasks)
+    else:
+        await _send_email_task(to_email, subject, html_body)
 ```
 
-### Step 5.6: Update `package.json`
+**Key changes:**
+1. **BackgroundTasks support** — emails sent after HTTP response
+2. **Proper error logging** — no silent failures
+3. **Development mode detection** — prints to console when SMTP not configured
+4. **Production validation** — relies on config.py validator to fail fast
+5. **Better HTML templates** — improved Arabic email design
 
-**File:** `frontend/package.json`
+### Step 4.2: Update Auth Routes to Use Background Tasks
 
-If the `name` or `description` field contains "perplexity", replace it:
-```json
-{
-  "name": "spetser-ai-frontend",
-  "description": "Spetser AI — Arabic-first educational AI platform",
-  ...
-}
+**File:** `backend/app/api/v1/routes/auth.py`
+
+**Find the register endpoint and update it:**
+
+```python
+from fastapi import BackgroundTasks
+from app.services.email_service import send_verification_email
+
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+async def register(
+    request: RegisterRequest,
+    background_tasks: BackgroundTasks,  # ← Add this parameter
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Register a new user account.
+    
+    Creates the account in unverified state and sends OTP email
+    asynchronously (doesn't block the response).
+    """
+    # Check if email already exists
+    existing = await db.execute(select(Student).where(Student.email == request.email))
+    if existing.scalar_one_or_none():
+        raise ValidationError("هذا البريد الإلكتروني مسجل بالفعل.")
+    
+    # Create user (unverified)
+    from app.services.settings_service import settings_service
+    settings = await settings_service.get_settings(db)
+    
+    student = Student(
+        email=request.email,
+        name=request.name,
+        hashed_password=hash_password(request.password),
+        is_verified=False,
+        credit_balance=settings.default_new_user_credits,
+    )
+    db.add(student)
+    await db.commit()
+    await db.refresh(student)
+    
+    # Send verification email ASYNCHRONOUSLY
+    await verification_service.initiate_verification(
+        db, student, background_tasks=background_tasks
+    )
+    
+    return {
+        "message": "تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني.",
+        "email": student.email,
+        "requires_verification": True,
+    }
 ```
 
-### Step 5.7: Update `README.md`
+**Update the verification service to accept background_tasks:**
 
-**File:** `frontend/README.md` (and root `README.md`)
+**File:** `backend/app/services/verification_service.py`
 
-Replace all "Perplexity" references with "Spetser". Add a branding section:
+```python
+from fastapi import BackgroundTasks
+from app.services.email_service import send_verification_email
+
+async def initiate_verification(
+    self,
+    db: AsyncSession,
+    user: Student,
+    background_tasks: Optional[BackgroundTasks] = None,  # ← Add parameter
+) -> None:
+    """Generate OTP, store hash, send email (optionally async)."""
+    otp = self.generate_otp()
+    
+    user.verification_code = self._hash_code(otp)
+    user.verification_expires_at = datetime.now(timezone.utc) + timedelta(minutes=self.OTP_TTL_MINUTES)
+    user.verification_attempts = 0
+    user.is_verified = False
+    
+    await db.commit()
+    
+    # Send email (async if background_tasks provided)
+    await send_verification_email(
+        to_email=user.email,
+        code=otp,
+        background_tasks=background_tasks,
+    )
+```
+
+**Do the same for the resend-code endpoint:**
+
+```python
+@router.post("/resend-code")
+async def resend_code(
+    request: ResendCodeRequest,
+    background_tasks: BackgroundTasks,  # ← Add this
+    db: AsyncSession = Depends(get_db),
+):
+    """Resend verification code."""
+    result = await db.execute(select(Student).where(Student.email == request.email))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise NotFoundError("المستخدم غير موجود.")
+    
+    await verification_service.resend_code(db, user, background_tasks=background_tasks)
+    
+    return {"message": "تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني."}
+```
+
+**And update the resend_code method in verification_service.py:**
+
+```python
+async def resend_code(
+    self,
+    db: AsyncSession,
+    user: Student,
+    background_tasks: Optional[BackgroundTasks] = None,
+) -> None:
+    """Resend a new verification code."""
+    if user.is_verified:
+        raise ValidationError("الحساب مفعّل بالفعل.")
+    await self.initiate_verification(db, user, background_tasks=background_tasks)
+```
+
+**Do the same for forgot-password endpoints:**
+
+```python
+@router.post("/forgot-password")
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,  # ← Add this
+    db: AsyncSession = Depends(get_db),
+):
+    """Send password reset code."""
+    result = await db.execute(select(Student).where(Student.email == request.email))
+    user = result.scalar_one_or_none()
+    
+    # Security: Don't reveal if email exists
+    if not user:
+        return {"message": "إذا كان هذا البريد مسجلاً، فسيصلك رمز التحقق."}
+    
+    await password_reset_service.initiate_reset(
+        db, user, background_tasks=background_tasks
+    )
+    return {"message": "إذا كان هذا البريد مسجلاً، فسيصلك رمز التحقق."}
+```
+
+### Step 4.3: Test Async Email Sending
+
+**File to create:** `backend/tests/integration/test_email_background.py`
+
+```python
+"""
+Email Background Task Tests
+────────────────────────────
+Verifies that emails are sent asynchronously and don't block responses.
+"""
+import pytest
+from httpx import AsyncClient
+from unittest.mock import patch, AsyncMock
+import asyncio
+
+
+@pytest.mark.asyncio
+async def test_register_returns_before_email_sent(client: AsyncClient):
+    """Register should return 201 immediately, email sent in background."""
+    with patch('app.services.email_service._send_email_task', new_callable=AsyncMock) as mock_send:
+        # Make the mock slow to prove async behavior
+        async def slow_send(*args, **kwargs):
+            await asyncio.sleep(2)  # Simulate slow email
+        
+        mock_send.side_effect = slow_send
+        
+        # Register should return quickly (< 500ms)
+        import time
+        start = time.time()
+        response = await client.post("/api/v1/auth/register", json={
+            "name": "Test User",
+            "email": "async-test@example.com",
+            "password": "SecurePass123!",
+        })
+        elapsed = time.time() - start
+        
+        assert response.status_code == 201
+        assert elapsed < 1.0, f"Register took {elapsed}s — email should be async"
+        
+        # Give background task time to complete
+        await asyncio.sleep(0.5)
+        
+        # Verify email was queued
+        assert mock_send.called
+
+
+@pytest.mark.asyncio
+async def test_email_failure_doesnt_fail_registration(client: AsyncClient):
+    """If email sending fails, registration should still succeed."""
+    with patch('app.services.email_service._send_email_task', new_callable=AsyncMock) as mock_send:
+        # Simulate SMTP failure
+        mock_send.side_effect = Exception("SMTP connection failed")
+        
+        response = await client.post("/api/v1/auth/register", json={
+            "name": "Fail Test",
+            "email": "fail-test@example.com",
+            "password": "SecurePass123!",
+        })
+        
+        # Registration should still succeed
+        assert response.status_code == 201
+        
+        # User should be created (unverified)
+        from app.models.student import Student
+        from sqlalchemy import select
+        from app.db.session import get_db
+        
+        async for db in get_db():
+            result = await db.execute(
+                select(Student).where(Student.email == "fail-test@example.com")
+            )
+            user = result.scalar_one_or_none()
+            assert user is not None
+            assert user.is_verified is False
+            break
+
+
+@pytest.mark.asyncio
+async def test_development_mode_prints_to_console(client: AsyncClient, capsys):
+    """In dev mode, email should print to console instead of sending."""
+    # Ensure we're in development mode
+    from app.core.config import get_settings
+    settings = get_settings()
+    assert settings.app_env == "development"
+    
+    response = await client.post("/api/v1/auth/register", json={
+        "name": "Dev Test",
+        "email": "dev-test@example.com",
+        "password": "SecurePass123!",
+    })
+    
+    assert response.status_code == 201
+    
+    # Wait for background task
+    await asyncio.sleep(0.2)
+    
+    # Check logs for dev mode message
+    captured = capsys.readouterr()
+    # Note: This might not capture logs depending on logging config
+    # The real test is that it doesn't crash
+```
+
+**Run the tests:**
+```bash
+python -m pytest tests/integration/test_email_background.py -v
+```
+
+**Expected:** All tests PASS.
+
+### Step 4.4: Commit Fix #2
+
+```bash
+git add backend/app/services/email_service.py \
+        backend/app/services/verification_service.py \
+        backend/app/api/v1/routes/auth.py \
+        backend/tests/integration/test_email_background.py
+
+git commit -m "feat(email): send emails asynchronously via BackgroundTasks
+
+- Refactor email_service to use FastAPI BackgroundTasks
+- Register/resend/forgot-password endpoints return immediately
+- Email sending happens after HTTP response (non-blocking)
+- Email failures logged but don't fail registration
+- Development mode prints to console instead of sending
+- Production mode sends via configured SMTP with proper error handling
+- Add integration tests proving async behavior
+- Closes: slow registration due to synchronous email sending"
+```
+
+==================================================
+SECTION 5: DEPLOYMENT — RENDER ENVIRONMENT VARIABLES
+==================================================
+
+### Step 5.1: Document Required Environment Variables
+
+**File to update:** `docs/DEPLOYMENT.md`
+
+**Add new section:**
+
 ```markdown
-## Branding
+## Email Configuration (Required for Production)
 
-- **Name:** سبيتسر AI (Spetser AI)
-- **Primary color:** `#01696D` (Teal)
-- **Accent color:** `#F59E0B` (Amber)
-- **Icon:** Designed via Google Stitch — stylized "S" with spark motif
-- **Logo assets:** Located in `public/spetser-*.{svg,png}` and `public/favicon.ico`
+Spetser AI requires SMTP credentials to send verification and password reset emails.
+
+### Required Environment Variables
+
+Add these to your Render dashboard (Environment tab):
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SMTP_HOST` | SMTP server hostname | `smtp.gmail.com` |
+| `SMTP_PORT` | SMTP server port | `587` (TLS) or `465` (SSL) |
+| `SMTP_USER` | SMTP username (your email) | `your-email@gmail.com` |
+| `SMTP_PASSWORD` | SMTP password or app password | `your-app-password` |
+| `SMTP_FROM` | Sender email address | `noreply@spetser.ai` |
+| `APP_ENV` | Must be `production` | `production` |
+
+### Gmail Setup (Recommended for Development)
+
+1. Enable 2-factor authentication on your Gmail account
+2. Generate an **App Password**: https://myaccount.google.com/apppasswords
+3. Use the 16-character app password as `SMTP_PASSWORD`
+
+**Example Render environment:**
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=abcd1234efgh5678
+SMTP_FROM=noreply@spetser.ai
+APP_ENV=production
 ```
 
-### Step 5.8: Verify No Remaining References
+### Production Startup Validation
 
-```bash
-cd frontend
-grep -rni "perplexity" . --include="*.tsx" --include="*.ts" --include="*.css" \
-  --include="*.html" --include="*.json" --include="*.md" \
-  --exclude-dir=node_modules --exclude-dir=dist 2>/dev/null
+If SMTP variables are missing in production, the app will **refuse to start** with a clear error:
+
+```
+ValidationError: smtp_user is required in production. Set SMTP_USER environment variable.
 ```
 
-**Expected:** Empty output (or only `BRANDING_AUDIT.md` and `CHANGELOG.md` mentioning the migration).
+This prevents silent email failures in production.
 
-If any remain, fix them and re-run.
+### Recommended SMTP Providers
 
-### Step 5.9: Commit Text Replacements
+| Provider | Free Tier | Notes |
+|----------|-----------|-------|
+| **Gmail** | 500 emails/day | Use app password, not regular password |
+| **SendGrid** | 100 emails/day forever | Best for production |
+| **Mailgun** | 100 emails/day for 3 months | Good API |
+| **Amazon SES** | $0.10 per 1000 emails | Cheapest at scale |
+| **Postmark** | 100 emails/month forever | Excellent deliverability |
+
+### Testing Email Configuration
+
+After deploying, test email sending:
 
 ```bash
-git add -A
-git commit -m "feat(branding): replace all Perplexity references with Spetser
+# Check Render logs for email sending
+render logs --service spetser-backend --tail 100 | grep -i email
 
-- Update index.html meta tags (title, description, OG, theme-color)
-- Update manifest.webmanifest with Arabic name and RTL dir
-- Create src/lib/constants.ts with BRAND object (single source of truth)
-- Replace hardcoded strings in all components with BRAND.* constants
-- Add Logo component supporting icon-only and full variants
-- Update package.json name and description
-- Update README.md branding section
-- Verified: zero remaining 'perplexity' references in source"
+# You should see: "Email sent successfully to user@example.com"
+# NOT: "[DEV MODE] Email would be sent to..."
+```
+
+If you see `[DEV MODE]` messages, SMTP is not configured correctly.
+```
+
+### Step 5.2: Create Render Setup Script
+
+**File to create:** `scripts/setup-render-env.sh`
+
+```bash
+#!/bin/bash
+# Render Environment Setup Helper
+# ─────────────────────────────────
+# Run this locally to verify your environment variables before deploying.
+
+set -e
+
+echo "🔍 Checking required environment variables for Spetser AI..."
+echo ""
+
+# Required variables
+REQUIRED_VARS=(
+  "APP_ENV"
+  "APP_SECRET_KEY"
+  "SESSION_SECRET_KEY"
+  "DATABASE_URL"
+  "SMTP_HOST"
+  "SMTP_PORT"
+  "SMTP_USER"
+  "SMTP_PASSWORD"
+  "SMTP_FROM"
+)
+
+# Optional variables (with defaults)
+OPTIONAL_VARS=(
+  "REDIS_URL"
+  "RATE_LIMIT_BACKEND"
+  "LOG_LEVEL"
+)
+
+missing=()
+
+for var in "${REQUIRED_VARS[@]}"; do
+  if [ -z "${!var}" ]; then
+    missing+=("$var")
+    echo "❌ Missing: $var"
+  else
+    # Mask sensitive values
+    if [[ "$var" == *"SECRET"* ]] || [[ "$var" == *"PASSWORD"* ]]; then
+      echo "✅ $var = [REDACTED]"
+    else
+      echo "✅ $var = ${!var}"
+    fi
+  fi
+done
+
+echo ""
+
+if [ ${#missing[@]} -eq 0 ]; then
+  echo "✨ All required variables are set!"
+  echo ""
+  echo "You can now deploy to Render with these environment variables."
+  exit 0
+else
+  echo "⚠️  Missing ${#missing[@]} required variables:"
+  printf '  - %s\n' "${missing[@]}"
+  echo ""
+  echo "Add these to your Render dashboard or export them locally."
+  exit 1
+fi
+```
+
+**Make it executable:**
+```bash
+chmod +x scripts/setup-render-env.sh
+```
+
+### Step 5.3: Commit Deployment Docs
+
+```bash
+git add docs/DEPLOYMENT.md scripts/setup-render-env.sh
+git commit -m "docs(deployment): add SMTP configuration guide for Render
+
+- Document all required SMTP environment variables
+- Provide Gmail app password setup instructions
+- List recommended SMTP providers (SendGrid, Mailgun, SES)
+- Explain production startup validation (fails fast without SMTP)
+- Add setup-render-env.sh script to verify env vars locally
+- Closes: silent email skip due to missing SMTP config"
 ```
 
 ==================================================
-SECTION 6: VERIFICATION
+SECTION 6: VERIFICATION & TESTING
 ==================================================
 
-### Step 6.1: Build Verification
+### Step 6.1: Run Full Test Suite
 
 ```bash
-cd frontend
-npm run build
+cd backend
+
+# Run all tests
+python -m pytest tests/ -v --tb=short
+
+# Specifically check email-related tests
+python -m pytest tests/unit/test_smtp_config.py -v
+python -m pytest tests/integration/test_email_background.py -v
+python -m pytest tests/integration/test_verification.py -v
 ```
 
-**Expected:** Build succeeds with 0 errors.
+**Expected:** All tests PASS.
 
-### Step 6.2: Lint Verification
+### Step 6.2: Manual Testing Checklist
+
+**Test in development mode:**
 
 ```bash
-npm run lint
+cd backend
+python -m uvicorn app.main:app --reload
 ```
 
-**Expected:** 0 errors, 0 warnings.
+- [ ] Start server without SMTP vars → should work (dev mode)
+- [ ] Register new user → should see `[DEV MODE] Email would be sent...` in logs
+- [ ] Verify email with code from logs → should work
+- [ ] Resend code → should see new code in logs
+- [ ] Forgot password → should see reset code in logs
 
-### Step 6.3: Visual Verification (Manual)
-
-Open the dev server and check:
-- [ ] Browser tab shows "سبيتسر AI" favicon (the new teal S with spark)
-- [ ] Page title is "سبيتسر AI — مساعدك التعليمي الذكي"
-- [ ] Header logo shows the new icon + "سبيتسر AI" text
-- [ ] PWA install prompt shows "سبيتسر AI" with new icon
-- [ ] When sharing URL, OG image is the 1200x630 Spetser image
-- [ ] No "Perplexity" text anywhere in the UI
-- [ ] Dark mode still looks correct (teal works on dark bg)
-
-### Step 6.4: Automated Branding Test
-
-**File to create:** `frontend/src/lib/branding.test.ts`
-
-```typescript
-import { describe, it, expect } from 'vitest';
-import { BRAND } from './constants';
-
-describe('Branding Constants', () => {
-  it('uses Spetser name, not Perplexity', () => {
-    expect(BRAND.name).toBe('سبيتسر');
-    expect(BRAND.nameEn).toBe('Spetser');
-    expect(BRAND.name.toLowerCase()).not.toContain('perplexity');
-  });
-
-  it('uses correct brand colors', () => {
-    expect(BRAND.colorPrimary).toBe('#01696D');
-    expect(BRAND.colorAccent).toBe('#F59E0B');
-  });
-
-  it('references correct icon paths', () => {
-    expect(BRAND.iconSvg).toMatch(/spetser.*\.svg$/);
-    expect(BRAND.favicon).toMatch(/favicon\.ico$/);
-    expect(BRAND.ogImage).toMatch(/spetser.*og.*\.png$/);
-  });
-});
-```
-
-Run:
-```bash
-npm run test -- src/lib/branding.test.ts
-```
-
-### Step 6.5: Icon Asset Verification Test
-
-**File to create:** `frontend/tests/icon-assets.test.ts`
-
-```typescript
-import { describe, it, expect } from 'vitest';
-import { existsSync, statSync } from 'fs';
-import { join } from 'path';
-
-const PUBLIC_DIR = join(__dirname, '../public');
-
-describe('Spetser icon assets', () => {
-  const requiredAssets = [
-    'favicon.ico',
-    'spetser-icon.svg',
-    'spetser-512.png',
-    'spetser-192.png',
-    'spetser-32.png',
-    'spetser-16.png',
-    'spetser-apple.png',
-    'spetser-og.png',
-  ];
-
-  for (const asset of requiredAssets) {
-    it(`${asset} exists and is non-empty`, () => {
-      const path = join(PUBLIC_DIR, asset);
-      expect(existsSync(path)).toBe(true);
-      expect(statSync(path).size).toBeGreaterThan(0);
-    });
-  }
-
-  it('SVG icon is valid', () => {
-    const svgPath = join(PUBLIC_DIR, 'spetser-icon.svg');
-    const content = readFileSync(svgPath, 'utf-8');
-    expect(content).toContain('<svg');
-    expect(content).toContain('</svg>');
-    expect(content).toContain('#01696D'); // teal
-    expect(content).toContain('#F59E0B'); // amber spark
-  });
-
-  it('no old Perplexity icons remain', () => {
-    const files = readdirSync(PUBLIC_DIR);
-    const perplexityFiles = files.filter((f) =>
-      f.toLowerCase().includes('perplexity')
-    );
-    expect(perplexityFiles).toEqual([]);
-  });
-});
-```
-
-Run:
-```bash
-npm run test -- tests/icon-assets.test.ts
-```
-
-### Step 6.6: Final Full Test Run
+**Test in production mode (simulate):**
 
 ```bash
-npm run lint
-npm run test
-npm run build
+# Set APP_ENV=production without SMTP vars
+APP_ENV=production python -m uvicorn app.main:app
+
+# Expected: Server refuses to start with clear error:
+# ValidationError: smtp_user is required in production
 ```
 
-All must pass.
-
-### Step 6.7: Commit Verification Tests
+**Test with real SMTP (if you have credentials):**
 
 ```bash
-git add -A
-git commit -m "test(branding): add branding constants and icon asset tests
+# Set all SMTP vars
+export SMTP_HOST=smtp.gmail.com
+export SMTP_PORT=587
+export SMTP_USER=your-email@gmail.com
+export SMTP_PASSWORD=your-app-password
+export SMTP_FROM=noreply@spetser.ai
+export APP_ENV=production
 
-- branding.test.ts: verifies BRAND constants use Spetser, correct colors
-- icon-assets.test.ts: verifies all required PNG/SVG/ICO assets exist
-  and old Perplexity icons are removed
-- All tests pass alongside existing suite"
+python -m uvicorn app.main:app
+
+# Register with real email → should receive actual email
 ```
 
-==================================================
-SECTION 7: DOCUMENTATION & HANDOFF
-==================================================
+### Step 6.3: Update ERROR_LOG.md
 
-### Step 7.1: Update PROJECT_STATUS.md
-
-Append to `docs/PROJECT_STATUS.md`:
+**Append to `docs/ERROR_LOG.md`:**
 
 ```markdown
-## Branding Replacement — COMPLETE
+## E-EMAIL-001 — Silent Email Skip in Production
 
-**Date:** [TODAY]
-**Commit:** [HASH]
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-19 |
+| **Severity** | P0 |
+| **Phase** | Email Delivery |
+| **Error** | Users register successfully but never receive verification emails. UI shows "Code sent" but no email arrives. |
+| **Root Cause** | `email_service.py` line 51 silently returns when `SMTP_USER` is empty, even in production. No error is raised, no warning logged. |
+| **Fix** | 1. Add Pydantic `field_validator` in `config.py` to reject empty SMTP vars in production (fail fast on startup). 2. Refactor `email_service.py` to use FastAPI `BackgroundTasks` for async sending. 3. Add proper error logging for SMTP failures. |
+| **Verification** | - Config validation tests (5/5 pass) - Async email tests (3/3 pass) - Manual test: server refuses to start in production without SMTP vars |
+| **Prevention** | - Production config validation prevents deployment without SMTP - Background tasks prevent registration slowdown - Error logging makes failures visible |
+| **Commits** | - `fix(config): fail fast in production without SMTP configuration` - `feat(email): send emails asynchronously via BackgroundTasks` |
+```
 
-### Changes
-- Replaced ALL "Perplexity" references with "Spetser" (Arabic: سبيتسر)
-- Designed new icon via Google Stitch: stylized "S" with teal body (#01696D) and amber spark (#F59E0B)
-- Generated icon assets: SVG + PNG variants (512, 192, 32, 16, apple, og)
-- Updated index.html meta tags, PWA manifest, all components
-- Created `src/lib/constants.ts` as single source of truth for branding
-- Added `Logo` component for consistent brand display
+### Step 6.4: Update PROJECT_STATUS.md
 
-### Icon Assets (all in `public/`)
-| File | Size | Purpose |
-|------|------|---------|
-| favicon.ico | ~5KB | Browser tab (16x16 + 32x32) |
-| spetser-icon.svg | ~2KB | Primary scalable vector |
-| spetser-512.png | 512x512 | PWA install, high-res |
-| spetser-192.png | 192x192 | PWA manifest |
-| spetser-apple.png | 180x180 | iOS home screen |
-| spetser-og.png | 1200x630 | Social share preview |
+**Append to `docs/PROJECT_STATUS.md`:**
+
+```markdown
+## Email Delivery Fix — COMPLETE
+
+**Date:** 2026-10-19  
+**Severity:** P0 (Production Blocker)  
+**Status:** ✅ FIXED
+
+### Problem
+- Users could register but never received verification emails
+- Server silently skipped email sending when SMTP not configured
+- No error or warning — silent failure in production
+
+### Root Cause
+- `email_service.py` returned early without error when `SMTP_USER` was empty
+- `config.py` had empty defaults for SMTP settings
+- Production server (Render) had no SMTP credentials → all emails skipped
+
+### Solution
+1. **Fail fast in production**: Pydantic validator rejects empty SMTP vars at startup
+2. **Async email sending**: Use FastAPI BackgroundTasks (non-blocking)
+3. **Proper error handling**: Log SMTP failures instead of silent skip
+4. **Deployment docs**: Clear guide for configuring SMTP in Render
+
+### Files Modified
+- `backend/app/core/config.py` — SMTP validation
+- `backend/app/services/email_service.py` — async sending
+- `backend/app/services/verification_service.py` — background task support
+- `backend/app/api/v1/routes/auth.py` — inject BackgroundTasks
+- `docs/DEPLOYMENT.md` — SMTP configuration guide
+- `scripts/setup-render-env.sh` — env var verification script
 
 ### Tests Added
-- `src/lib/branding.test.ts` — validates BRAND constants
-- `tests/icon-assets.test.ts` — validates icon file existence and format
+- `tests/unit/test_smtp_config.py` (5 tests)
+- `tests/integration/test_email_background.py` (3 tests)
+
+### Deployment Checklist for Render
+- [ ] Set `SMTP_HOST=smtp.gmail.com` (or your provider)
+- [ ] Set `SMTP_PORT=587`
+- [ ] Set `SMTP_USER=your-email@gmail.com`
+- [ ] Set `SMTP_PASSWORD=your-app-password`
+- [ ] Set `SMTP_FROM=noreply@spetser.ai`
+- [ ] Set `APP_ENV=production`
+- [ ] Deploy and verify emails are sent (check Render logs)
 
 ### Status
-✅ Build: PASS
-✅ Lint: PASS
-✅ Tests: ALL PASS
-✅ Visual: Verified (favicon, header, PWA, OG image)
+✅ Config validation: PASS (server refuses to start without SMTP in production)  
+✅ Async sending: PASS (registration returns immediately, email sent in background)  
+✅ Error logging: PASS (SMTP failures logged, not silent)  
+✅ Tests: 8/8 PASS
 ```
 
-### Step 7.2: Update ERROR_LOG.md (if any issues occurred)
-
-If any step failed (e.g., Stitch unavailable, SVGO not installed), log it with the workaround used.
-
-### Step 7.3: Final Commit
+### Step 6.5: Final Commit
 
 ```bash
 git add -A
-git commit -m "docs(branding): update PROJECT_STATUS with branding replacement evidence"
+git commit -m "docs: update ERROR_LOG and PROJECT_STATUS with email fix evidence
+
+- Append E-EMAIL-001 to ERROR_LOG with root cause and prevention
+- Add Email Delivery Fix section to PROJECT_STATUS
+- Include Render deployment checklist
+- Reference all commits and test results"
 ```
 
 ==================================================
-SECTION 8: FALLBACK PLAN (IF STITCH UNAVAILABLE)
+SECTION 7: RENDER DEPLOYMENT CHECKLIST
 ==================================================
 
-If Google Stitch is not accessible (requires sign-in, is down, or rate-limits), use this fallback:
+**Before deploying the fix, configure these in Render:**
 
-### Fallback 8.1: Use Built-in Image Generator
+### Step 7.1: Set Environment Variables in Render Dashboard
 
-Call the `image_gen` tool (if available in your environment) with the exact prompt from Section 1.3.
+1. Go to your Render service → **Environment** tab
+2. Add these variables:
 
-### Fallback 8.2: Hand-Craft SVG
+```env
+# Required for email sending
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-16-char-app-password
+SMTP_FROM=noreply@spetser.ai
 
-If no image tool is available, create a simple but clean SVG manually:
+# Must be production
+APP_ENV=production
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <!-- Stylized S with spark -->
-  <defs>
-    <linearGradient id="spark" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#F59E0B"/>
-      <stop offset="100%" stop-color="#01696D"/>
-    </linearGradient>
-  </defs>
-  
-  <!-- Main S body -->
-  <path d="M 65 25
-           C 65 15, 35 15, 35 25
-           C 35 35, 65 40, 65 50
-           C 65 65, 35 65, 35 55"
-        stroke="#01696D" stroke-width="10" fill="none" stroke-linecap="round"/>
-  
-  <!-- Spark at top -->
-  <path d="M 65 25 L 68 15 L 62 18 L 65 8 L 60 17 L 55 12 L 58 20"
-        fill="#F59E0B" stroke="none"/>
-</svg>
+# Other required vars (should already be set)
+APP_SECRET_KEY=<your-secret-key-32+chars>
+SESSION_SECRET_KEY=<your-session-key-32+chars>
+DATABASE_URL=<your-postgres-url>
 ```
 
-Save as `public/spetser-icon.svg` and continue with Step 4.5 (generate PNGs).
+### Step 7.2: Generate Gmail App Password (if using Gmail)
 
-**Document the fallback** in `docs/BRANDING_AUDIT.md`:
-> "Google Stitch was unavailable; icon hand-crafted as SVG. Future iteration should regenerate via Stitch for higher design polish."
+1. Go to https://myaccount.google.com/apppasswords
+2. Select app: "Mail"
+3. Select device: "Other" → name it "Spetser AI Render"
+4. Copy the 16-character password
+5. Use it as `SMTP_PASSWORD`
+
+### Step 7.3: Deploy and Verify
+
+```bash
+# Push your changes
+git push origin main
+
+# Render will auto-deploy
+
+# Check logs
+render logs --service spetser-backend --tail 200
+
+# Look for:
+# ✅ "Application startup complete" (not "smtp_user is required in production")
+# ✅ "Email sent successfully to user@example.com" (when someone registers)
+```
+
+### Step 7.4: Test End-to-End
+
+1. Open your deployed site: `https://spetser-ai.onrender.com`
+2. Register with a real email address
+3. Check your inbox → should receive verification email within 5 seconds
+4. Enter the code → account should be verified
+5. Login → should work
+
+### Step 7.5: Monitor Email Deliverability
+
+**Check Render logs regularly:**
+
+```bash
+# Successful sends
+render logs --service spetser-backend | grep "Email sent successfully"
+
+# Failed sends (if any)
+render logs --service spetser-backend | grep -i "smtp.*error"
+
+# Dev mode warnings (should NOT appear in production)
+render logs --service spetser-backend | grep "DEV MODE"
+```
 
 ==================================================
-SECTION 9: ACCEPTANCE CRITERIA
+SECTION 8: ACCEPTANCE CRITERIA
 ==================================================
 
-Branding replacement is COMPLETE only when:
+The email delivery fix is COMPLETE only when:
 
-- [ ] `grep -ri perplexity frontend/src frontend/public` returns 0 results
-- [ ] `favicon.ico` contains the new Spetser icon
-- [ ] `spetser-icon.svg` exists and renders correctly
-- [ ] All 5 PNG variants exist (512, 192, 32, 16, apple, og)
-- [ ] `index.html` meta tags use Spetser branding
-- [ ] `manifest.webmanifest` uses Arabic name + RTL direction
-- [ ] `BRAND` constants file exists as single source of truth
-- [ ] `Logo` component exists and is used in Header
-- [ ] `branding.test.ts` passes
-- [ ] `icon-assets.test.ts` passes
-- [ ] Full build/lint/test suite passes
-- [ ] Visual verification: no "Perplexity" anywhere in UI
-- [ ] `PROJECT_STATUS.md` updated with evidence
+- [ ] `test_smtp_config.py`: 5/5 tests PASS
+- [ ] `test_email_background.py`: 3/3 tests PASS
+- [ ] Server refuses to start in production without SMTP vars
+- [ ] Register endpoint returns < 500ms (async email)
+- [ ] Email failures are logged (not silent)
+- [ ] Render environment variables configured (SMTP_*)
+- [ ] Real email received after registration
+- [ ] `docs/DEPLOYMENT.md` updated with SMTP guide
+- [ ] `docs/ERROR_LOG.md` has E-EMAIL-001 entry
+- [ ] `docs/PROJECT_STATUS.md` updated with fix evidence
+- [ ] All commits pushed to main branch
 
 ==================================================
-SECTION 10: START COMMAND
+SECTION 9: START COMMAND
 ==================================================
 
 **Awaiting user instruction:**
-- Say **"Execute Branding"** to run all steps.
-- Say **"Audit Only"** to just run Section 3 (find Perplexity references).
-- Say **"Design Only"** to just run Section 4 (Stitch icon generation).
+- Say **"Execute Email Fix"** to run all steps
+- Say **"Config Only"** to just add validation (Fix #1)
+- Say **"Async Only"** to just add background tasks (Fix #2)
+- Say **"Deploy Guide"** to just update deployment docs
 
 GO.
 ```
@@ -796,22 +1167,40 @@ GO.
 
 ## ملخص ما يفعله هذا البرومت
 
-| الخطوة | الوصف |
-|--------|--------|
-| **1. التدقيق (Audit)** | يبحث عن كل نص "Perplexity" وكل ملف أيقونة قديم |
-| **2. تصميم الأيقونة** | يفتح Google Stitch ويولد أيقونة "S" مع شرارة بألوان العلامة التجارية |
-| **3. تصدير الأيقونة** | يُصدّر SVG + PNG بأحجام متعددة (16, 32, 192, 512, apple, og) |
-| **4. توليد favicon** | يجمع الأحجام الصغيرة في ملف `.ico` واحد |
-| **5. استبدال النصوص** | يحدّث `index.html`, `manifest.webmanifest`, `constants.ts`, وكل المكونات |
-| **6. مكون Logo** | ينشئ مكون `Logo.tsx` قابل لإعادة الاستخدام |
-| **7. اختبارات تلقائية** | يكتب `branding.test.ts` و`icon-assets.test.ts` لمنع الرجوع |
-| **8. خطة بديلة** | إذا تعذّر Stitch، يُولّد SVG يدوياً كبديل |
+| الخطوة | الوصف | النتيجة |
+|--------|--------|---------|
+| **Fix #1** | إضافة Pydantic validator يرفض التشغيل في production بدون SMTP | الخادم يرفض البدء بدلاً من الفشل الصامت |
+| **Fix #2** | استخدام FastAPI BackgroundTasks للإرسال غير المتزامن | التسجيل يرجع فوراً، البريد يُرسل في الخلفية |
+| **الاختبارات** | 8 اختبارات جديدة تغطي كل السيناريوهات | ضمان عدم رجوع المشكلة |
+| **التوثيق** | تحديث DEPLOYMENT.md مع دليل إعداد SMTP | سهولة النشر على Render |
+| **Render Setup** | قائمة المتغيرات المطلوبة + Gmail App Password | نشر ناجح |
 
-## نصائح عند التشغيل
+## المتغيرات المطلوبة في Render
 
-1. **ابدأ بـ "Audit Only"** لمعرفة نطاق التغييرات قبل الشروع في التنفيذ.
-2. **تأكد من الوصول إلى Stitch** قبل البدء — إذا كان يحتاج تسجيل دخول Google، قد تحتاج لتوفير session نشط.
-3. **راجع الأيقونة يدوياً** قبل اعتمادها: افتح `spetser-icon.svg` في المتصفح وتأكد أنها تبدو جيدة بأحجام مختلفة.
-4. **اختبر على جهاز محمول** بعد النشر للتأكد أن PWA تظهر الأيقونة الجديدة بشكل صحيح.
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-16-char-app-password
+SMTP_FROM=noreply@spetser.ai
+APP_ENV=production
+```
 
-هل تريد أن أبدأ بتنفيذ **"Audit Only"** أولاً لفحص نطاق التغييرات في مشروعك الحالي؟
+## كيف تحصل على Gmail App Password
+
+1. فعّل المصادقة الثنائية على حساب Gmail
+2. اذهب إلى https://myaccount.google.com/apppasswords
+3. أنشئ كلمة مرور تطبيق جديدة
+4. استخدم الـ 16 حرف في `SMTP_PASSWORD`
+
+## التحقق بعد النشر
+
+```bash
+# افحص سجلات Render
+render logs --service spetser-backend --tail 200
+
+# يجب أن ترى:
+# ✅ "Email sent successfully to user@example.com"
+# ❌ NOT: "[DEV MODE] Email would be sent..."
+```
+

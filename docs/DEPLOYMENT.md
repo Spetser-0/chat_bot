@@ -607,4 +607,73 @@ Variable based on usage. Monitor closely and set budget alerts.
 
 ---
 
+## Email Configuration (Required for Production)
+
+Spetser AI requires SMTP credentials to send verification and password reset emails.
+
+### Required Environment Variables
+
+Add these to your Render dashboard (Environment tab):
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SMTP_HOST` | SMTP server hostname | `smtp.gmail.com` |
+| `SMTP_PORT` | SMTP server port | `587` (TLS) or `465` (SSL) |
+| `SMTP_USER` | SMTP username (your email) | `your-email@gmail.com` |
+| `SMTP_PASSWORD` | SMTP password or app password | `your-app-password` |
+| `SMTP_FROM` | Sender email address | `noreply@spetser.ai` |
+| `APP_ENV` | Must be `production` | `production` |
+
+### Gmail Setup (Recommended for Development)
+
+1. Enable 2-factor authentication on your Gmail account
+2. Generate an **App Password**: https://myaccount.google.com/apppasswords
+3. Use the 16-character app password as `SMTP_PASSWORD`
+
+**Example Render environment:**
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=abcd1234efgh5678
+SMTP_FROM=noreply@spetser.ai
+APP_ENV=production
+```
+
+### Production Startup Validation
+
+If SMTP variables are missing in production, the app will **refuse to start** with a clear error:
+
+```
+ValidationError: smtp_user is required in production. Set SMTP_USER environment variable.
+```
+
+This prevents silent email failures in production.
+
+### Recommended SMTP Providers
+
+| Provider | Free Tier | Notes |
+|----------|-----------|-------|
+| **Gmail** | 500 emails/day | Use app password, not regular password |
+| **SendGrid** | 100 emails/day forever | Best for production |
+| **Mailgun** | 100 emails/day for 3 months | Good API |
+| **Amazon SES** | $0.10 per 1000 emails | Cheapest at scale |
+| **Postmark** | 100 emails/month forever | Excellent deliverability |
+
+### Testing Email Configuration
+
+After deploying, test email sending:
+
+```bash
+# Check Render logs for email sending
+render logs --service spetser-backend --tail 100 | grep -i email
+
+# You should see: "Email sent successfully to user@example.com"
+# NOT: "[DEV MODE] Email would be sent to..."
+```
+
+If you see `[DEV MODE]` messages, SMTP is not configured correctly.
+
+---
+
 **End of Deployment Guide**

@@ -135,3 +135,19 @@ git push --force-with-lease origin main
 | **Verification** | 10 tests in `backend/tests/integration/test_migration_integrity.py` pass, verifying uniqueness, FK constraint enforcement, server defaults on raw insert, JSON serialization, singleton seeding, and upgrade/downgrade/upgrade round trip. |
 | **Prevention** | `backend/tests/integration/test_migration_integrity.py` exercises full migration DDL and ORM parity on SQLite. |
 
+---
+
+## E-EMAIL-001 — Silent Email Skip in Production
+
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-19 |
+| **Severity** | P0 |
+| **Phase** | Email Delivery |
+| **Error** | Users register successfully but never receive verification emails. UI shows "Code sent" but no email arrives. |
+| **Root Cause** | `email_service.py` line 51 silently returns when `SMTP_USER` is empty, even in production. No error is raised, no warning logged. |
+| **Fix** | 1. Add Pydantic `field_validator` in `config.py` to reject empty SMTP vars in production (fail fast on startup). 2. Refactor `email_service.py` to use FastAPI `BackgroundTasks` for async sending. 3. Add proper error logging for SMTP failures. |
+| **Verification** | - Config validation tests (5/5 pass) - Async email tests (3/3 pass) - Manual test: server refuses to start in production without SMTP vars |
+| **Prevention** | - Production config validation prevents deployment without SMTP - Background tasks prevent registration slowdown - Error logging makes failures visible |
+| **Commits** | - `fix(config): fail fast in production without SMTP configuration` - `feat(email): send emails asynchronously via BackgroundTasks` |
+
