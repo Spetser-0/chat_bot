@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 import uuid
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -23,6 +24,10 @@ class ChatCompletionRequest(BaseModel):
     message: str = Field(min_length=1, max_length=MAX_MESSAGE_CHARS)
     skill_slug: str | None = Field(default=None, max_length=50)
     stream: bool = True
+    model_strength: Literal["flash", "think", "pro"] = Field(
+        default="think",
+        description="Model strength: flash (fast), think (balanced), pro (deep reasoning)",
+    )
     regenerate: bool = Field(
         default=False,
         description=(

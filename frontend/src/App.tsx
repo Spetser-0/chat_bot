@@ -2,6 +2,7 @@ import { Suspense, lazy, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import { useAuth } from './contexts/useAuth';
 import { AppShell } from './components/AppShell';
 import { AdminLayout } from './components/admin/AdminLayout';
@@ -92,58 +93,60 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/verify-email" element={<VerifyEmailPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            {/* Referral landing (Phase 9, Lesson 9.3) — validates code, funnels to register */}
-            <Route path="/r/:code" element={<ReferralLandingPage />} />
-            
-            {/* Routes inside AppShell */}
-            <Route element={<AppShell><Outlet /></AppShell>}>
-              <Route path="/" element={<HomePage />} />
-              {/* Authenticated student routes */}
-              <Route element={<RequireAuth />}>
-                {/* Placeholders for Phase 2+ */}
-                <Route path="/presentations/new" element={
-                  <div className="empty-state">
-                    <div className="empty-state__icon">🖥️</div>
-                    <div className="empty-state__title">العروض التقديمية</div>
-                    <div className="empty-state__desc">هذه الميزة سيتم إضافتها في المرحلة الثانية.</div>
-                  </div>
-                } />
-                <Route path="/chat" element={<ChatPage />} />
-                <Route path="/chat/:conversationId" element={<ChatPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/history" element={
-                  <div className="empty-state">
-                    <div className="empty-state__icon">🕐</div>
-                    <div className="empty-state__title">السجل</div>
-                    <div className="empty-state__desc">سجل طلباتك سيظهر هنا.</div>
-                  </div>
-                } />
-                <Route path="/referrals" element={<ReferralPage />} />
+        <LanguageProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              {/* Referral landing (Phase 9, Lesson 9.3) — validates code, funnels to register */}
+              <Route path="/r/:code" element={<ReferralLandingPage />} />
+              
+              {/* Routes inside AppShell */}
+              <Route element={<AppShell><Outlet /></AppShell>}>
+                <Route path="/" element={<HomePage />} />
+                {/* Authenticated student routes */}
+                <Route element={<RequireAuth />}>
+                  {/* Placeholders for Phase 2+ */}
+                  <Route path="/presentations/new" element={
+                    <div className="empty-state">
+                      <div className="empty-state__icon">🖥️</div>
+                      <div className="empty-state__title">العروض التقديمية</div>
+                      <div className="empty-state__desc">هذه الميزة سيتم إضافتها في المرحلة الثانية.</div>
+                    </div>
+                  } />
+                  <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/chat/:conversationId" element={<ChatPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/history" element={
+                    <div className="empty-state">
+                      <div className="empty-state__icon">🕐</div>
+                      <div className="empty-state__title">السجل</div>
+                      <div className="empty-state__desc">سجل طلباتك سيظهر هنا.</div>
+                    </div>
+                  } />
+                  <Route path="/referrals" element={<ReferralPage />} />
+                </Route>
               </Route>
-            </Route>
 
-            {/* Admin dashboard (Phase 9, Lessons 9.8 + 9.10 code-split) */}
-            <Route element={<RequireDeveloper />}>
-              <Route path="/admin" element={<LazyAdminPage><AdminDashboardPage /></LazyAdminPage>} />
-              <Route path="/admin/providers" element={<LazyAdminPage><AdminProvidersPage /></LazyAdminPage>} />
-              <Route path="/admin/skills" element={<LazyAdminPage><AdminSkillsPage /></LazyAdminPage>} />
-              <Route path="/admin/users" element={<LazyAdminPage><AdminUsersPage /></LazyAdminPage>} />
-              <Route path="/admin/payments" element={<LazyAdminPage><AdminPaymentsPage /></LazyAdminPage>} />
-              <Route path="/admin/referrals" element={<LazyAdminPage><AdminReferralsPage /></LazyAdminPage>} />
-              <Route path="/admin/audit" element={<LazyAdminPage><AdminAuditPage /></LazyAdminPage>} />
-              <Route path="/developer" element={<LazyAdminPage><DeveloperPage /></LazyAdminPage>} />
-            </Route>
+              {/* Admin dashboard (Phase 9, Lessons 9.8 + 9.10 code-split) */}
+              <Route element={<RequireDeveloper />}>
+                <Route path="/admin" element={<LazyAdminPage><AdminDashboardPage /></LazyAdminPage>} />
+                <Route path="/admin/providers" element={<LazyAdminPage><AdminProvidersPage /></LazyAdminPage>} />
+                <Route path="/admin/skills" element={<LazyAdminPage><AdminSkillsPage /></LazyAdminPage>} />
+                <Route path="/admin/users" element={<LazyAdminPage><AdminUsersPage /></LazyAdminPage>} />
+                <Route path="/admin/payments" element={<LazyAdminPage><AdminPaymentsPage /></LazyAdminPage>} />
+                <Route path="/admin/referrals" element={<LazyAdminPage><AdminReferralsPage /></LazyAdminPage>} />
+                <Route path="/admin/audit" element={<LazyAdminPage><AdminAuditPage /></LazyAdminPage>} />
+                <Route path="/developer" element={<LazyAdminPage><DeveloperPage /></LazyAdminPage>} />
+              </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </LanguageProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

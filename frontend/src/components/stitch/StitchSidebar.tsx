@@ -4,6 +4,8 @@ import { useAuth } from '../../contexts/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { conversationsApi } from '../../api/conversations';
 import { BRAND } from '../../lib/constants';
+import { useLanguage } from '../../contexts/useLanguage';
+import { mainNavItems, bottomNavItems } from '../../lib/navigation';
 
 interface StitchSidebarProps {
   onNewThread?: () => void;
@@ -13,6 +15,7 @@ export function StitchSidebar({ onNewThread }: StitchSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { student, isAuthenticated, logout } = useAuth();
+  const { t } = useLanguage();
   const [threadsOpen, setThreadsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
@@ -55,63 +58,28 @@ export function StitchSidebar({ onNewThread }: StitchSidebarProps) {
 
         {/* Main Navigation */}
         <nav className="flex flex-col gap-space-xs">
-          <button
-            type="button"
-            onClick={handleNewThread}
-            className={`w-full flex items-center gap-space-md px-space-md py-space-sm transition-colors rounded-lg font-medium cursor-pointer ${
-              isCurrent('/')
-                ? 'bg-primary-container text-on-primary'
-                : 'text-graphite hover:bg-surface-container-high hover:text-on-surface'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[20px]">search</span>
-            <span>New Thread</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className={`w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-graphite hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md cursor-pointer`}
-          >
-            <span className="material-symbols-outlined text-[20px]">explore</span>
-            <span>Discover</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/history')}
-            className={`w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-graphite hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md cursor-pointer ${
-              isCurrent('/history') ? 'bg-surface-container-high text-on-surface font-medium' : ''
-            }`}
-          >
-            <span className="material-symbols-outlined text-[20px]">grid_view</span>
-            <span>Spaces</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/history')}
-            className="w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-graphite hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[20px]">folder_open</span>
-            <span>Library</span>
-          </button>
+          {mainNavItems.map((item) => (
+            <button
+              key={item.path}
+              type="button"
+              onClick={() => (item.path === '/' ? handleNewThread() : navigate(item.path))}
+              className={`w-full flex items-center gap-space-md px-space-md py-space-sm transition-colors rounded-lg font-medium cursor-pointer ${
+                isCurrent(item.path)
+                  ? 'bg-primary-container text-on-primary'
+                  : 'text-graphite hover:bg-surface-container-high hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+              <span>{t(item.labelKey)}</span>
+            </button>
+          ))}
         </nav>
 
-        {/* Workspace Section */}
+        {/* Workspace & Threads Section (Connectors button removed) */}
         <div className="pt-space-md border-t border-warm-mist flex flex-col gap-space-xs">
           <span className="px-space-md font-label-xs text-label-xs text-ash uppercase tracking-wider">
-            Workspace
+            {t('nav.workspace')}
           </span>
-
-          <button
-            type="button"
-            onClick={() => navigate('/referrals')}
-            className="w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-graphite hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[20px]">hub</span>
-            <span>Connectors</span>
-          </button>
 
           <button
             type="button"
@@ -122,7 +90,7 @@ export function StitchSidebar({ onNewThread }: StitchSidebarProps) {
           >
             <div className="flex items-center gap-space-md">
               <span className="material-symbols-outlined text-[20px]">forum</span>
-              <span>Threads</span>
+              <span>{t('nav.threads')}</span>
             </div>
             {conversations.length > 0 && (
               <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-surface-container text-ash font-medium">
@@ -135,7 +103,7 @@ export function StitchSidebar({ onNewThread }: StitchSidebarProps) {
           {threadsOpen && (
             <div className="flex flex-col gap-1 pl-6 pr-2 py-1 max-h-48 overflow-y-auto">
               {conversations.length === 0 ? (
-                <span className="text-xs text-ash px-2 py-1">No active threads</span>
+                <span className="text-xs text-ash px-2 py-1">{t('nav.noThreads')}</span>
               ) : (
                 conversations.slice(0, 6).map((c) => (
                   <button
@@ -156,16 +124,19 @@ export function StitchSidebar({ onNewThread }: StitchSidebarProps) {
 
       {/* Bottom: Settings + User profile box */}
       <div className="flex flex-col gap-space-xs pt-space-md border-t border-warm-mist relative">
-        <button
-          type="button"
-          onClick={() => navigate('/settings')}
-          className={`w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-graphite hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md cursor-pointer ${
-            isCurrent('/settings') ? 'bg-surface-container-high text-on-surface font-medium' : ''
-          }`}
-        >
-          <span className="material-symbols-outlined text-[20px]">settings</span>
-          <span>Settings</span>
-        </button>
+        {bottomNavItems.map((item) => (
+          <button
+            key={item.path}
+            type="button"
+            onClick={() => navigate(item.path)}
+            className={`w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-graphite hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md cursor-pointer ${
+              isCurrent(item.path) ? 'bg-surface-container-high text-on-surface font-medium' : ''
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+            <span>{t(item.labelKey)}</span>
+          </button>
+        ))}
 
         {/* Profile Card */}
         <div className="flex items-center justify-between px-space-md py-space-sm rounded-lg bg-soft-paper border border-warm-mist mt-space-xs shadow-xs">
@@ -178,10 +149,14 @@ export function StitchSidebar({ onNewThread }: StitchSidebarProps) {
             </div>
             <div className="flex flex-col truncate">
               <span className="font-label-sm text-label-sm text-ink truncate font-medium">
-                {student?.display_name || 'Scholar Pro'}
+                {student?.display_name || 'Guest'}
               </span>
               <span className="font-label-xs text-label-xs text-ash">
-                {student?.role ? `${student.role.toUpperCase()} Plan` : 'Free Plan'}
+                {isAuthenticated
+                  ? student?.role
+                    ? `${student.role.toUpperCase()} Plan`
+                    : t('nav.freePlan')
+                  : t('nav.signIn')}
               </span>
             </div>
           </div>
@@ -206,7 +181,7 @@ export function StitchSidebar({ onNewThread }: StitchSidebarProps) {
               }}
               className="px-3 py-1.5 text-left text-xs rounded-lg text-ink hover:bg-surface-container transition-colors"
             >
-              Account Settings
+              {t('nav.accountSettings')}
             </button>
             {isAuthenticated ? (
               <button
@@ -217,7 +192,7 @@ export function StitchSidebar({ onNewThread }: StitchSidebarProps) {
                 }}
                 className="px-3 py-1.5 text-left text-xs rounded-lg text-error hover:bg-error-container transition-colors"
               >
-                Sign Out
+                {t('nav.signOut')}
               </button>
             ) : (
               <button
@@ -228,7 +203,7 @@ export function StitchSidebar({ onNewThread }: StitchSidebarProps) {
                 }}
                 className="px-3 py-1.5 text-left text-xs rounded-lg text-primary font-medium hover:bg-surface-container transition-colors"
               >
-                Sign In
+                {t('nav.signIn')}
               </button>
             )}
           </div>

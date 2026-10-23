@@ -8,6 +8,7 @@
  * We parse with fetch + ReadableStream (axios does not stream reliably).
  */
 import { API_BASE_URL } from '../api/client';
+import { getModelStrength, type ModelStrength } from './modelStrength';
 
 export interface StreamHandlers {
   onConversation?: (conversationId: string) => void;
@@ -27,6 +28,7 @@ interface StreamRequest {
   message?: string;
   conversation_id?: string | null;
   skill_slug?: string | null;
+  model_strength?: ModelStrength;
   /** Re-answer last user turn without duplicating it (Lesson 9.10). */
   regenerate?: boolean;
   /** Abort signal for the stop-generation button. */
@@ -81,6 +83,7 @@ export async function streamChatCompletion(
       message: req.message,
       conversation_id: req.conversation_id ?? null,
       skill_slug: req.skill_slug ?? null,
+      model_strength: req.model_strength ?? getModelStrength(),
       regenerate: req.regenerate ?? false,
       stream: true,
     }),

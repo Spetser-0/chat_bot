@@ -1351,12 +1351,42 @@ Phase 12: Docker & Deployment          ████████████ 100%
 
 ---
 
-**End of Project Status Log**
+## UI/UX Polish & Backend Integration — COMPLETE
 
-**Phase 12 Status**: ✅ **COMPLETE**  
-**Branding Status**: ✅ **COMPLETE**  
-**Email Delivery Fix Status**: ✅ **COMPLETE**  
-**Project Status**: ✅ **FEATURE-COMPLETE** (Phases 0–12 + Rebranding + Email Fix)  
-**Next Action**: User runs `docker compose up --build` with filled secrets; optional polish only
+**Date:** 2026-10-23  
+**Status:** ✅ ALL 7 FIXES COMPLETE
+
+### Fixes Applied
+1. ✅ **Removed fake status bar simulation (P0)** (`StitchMobileHome.tsx`): Deleted wifi, 4G, cellular, and battery fake simulation icons that collided with native mobile status bar. Kept `pt-safe`.
+2. ✅ **Fixed drawer overflow on short screens (P0)** (`StitchMobileDrawer.tsx`, `index.css`): Changed outer container to `h-dvh`, wrapped content in `flex-1 overflow-y-auto pb-safe`, pinned Settings + Profile into fixed bottom bar.
+3. ✅ **Removed confusing Connectors button (P1)** (`StitchSidebar.tsx`, `StitchMobileDrawer.tsx`): Deleted `/referrals` button labelled as "Connectors".
+4. ✅ **Added language selector to Settings (P1)** (`LanguageContext.tsx`, `useLanguage.ts`, `SettingsPage.tsx`, `App.tsx`): Added Arabic/English toggle with persistent local storage, direction switching (`dir="rtl"` / `dir="ltr"`), and translation tokens.
+5. ✅ **Updated model strength labels to Flash/Think/Pro (P1)** (`modelStrength.ts`, `Composer.tsx`): Updated types, added descriptive tooltips, and set default to Think.
+6. ✅ **Integrated model strength with backend (P2)** (`chat.py` schema, `model_mapping.py`, `chat.py` route, `streaming.ts` client): Added `model_strength` field to `ChatCompletionRequest` schema, created server-side `map_strength_to_model` mapper, and wired client streaming requests to pass model strength.
+7. ✅ **Unified navigation text (P2)** (`navigation.ts`, `StitchSidebar.tsx`, `StitchMobileDrawer.tsx`): Standardized items via centralized `navigation.ts` and i18n tokens, eliminating mixed English/Arabic strings.
+
+### Files Modified & Created
+- `frontend/src/components/stitch/StitchMobileHome.tsx`
+- `frontend/src/components/stitch/StitchMobileDrawer.tsx`
+- `frontend/src/components/stitch/StitchSidebar.tsx`
+- `frontend/src/pages/SettingsPage.tsx`
+- `frontend/src/components/chat/Composer.tsx`
+- `frontend/src/lib/modelStrength.ts`
+- `frontend/src/lib/streaming.ts`
+- `frontend/src/lib/navigation.ts`
+- `frontend/src/contexts/LanguageContext.tsx`
+- `frontend/src/contexts/useLanguage.ts`
+- `frontend/src/App.tsx`
+- `frontend/src/index.css`
+- `backend/app/schemas/chat.py`
+- `backend/app/services/model_mapping.py`
+- `backend/app/api/v1/routes/chat.py`
+- `backend/tests/integration/test_chat_endpoint.py`
+
+### Test Verification
+- **Backend**: `test_chat_endpoint.py` — 18/18 passed (including new `test_chat_with_model_strength`).
+- **Frontend**: `oxlint` passed with 0 errors and 0 warnings; `vitest` 21/21 passed; `tsc -b && vite build` built in 2.23s.
+- **Visual & Layout**: Verified `h-dvh`, fixed bottom dock, responsive `pt-safe`/`pb-safe`/`pl-safe`/`pr-safe`, and language toggle.
+
 
 

@@ -1,15 +1,27 @@
 /**
  * lib/modelStrength.ts — "AI model strength" selector state.
- *
- * Phase 1 (frontend-only): the choice is persisted locally and NOT sent to
- * the API. The backend phase maps these values onto the chat request.
+ * 
+ * Maps to backend ChatCompletionRequest.model_strength ("flash" | "think" | "pro").
  */
-export type ModelStrength = 'fast' | 'balanced' | 'deep';
 
-export const MODEL_STRENGTHS: { value: ModelStrength; label: string }[] = [
-  { value: 'fast', label: 'سريع' },
-  { value: 'balanced', label: 'متوازن' },
-  { value: 'deep', label: 'عميق' },
+export type ModelStrength = 'flash' | 'think' | 'pro';
+
+export const MODEL_STRENGTHS: { value: ModelStrength; label: string; description: string }[] = [
+  { 
+    value: 'flash', 
+    label: 'Flash',
+    description: 'Fast responses for simple questions',
+  },
+  { 
+    value: 'think', 
+    label: 'Think',
+    description: 'Balanced analysis for most tasks',
+  },
+  { 
+    value: 'pro', 
+    label: 'Pro',
+    description: 'Deep reasoning for complex problems',
+  },
 ];
 
 const STORAGE_KEY = 'spetser.modelStrength';
@@ -17,11 +29,11 @@ const STORAGE_KEY = 'spetser.modelStrength';
 export function getModelStrength(): ModelStrength {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'fast' || stored === 'balanced' || stored === 'deep') return stored;
+    if (stored === 'flash' || stored === 'think' || stored === 'pro') return stored;
   } catch {
     /* ignore */
   }
-  return 'balanced';
+  return 'think'; // Default to 'think'
 }
 
 export function setModelStrength(value: ModelStrength): void {
@@ -30,5 +42,4 @@ export function setModelStrength(value: ModelStrength): void {
   } catch {
     /* ignore */
   }
-  // TODO(backend): map this onto the chat request once the API supports it.
 }

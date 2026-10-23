@@ -54,7 +54,7 @@ export function Composer({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canSend = value.trim().length > 0 && !disabled && !isStreaming;
-  const strengthLabel = MODEL_STRENGTHS.find((s) => s.value === strength)?.label ?? 'متوازن';
+  const strengthLabel = MODEL_STRENGTHS.find((s) => s.value === strength)?.label ?? 'Think';
 
   // Escape closes the model-strength menu.
   useEffect(() => {
@@ -215,6 +215,7 @@ export function Composer({
                       type="button"
                       role="option"
                       aria-selected={s.value === strength}
+                      title={s.description}
                       className={`model-pill__option${s.value === strength ? ' model-pill__option--active' : ''}`}
                       onClick={() => chooseStrength(s.value)}
                     >

@@ -167,3 +167,109 @@ git push --force-with-lease origin main
 | **Prevention** | - Model validator enforces valid `BREVO_API_KEY` or complete SMTP triplet in production. - HTTPS port 443 traffic is universally permitted across cloud hosting providers (including Render). - Comprehensive unit and integration test coverage. |
 | **Decision** | Architecture decision: Use Brevo HTTP API over HTTPS (port 443) as primary email provider for cloud deployments to bypass hosting-level SMTP port blocks, keeping SMTP as a fallback. |
 
+---
+
+## E-UIUX-001 — Fake Status Bar Simulation Clutter on Mobile Devices
+
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-23 |
+| **Severity** | P0 |
+| **Component** | `frontend/src/components/stitch/StitchMobileHome.tsx` |
+| **Error** | Redundant simulated system icons (wifi, 4G, cellular, battery "33", clock) rendered at top of viewport, colliding with native Android/iOS system bars. |
+| **Root Cause** | Hardcoded status bar simulator from design mockups left in production code. |
+| **Fix** | Removed simulated system indicators and interval-based clock state; retained `pt-safe` class to respect device notches. |
+| **Verification** | Verified header layout renders solely clean brand logo, hamburger menu, and profile button with zero overlapping icons. |
+| **Prevention** | Design review checklist: never simulate OS-level status bar elements inside web application viewports. |
+
+---
+
+## E-UIUX-002 — Mobile Drawer Settings Cut Off on Short Screen Heights
+
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-23 |
+| **Severity** | P0 |
+| **Component** | `frontend/src/components/stitch/StitchMobileDrawer.tsx` |
+| **Error** | On mobile screens with height < 700px, Settings button and profile dock were pushed off-screen. |
+| **Root Cause** | Drawer container used `h-full justify-between` without internal overflow scrolling (`overflow-y-auto`). |
+| **Fix** | Switched container to dynamic viewport height `h-dvh`, moved middle content into `<div className="flex-1 overflow-y-auto pb-safe">`, and anchored bottom dock to a fixed section with `pb-safe`. |
+| **Verification** | Verified visibility on short viewports down to 600px; verified scrollability of recent threads list. |
+| **Prevention** | Always test sliding sheets and drawers with viewport heights under 650px using responsive design tools. |
+
+---
+
+## E-UIUX-003 — Confusing "Connectors" Button Linking to Referrals
+
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-23 |
+| **Severity** | P1 |
+| **Component** | `StitchSidebar.tsx`, `StitchMobileDrawer.tsx` |
+| **Error** | A button labelled "Connectors" navigated directly to `/referrals`, confusing users expecting data integrations. |
+| **Root Cause** | Misnamed navigation entry carried over from legacy template. |
+| **Fix** | Removed "Connectors" button from sidebar and mobile drawer; referral program remains accessible via direct route `/referrals` and profile. |
+| **Verification** | Confirmed sidebar and drawer navigation cleanliness; no dead links or regressions. |
+| **Prevention** | Feature nomenclature audit to keep labels intuitive and consistent. |
+
+---
+
+## E-UIUX-004 — Absence of UI Language Selector on Arabic-First Platform
+
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-23 |
+| **Severity** | P1 |
+| **Component** | `LanguageContext.tsx`, `useLanguage.ts`, `SettingsPage.tsx`, `App.tsx` |
+| **Error** | Arabic-first platform lacked an in-app language switch mechanism. |
+| **Root Cause** | Settings page had no language preference section or context state for UI translations. |
+| **Fix** | Created `LanguageProvider` with Arabic and English translation dictionaries, localStorage persistence (`spetser.language`), dynamic `document.documentElement.lang` and `.dir` updates, and added Language select to `SettingsPage`. |
+| **Verification** | Verified switching between Arabic and English re-renders settings and navigation with appropriate text and text-direction (`rtl`/`ltr`). |
+| **Prevention** | Implement standard i18n infrastructure before releasing multi-lingual surfaces. |
+
+---
+
+## E-UIUX-005 — Ambiguous Model Strength Terminology
+
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-23 |
+| **Severity** | P1 |
+| **Component** | `frontend/src/lib/modelStrength.ts`, `frontend/src/components/chat/Composer.tsx` |
+| **Error** | Model strengths "fast/balanced/deep" were non-standard and lacked clear capability hints. |
+| **Root Cause** | Initial placeholder types `'fast' | 'balanced' | 'deep'` were not aligned with modern AI tier nomenclature. |
+| **Fix** | Updated `ModelStrength` union to `'flash' | 'think' | 'pro'`, set default to `think`, and provided descriptive tooltips. |
+| **Verification** | Verified selector in Composer displays Flash/Think/Pro options and persists selection to localStorage. |
+| **Prevention** | Centralize AI parameter definitions with human-readable labels and descriptions. |
+
+---
+
+## E-UIUX-006 — Client Model Strength Selection Not Communicated to Backend
+
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-23 |
+| **Severity** | P2 |
+| **Component** | `backend/app/schemas/chat.py`, `backend/app/services/model_mapping.py`, `backend/app/api/v1/routes/chat.py`, `frontend/src/lib/streaming.ts` |
+| **Error** | User selection of model strength in the frontend UI remained in localStorage and was never forwarded to the chat API. |
+| **Root Cause** | `ChatCompletionRequest` schema had no `model_strength` field, and `streaming.ts` omitted it from the payload. |
+| **Fix** | Added `model_strength: Literal["flash", "think", "pro"]` to backend schema with validator, added backend `model_mapping` service, and included `model_strength` in streaming request payload. Added integration test `test_chat_with_model_strength`. |
+| **Verification** | Integration test passed (`test_chat_with_model_strength PASSED`), non-streaming and streaming routes accept model strength. |
+| **Prevention** | End-to-end audit of frontend parameters to ensure full propagation to backend APIs. |
+
+---
+
+## E-UIUX-007 — Inconsistent Bilingual Navigation Text Across Platforms
+
+| Field | Detail |
+|---|---|
+| **Date** | 2026-10-23 |
+| **Severity** | P2 |
+| **Component** | `frontend/src/lib/navigation.ts`, `StitchSidebar.tsx`, `StitchMobileDrawer.tsx` |
+| **Error** | Desktop sidebar and mobile drawer displayed mixed English ("New Thread", "Settings", "Exit") and Arabic without synchronization. |
+| **Root Cause** | Decentralized navigation items and hardcoded English strings in drawer and sidebar components. |
+| **Fix** | Extracted navigation structure to `lib/navigation.ts` with translation keys, and updated both sidebar and mobile drawer to consume `t(item.labelKey)`. |
+| **Verification** | Both desktop sidebar and mobile drawer now render localized text consistently based on the active language. |
+| **Prevention** | Single source of truth for navigation menus via centralized route/nav configurations. |
+
+

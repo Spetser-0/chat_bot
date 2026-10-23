@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type KeyboardEvent, type ChangeEvent } from 'react';
+import { useState, useRef, type KeyboardEvent, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BRAND } from '../../lib/constants';
 
@@ -14,24 +14,11 @@ export function StitchMobileHome({ onSearch, onOpenMenu, isStreaming = false }: 
   const [selectedModel, setSelectedModel] = useState('Claude 3.5 Sonnet');
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
-  const [currentTime, setCurrentTime] = useState('1:48');
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const availableModels = ['Claude 3.5 Sonnet', 'GPT-4o', 'Sonar Deep', 'Gemini 1.5 Pro'];
-
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      setCurrentTime(`${hours % 12 || 12}:${minutes}`);
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleSubmit = () => {
     if (!query.trim() || isStreaming) return;
@@ -53,27 +40,10 @@ export function StitchMobileHome({ onSearch, onOpenMenu, isStreaming = false }: 
 
   return (
     <div className="bg-parchment font-sans text-ink flex flex-col justify-between min-h-screen relative overflow-hidden select-none antialiased">
-      {/* ── Status Bar Simulation & Top Bar ──────────────────────────────── */}
-      <header className="w-full pt-safe z-30 flex flex-col pt-1">
-        {/* Top System Indicators */}
-        <div className="px-6 pt-2 pb-1 flex items-center justify-between text-xs text-graphite tracking-normal font-sans">
-          <div className="flex items-center gap-1.5 font-medium text-[13px]">
-            <span>{currentTime}</span>
-            <span className="material-symbols-outlined text-[13px] text-graphite">sentiment_satisfied</span>
-            <span className="material-symbols-outlined text-[13px] text-graphite">near_me</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[12px]">
-            <span className="material-symbols-outlined text-[14px]">wifi</span>
-            <span className="text-[11px] font-semibold">4G</span>
-            <span className="material-symbols-outlined text-[14px]">signal_cellular_alt</span>
-            <div className="flex items-center border border-warm-mist rounded-full px-1 text-[10px] leading-tight text-graphite font-medium">
-              33
-            </div>
-          </div>
-        </div>
-
+      {/* ── Top Bar ───────────────────────────────────────────────────────── */}
+      <header className="w-full pt-safe z-30 flex flex-col">
         {/* Main Navigation Bar */}
-        <div className="px-5 h-12 flex items-center justify-between mt-1">
+        <div className="px-5 h-12 flex items-center justify-between">
           {/* Minimalist Hamburger Menu */}
           <button
             onClick={onOpenMenu}

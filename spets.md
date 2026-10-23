@@ -1,30 +1,72 @@
+# تقييمي لتقرير الأداة الأخرى + البرومت المفصل
+
+## أولاً: رأيي في التقرير
+
+**✅ أوافق على 95% من التقرير — تحليله دقيق ومطابق للكود الفعلي**
+
+بعد فحص المستودع بنفسي، تؤكدت من جميع المشاكل المذكورة:
+
+### ✅ ما تم التحقق منه (مطابق 100%)
+
+| المشكلة | الكود الفعلي | الحكم |
+|---------|---------------|-------|
+| Status Bar Simulation | `StitchMobileHome.tsx` سطر 56-73: أيقونات wifi, 4G, signal_cellular_alt, بطارية "33" | ✅ صحيح تماماً |
+| Overflow في Drawer | `StitchMobileDrawer.tsx`: `h-full justify-between` بدون `overflow-y-auto` | ✅ صحيح تماماً |
+| Connectors button | `StitchSidebar.tsx`: زر "Connectors" يوجه إلى `/referrals` | ✅ صحيح تماماً |
+| modelStrength.ts | `'fast' \| 'balanced' \| 'deep'` + TODO comment واضح | ✅ صحيح تماماً |
+| Settings بدون لغة | `SettingsPage.tsx`: فقط Profile, Appearance, Credits, Account | ✅ صحيح تماماً |
+| نصوص إنجليزية مختلطة | StitchMobileDrawer: "Settings", "Free Plan", "Exit", "Scholar Pro" | ✅ صحيح تماماً |
+
+### ⚠️ ما يمكن إضافته (ملاحظات إضافية)
+
+**1. نصوص إنجليزية إضافية لم يذكرها التقرير:**
+- `StitchSidebar.tsx` يحتوي على: "New Thread", "Discover", "Spaces", "Library", "Workspace"
+- هذه مشكلة أكبر من Connectors فقط — **كل القائمة بالإنجليزية**
+
+**2. مشكلة Connectors في StitchMobileDrawer:**
+- لم يظهر زر Connectors في الجزء المعروض من `StitchMobileDrawer.tsx`
+- يجب التحقق من الملف الكامل للتأكد من وجوده أو غيابه
+
+**3. Backend integration:**
+- لم يتم التحقق مما إذا كان `backend/app/schemas/chat.py` يدعم استقبال `model_strength`
+- يجب فحص `backend/app/api/v1/routes/chat.py` و `LLMRouter`
+
+---
+
+## ثانياً: البرومت المفصل
+
 ```markdown
-# SPETSER AI — EMAIL DELIVERY FIX PROMPT
-# Issue: Silent SMTP Skip in Production
-# Version: 1.0 | Severity: P0 | Execution Mode: Autonomous Step-by-Step
+# SPETSER AI — UI/UX POLISH & BACKEND INTEGRATION PROMPT
+# Issues: Status Bar, Drawer Overflow, Connectors, Language, Model Strength
+# Version: 1.0 | Severity: P0-P2 | Execution Mode: Autonomous Step-by-Step
 
 ==================================================
 SECTION 0: YOUR IDENTITY AND AUTHORITY
 ==================================================
 
-You are the **Incident Response Engineer** for `spetser-ai`. You have been deployed to fix a **P0 production defect** where email verification codes are NOT actually sent to users despite the UI claiming success.
+You are the **UI/UX Polish Engineer** for `spetser-ai`. You have been deployed to fix **7 production issues** affecting user experience and functionality.
 
-**The Bug:**
-- User registers → UI shows "We sent a code to your email"
-- Reality: Server silently skips email sending when SMTP credentials are missing
-- Root cause: `email_service.py` line 51 returns early without error when `SMTP_USER` is empty
-- Impact: 100% of new users cannot verify their accounts in production
+**The Issues (Priority Order):**
+
+1. **P0 — Status Bar Simulation** (StitchMobileHome.tsx): Fake status bar icons overlap with real Android status bar
+2. **P0 — Drawer Overflow** (StitchMobileDrawer.tsx): Settings button hidden on short screens due to missing `overflow-y-auto`
+3. **P1 — Connectors Button**: Confusing "Connectors" button linking to `/referrals` in both StitchSidebar and StitchMobileDrawer
+4. **P1 — Missing Language Selector**: SettingsPage has no language option despite Arabic-first positioning
+5. **P1 — Model Strength Labels**: Current "fast/balanced/deep" should be "Flash/Think/Pro" for clarity
+6. **P2 — Backend Integration**: Model strength selection not sent to backend (localStorage only)
+7. **P2 — Inconsistent Navigation**: Mixed English/Arabic text across StitchSidebar, StitchMobileDrawer, SettingsPage
 
 You have FULL authority to:
-- Modify any backend file
-- Update environment configuration
-- Add background task infrastructure
+- Modify any frontend component
+- Update backend schemas and routes
+- Add i18n infrastructure
 - Run tests and verify fixes
 - Commit changes with evidence
 
 You must NOT:
-- Leave silent failures in production code
-- Skip verification steps
+- Leave hardcoded English text in Arabic-first UI
+- Skip accessibility checks (ARIA labels, keyboard nav)
+- Break existing functionality
 - Deploy without testing
 
 ==================================================
@@ -33,28 +75,72 @@ SECTION 1: INCIDENT CONTEXT
 
 **What's Broken:**
 
-```python
-# backend/app/services/email_service.py (line 51)
-if settings.DEBUG or not settings.SMTP_USER:
-    print(f"[DEV] Verification code for {to_email}: {code}")
-    return  # ← SILENT FAILURE — no error, no warning
+### Issue 1: Status Bar Simulation (P0)
+```tsx
+// StitchMobileHome.tsx lines 56-73
+<div className="px-6 pt-2 pb-1 flex items-center justify-between">
+  <span>{currentTime}</span>
+  <span>wifi</span>
+  <span>4G</span>
+  <span>signal_cellular_alt</span>
+  <div>33</div>  // ← Fake battery indicator
+</div>
 ```
+**Problem:** Renders fake status bar icons that overlap with real Android status bar, causing visual clutter.
 
-**Why It's Broken:**
+### Issue 2: Drawer Overflow (P0)
+```tsx
+// StitchMobileDrawer.tsx
+<div className="relative w-72 max-w-[80vw] h-full ... flex flex-col justify-between">
+  // ← No overflow-y-auto, so Settings button gets pushed off-screen on short devices
+</div>
+```
+**Problem:** On devices with height < 700px, the Settings button is invisible.
 
-1. `config.py` has empty defaults for SMTP settings
-2. Production server (Render) has no SMTP credentials configured
-3. The condition `not settings.SMTP_USER` is True in production
-4. Email sending is skipped silently
-5. User sees success message but receives no email
-6. Account verification becomes impossible
+### Issue 3: Connectors Confusion (P1)
+```tsx
+// StitchSidebar.tsx
+<button onClick={() => navigate('/referrals')}>
+  <span>Connectors</span>  // ← Unclear what this means
+</button>
+```
+**Problem:** "Connectors" is not a recognized term for referrals. Users don't understand what it does.
 
-**The Fix Strategy:**
+### Issue 4: No Language Selector (P1)
+```tsx
+// SettingsPage.tsx
+// Only has: Profile, Appearance, Credits, Account
+// Missing: Language section
+```
+**Problem:** Arabic-first platform has no way to switch languages.
 
-1. **Fail loudly in production** — refuse to start without SMTP config
-2. **Send emails asynchronously** — don't block registration response
-3. **Add proper error handling** — catch and log SMTP failures
-4. **Document required environment variables** — for Render deployment
+### Issue 5: Model Strength Labels (P1)
+```ts
+// modelStrength.ts
+export type ModelStrength = 'fast' | 'balanced' | 'deep';
+// Should be: 'flash' | 'think' | 'pro'
+```
+**Problem:** "fast/balanced/deep" is less intuitive than "Flash/Think/Pro".
+
+### Issue 6: Backend Not Integrated (P2)
+```ts
+// modelStrength.ts
+// TODO(backend): map this onto the chat request once the API supports it.
+```
+**Problem:** Model strength selection is localStorage-only, never sent to backend.
+
+### Issue 7: Inconsistent Navigation (P2)
+```tsx
+// StitchMobileDrawer.tsx
+<span>Settings</span>      // English
+<span>Free Plan</span>     // English
+<span>Exit</span>          // English
+
+// SettingsPage.tsx
+<h1>الإعدادات</h1>         // Arabic
+<h2>الملف الشخصي</h2>      // Arabic
+```
+**Problem:** Mixed languages create jarring UX.
 
 ==================================================
 SECTION 2: EXECUTION PROTOCOL
@@ -71,1136 +157,1414 @@ For EVERY step:
 7. **COMMIT** with evidence
 8. **REPORT** results
 
-==================================================
-SECTION 3: FIX #1 — FAIL LOUDLY IN PRODUCTION
-==================================================
-
-### Step 3.1: Update Configuration Validation
-
-**File:** `backend/app/core/config.py`
-
-**Current problematic code:**
-```python
-# Lines ~102-107
-smtp_host: str = ""
-smtp_port: int = 587
-smtp_user: str = ""
-smtp_password: str = ""
-smtp_from: str = "noreply@spetser.ai"
+**REPORT FORMAT:**
 ```
-
-**Replace with production-aware validation:**
-```python
-# SMTP Configuration (required in production)
-smtp_host: str = Field(
-    default="",
-    description="SMTP server hostname (e.g., smtp.gmail.com)"
-)
-smtp_port: int = Field(
-    default=587,
-    description="SMTP server port (587 for TLS, 465 for SSL)"
-)
-smtp_user: str = Field(
-    default="",
-    description="SMTP username (email address)"
-)
-smtp_password: str = Field(
-    default="",
-    description="SMTP password or app-specific password"
-)
-smtp_from: str = Field(
-    default="noreply@spetser.ai",
-    description="Sender email address"
-)
-smtp_use_tls: bool = Field(
-    default=True,
-    description="Use TLS for SMTP connection"
-)
-
-@field_validator("smtp_user", "smtp_password", "smtp_host")
-@classmethod
-def validate_smtp_in_production(cls, v: str, info: ValidationInfo) -> str:
-    """Fail fast in production if SMTP is not configured."""
-    values = info.data
-    app_env = values.get("app_env", "development")
-    
-    if app_env == "production" and not v:
-        field_name = info.field_name
-        raise ValueError(
-            f"{field_name} is required in production. "
-            f"Set {field_name.upper()} environment variable."
-        )
-    return v
-```
-
-**Why this works:**
-- Pydantic's `field_validator` runs during config initialization
-- If `APP_ENV=production` and SMTP vars are empty, the app **refuses to start**
-- Error message is clear: tells operator exactly which env var to set
-- Development mode still works with empty values
-
-### Step 3.2: Test Configuration Validation
-
-**File to create:** `backend/tests/unit/test_smtp_config.py`
-
-```python
-"""
-SMTP Configuration Validation Tests
-─────────────────────────────────────
-Ensures the app fails fast in production without SMTP config.
-"""
-import pytest
-from pydantic import ValidationError
-from app.core.config import Settings
-
-
-def test_development_allows_empty_smtp():
-    """Development mode should work without SMTP config."""
-    settings = Settings(
-        app_env="development",
-        app_secret_key="test-secret-key-at-least-32-chars-long",
-        session_secret_key="test-session-key-at-least-32-chars-long",
-        # SMTP fields intentionally empty
-    )
-    assert settings.smtp_user == ""
-    assert settings.smtp_password == ""
-
-
-def test_production_requires_smtp_user():
-    """Production must have SMTP_USER configured."""
-    with pytest.raises(ValidationError) as exc_info:
-        Settings(
-            app_env="production",
-            app_secret_key="test-secret-key-at-least-32-chars-long",
-            session_secret_key="test-session-key-at-least-32-chars-long",
-            smtp_user="",  # ← Empty in production
-            smtp_password="some-password",
-            smtp_host="smtp.gmail.com",
-        )
-    
-    errors = exc_info.value.errors()
-    assert any("smtp_user" in str(e["loc"]) for e in errors)
-    assert any("required in production" in e["msg"] for e in errors)
-
-
-def test_production_requires_smtp_password():
-    """Production must have SMTP_PASSWORD configured."""
-    with pytest.raises(ValidationError) as exc_info:
-        Settings(
-            app_env="production",
-            app_secret_key="test-secret-key-at-least-32-chars-long",
-            session_secret_key="test-session-key-at-least-32-chars-long",
-            smtp_user="user@example.com",
-            smtp_password="",  # ← Empty in production
-            smtp_host="smtp.gmail.com",
-        )
-    
-    errors = exc_info.value.errors()
-    assert any("smtp_password" in str(e["loc"]) for e in errors)
-
-
-def test_production_requires_smtp_host():
-    """Production must have SMTP_HOST configured."""
-    with pytest.raises(ValidationError) as exc_info:
-        Settings(
-            app_env="production",
-            app_secret_key="test-secret-key-at-least-32-chars-long",
-            session_secret_key="test-session-key-at-least-32-chars-long",
-            smtp_user="user@example.com",
-            smtp_password="password",
-            smtp_host="",  # ← Empty in production
-        )
-    
-    errors = exc_info.value.errors()
-    assert any("smtp_host" in str(e["loc"]) for e in errors)
-
-
-def test_production_with_valid_smtp_succeeds():
-    """Production with all SMTP vars should initialize successfully."""
-    settings = Settings(
-        app_env="production",
-        app_secret_key="test-secret-key-at-least-32-chars-long",
-        session_secret_key="test-session-key-at-least-32-chars-long",
-        smtp_user="user@example.com",
-        smtp_password="password123",
-        smtp_host="smtp.gmail.com",
-        smtp_port=587,
-        smtp_from="noreply@example.com",
-    )
-    assert settings.smtp_user == "user@example.com"
-```
-
-**Run the tests:**
-```bash
-cd backend
-python -m pytest tests/unit/test_smtp_config.py -v
-```
-
-**Expected:** All 5 tests PASS.
-
-### Step 3.3: Commit Fix #1
-
-```bash
-git add backend/app/core/config.py backend/tests/unit/test_smtp_config.py
-git commit -m "fix(config): fail fast in production without SMTP configuration
-
-- Add field_validator to reject empty SMTP_USER/PASSWORD/HOST in production
-- Provide clear error messages naming the missing environment variable
-- Development mode still works with empty SMTP config
-- Add 5 unit tests covering all validation scenarios
-- Closes: silent email skip in production (P0 email delivery bug)"
+✅ Fix #X — [Issue name]
+   Files modified: [list]
+   Tests: [X/Y passed]
+   Visual check: [pass/fail]
+   Committed: [hash]
 ```
 
 ==================================================
-SECTION 4: FIX #2 — SEND EMAILS ASYNCHRONOUSLY
+SECTION 3: FIX #1 — REMOVE STATUS BAR SIMULATION (P0)
 ==================================================
 
-### Step 4.1: Add Background Task Infrastructure
+### Step 3.1: Inspect Current Code
 
-**File to update:** `backend/app/services/email_service.py`
+**File:** `frontend/src/components/stitch/StitchMobileHome.tsx`
 
-**Replace the entire `send_verification_email` function:**
-
-```python
-"""
-Email sending service for Spetser AI.
-─────────────────────────────────────────
-Sends emails asynchronously via SMTP with proper error handling.
-
-In development (DEBUG=True or no SMTP_USER): prints to console
-In production: sends via configured SMTP server
-"""
-import smtplib
-import ssl
-import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from typing import Optional
-
-from fastapi import BackgroundTasks
-
-from app.core.config import get_settings
-from app.core.exceptions import ExternalServiceError
-
-logger = logging.getLogger("spetser.email")
-
-
-async def send_email_background(
-    to_email: str,
-    subject: str,
-    html_body: str,
-    background_tasks: BackgroundTasks,
-) -> None:
-    """
-    Queue email for background sending.
-    
-    This function returns immediately (doesn't block the HTTP response).
-    The actual sending happens in a background task after the response is sent.
-    
-    Args:
-        to_email: Recipient email address
-        subject: Email subject line
-        html_body: HTML content of the email
-        background_tasks: FastAPI BackgroundTasks instance (injected via Depends)
-    """
-    background_tasks.add_task(
-        _send_email_task,
-        to_email=to_email,
-        subject=subject,
-        html_body=html_body,
-    )
-
-
-async def _send_email_task(
-    to_email: str,
-    subject: str,
-    html_body: str,
-) -> None:
-    """
-    Background task that actually sends the email.
-    
-    This runs after the HTTP response is sent, so failures don't affect
-    the user's experience but are logged for debugging.
-    """
-    settings = get_settings()
-    
-    # Development mode: print to console
-    if settings.app_env == "development" or not settings.smtp_user:
-        logger.info(
-            "[DEV MODE] Email would be sent to %s:\nSubject: %s\nBody:\n%s",
-            to_email,
-            subject,
-            html_body,
-        )
-        return
-    
-    # Production mode: send via SMTP
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = settings.smtp_from
-        msg["To"] = to_email
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
-        
-        # Create SSL context for secure connection
-        context = ssl.create_default_context()
-        
-        # Connect to SMTP server
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
-            if settings.smtp_use_tls:
-                server.starttls(context=context)
-            
-            server.login(settings.smtp_user, settings.smtp_password)
-            server.send_message(msg)
-            
-        logger.info("Email sent successfully to %s", to_email)
-        
-    except smtplib.SMTPAuthenticationError as e:
-        logger.error(
-            "SMTP authentication failed for %s: %s",
-            to_email,
-            str(e),
-        )
-        # Don't raise — this is a background task, user already saw success
-    
-    except smtplib.SMTPException as e:
-        logger.error(
-            "SMTP error sending email to %s: %s",
-            to_email,
-            str(e),
-        )
-    
-    except Exception as e:
-        logger.exception(
-            "Unexpected error sending email to %s: %s",
-            to_email,
-            str(e),
-        )
-
-
-async def send_verification_email(
-    to_email: str,
-    code: str,
-    background_tasks: Optional[BackgroundTasks] = None,
-) -> None:
-    """
-    Send OTP verification email.
-    
-    If background_tasks is provided, sends asynchronously (recommended).
-    Otherwise, sends synchronously (legacy behavior, blocks response).
-    """
-    subject = "رمز التحقق - Spetser AI"
-    
-    html_body = f"""
-    <div dir="rtl" style="font-family: 'Noto Sans Arabic', sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
-        <div style="background: #F9F8F4; border-radius: 12px; padding: 32px; border: 1px solid #E5E7EB;">
-            <h2 style="color: #01696D; margin-top: 0;">مرحباً بك في Spetser AI</h2>
-            <p style="font-size: 16px; line-height: 1.6; color: #1A1A1A;">
-                رمز التحقق الخاص بك هو:
-            </p>
-            <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; 
-                        color: #01696D; padding: 24px; background: #E6F4F4; 
-                        border-radius: 12px; text-align: center; margin: 24px 0;
-                        border: 2px solid #01696D;">
-                {code}
-            </div>
-            <p style="color: #6B7280; font-size: 14px;">
-                هذا الرمز صالح لمدة 15 دقيقة فقط.
-            </p>
-            <p style="color: #6B7280; font-size: 14px;">
-                إذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.
-            </p>
-            <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;">
-            <p style="color: #9CA3AF; font-size: 12px; text-align: center;">
-                © 2026 Spetser AI — منصة تعليمية ذكية للطلاب العرب
-            </p>
-        </div>
+**Current problematic section (lines ~56-73):**
+```tsx
+{/* ── Status Bar Simulation & Top Bar ──────────────────────────────── */}
+<header className="w-full pt-safe z-30 flex flex-col pt-1">
+  {/* Top System Indicators — DELETE THIS ENTIRE BLOCK */}
+  <div className="px-6 pt-2 pb-1 flex items-center justify-between text-xs text-graphite tracking-normal font-sans">
+    <div className="flex items-center gap-1.5 font-medium text-[13px]">
+      <span>{currentTime}</span>
+      <span className="material-symbols-outlined text-[13px] text-graphite">sentiment_satisfied</span>
+      <span className="material-symbols-outlined text-[13px] text-graphite">near_me</span>
     </div>
-    """
-    
-    if background_tasks is not None:
-        # Async mode (recommended)
-        await send_email_background(to_email, subject, html_body, background_tasks)
-    else:
-        # Sync mode (legacy, blocks)
-        await _send_email_task(to_email, subject, html_body)
-
-
-async def send_reset_email(
-    to_email: str,
-    code: str,
-    background_tasks: Optional[BackgroundTasks] = None,
-) -> None:
-    """Send password reset email."""
-    subject = "إعادة تعيين كلمة المرور - Spetser AI"
-    
-    html_body = f"""
-    <div dir="rtl" style="font-family: 'Noto Sans Arabic', sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
-        <div style="background: #F9F8F4; border-radius: 12px; padding: 32px; border: 1px solid #E5E7EB;">
-            <h2 style="color: #01696D; margin-top: 0;">إعادة تعيين كلمة المرور</h2>
-            <p style="font-size: 16px; line-height: 1.6; color: #1A1A1A;">
-                لقد طلبت إعادة تعيين كلمة المرور. رمز التحقق الخاص بك هو:
-            </p>
-            <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; 
-                        color: #01696D; padding: 24px; background: #E6F4F4; 
-                        border-radius: 12px; text-align: center; margin: 24px 0;
-                        border: 2px solid #01696D;">
-                {code}
-            </div>
-            <p style="color: #6B7280; font-size: 14px;">
-                هذا الرمز صالح لمدة 15 دقيقة فقط.
-            </p>
-            <p style="color: #DC2626; font-size: 14px; font-weight: bold;">
-                إذا لم تطلب هذا، يرجى تغيير كلمة المرور فوراً وتأمين حسابك.
-            </p>
-        </div>
+    <div className="flex items-center gap-1.5 text-[12px]">
+      <span className="material-symbols-outlined text-[14px]">wifi</span>
+      <span className="text-[11px] font-semibold">4G</span>
+      <span className="material-symbols-outlined text-[14px]">signal_cellular_alt</span>
+      <div className="flex items-center border border-warm-mist rounded-full px-1 text-[10px] leading-tight text-graphite font-medium">
+        33
+      </div>
     </div>
-    """
-    
-    if background_tasks is not None:
-        await send_email_background(to_email, subject, html_body, background_tasks)
-    else:
-        await _send_email_task(to_email, subject, html_body)
+  </div>
+
+  {/* Main Navigation Bar — KEEP THIS */}
+  <div className="px-5 h-12 flex items-center justify-between mt-1">
+    {/* Hamburger Menu */}
+    <button onClick={onOpenMenu} aria-label="Menu" className="...">
+      <span className="w-4 h-[1.75px] bg-ink rounded-full"></span>
+      <span className="w-4 h-[1.75px] bg-ink rounded-full"></span>
+      <span className="w-2.5 h-[1.75px] bg-ink rounded-full"></span>
+    </button>
+
+    {/* Wordmark */}
+    <div className="flex items-center gap-1.5">
+      <span className="font-sans font-medium text-[15px] tracking-tight text-ink">
+        {BRAND.nameEn}
+      </span>
+    </div>
+
+    {/* Profile Button */}
+    <button onClick={() => navigate('/settings')} aria-label="Profile" className="...">
+      <span className="material-symbols-outlined text-[24px]">account_circle</span>
+    </button>
+  </div>
+</header>
+```
+
+### Step 3.2: Remove Status Bar Simulation
+
+**Action:** Delete the entire "Top System Indicators" div (lines ~60-72), keeping only the "Main Navigation Bar".
+
+**Updated code:**
+```tsx
+{/* ── Top Bar ───────────────────────────────────────────────────────── */}
+<header className="w-full pt-safe z-30 flex flex-col">
+  {/* Main Navigation Bar */}
+  <div className="px-5 h-12 flex items-center justify-between">
+    {/* Minimalist Hamburger Menu */}
+    <button
+      onClick={onOpenMenu}
+      aria-label="Menu"
+      className="w-10 h-10 flex flex-col justify-center items-start gap-1.5 text-graphite hover:text-ink transition-colors focus:outline-none cursor-pointer"
+    >
+      <span className="w-4 h-[1.75px] bg-ink rounded-full"></span>
+      <span className="w-4 h-[1.75px] bg-ink rounded-full"></span>
+      <span className="w-2.5 h-[1.75px] bg-ink rounded-full"></span>
+    </button>
+
+    {/* Wordmark / Center Brand */}
+    <div className="flex items-center gap-1.5">
+      <span className="font-sans font-medium text-[15px] tracking-tight text-ink">
+        {BRAND.nameEn}
+      </span>
+    </div>
+
+    {/* Profile Avatar Outline / Settings */}
+    <button
+      onClick={() => navigate('/settings')}
+      aria-label="Profile"
+      className="w-9 h-9 flex items-center justify-center text-graphite hover:text-ink transition-colors focus:outline-none cursor-pointer"
+    >
+      <span className="material-symbols-outlined text-[24px]">account_circle</span>
+    </button>
+  </div>
+</header>
 ```
 
 **Key changes:**
-1. **BackgroundTasks support** — emails sent after HTTP response
-2. **Proper error logging** — no silent failures
-3. **Development mode detection** — prints to console when SMTP not configured
-4. **Production validation** — relies on config.py validator to fail fast
-5. **Better HTML templates** — improved Arabic email design
+- Removed fake status bar icons (wifi, 4G, signal, battery)
+- Removed `currentTime` display (redundant with system clock)
+- Kept `pt-safe` to respect Android notch/status bar
+- Simplified header structure
 
-### Step 4.2: Update Auth Routes to Use Background Tasks
+### Step 3.3: Remove Unused `currentTime` State
 
-**File:** `backend/app/api/v1/routes/auth.py`
+**If `currentTime` is no longer used anywhere in the file, remove it:**
 
-**Find the register endpoint and update it:**
+```tsx
+// DELETE these lines if they exist:
+// const [currentTime, setCurrentTime] = useState('');
+// useEffect(() => {
+//   const updateTime = () => {
+//     const now = new Date();
+//     setCurrentTime(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+//   };
+//   updateTime();
+//   const interval = setInterval(updateTime, 60000);
+//   return () => clearInterval(interval);
+// }, []);
+```
+
+### Step 3.4: Test Visual Appearance
+
+**Manual testing checklist:**
+
+```bash
+cd frontend
+npm run dev
+```
+
+- [ ] Open on mobile device or Chrome DevTools mobile emulation
+- [ ] Verify no fake status bar icons appear
+- [ ] Verify real Android/iOS status bar is visible and not overlapped
+- [ ] Verify hamburger menu, brand name, and profile button are still visible
+- [ ] Verify `pt-safe` prevents overlap with device notch
+
+### Step 3.5: Commit Fix #1
+
+```bash
+git add frontend/src/components/stitch/StitchMobileHome.tsx
+git commit -m "fix(ui): remove fake status bar simulation from mobile home
+
+- Delete status bar icons (wifi, 4G, signal, battery) that overlap with real Android status bar
+- Remove redundant currentTime display (system clock already shows this)
+- Keep pt-safe padding to respect device notch
+- Simplify header to only show hamburger menu, brand, and profile button
+- Closes: visual clutter on mobile devices"
+```
+
+==================================================
+SECTION 4: FIX #2 — DRAWER OVERFLOW (P0)
+==================================================
+
+### Step 4.1: Inspect Current Code
+
+**File:** `frontend/src/components/stitch/StitchMobileDrawer.tsx`
+
+**Current problematic structure:**
+```tsx
+<div className="relative w-72 max-w-[80vw] h-full bg-surface-container-low border-r border-warm-mist shadow-xl flex flex-col justify-between p-space-lg z-10 animate-in slide-in-from-left duration-200">
+  {/* Top: Brand + New Thread + Navigation */}
+  <div className="flex flex-col gap-space-lg">
+    {/* ... navigation items ... */}
+  </div>
+
+  {/* Bottom: Settings + Profile */}
+  <div className="flex flex-col gap-space-xs pt-space-md border-t border-warm-mist">
+    <button onClick={() => handleNav('/settings')}>
+      <span>Settings</span>
+    </button>
+    {/* ... profile box ... */}
+  </div>
+</div>
+```
+
+**Problem:** `h-full` + `justify-between` without `overflow-y-auto` causes Settings button to be pushed off-screen on devices with height < 700px.
+
+### Step 4.2: Fix Overflow Issue
+
+**Updated structure:**
+```tsx
+<div className="relative w-72 max-w-[80vw] h-dvh bg-surface-container-low border-r border-warm-mist shadow-xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
+  {/* Scrollable content area */}
+  <div className="flex-1 overflow-y-auto p-space-lg pb-safe">
+    {/* Top: Brand + New Thread + Navigation */}
+    <div className="flex flex-col gap-space-lg">
+      {/* Brand */}
+      <div
+        onClick={() => { navigate('/'); onClose(); }}
+        className="flex items-center gap-space-sm px-space-xs py-space-xs cursor-pointer group"
+      >
+        <img src={BRAND.iconSvg} alt="" className="w-6 h-6 object-contain group-hover:scale-110 transition-transform duration-300" />
+        <span className="font-headline-md text-headline-md tracking-tight text-ink font-semibold">
+          {BRAND.nameEn}
+        </span>
+      </div>
+
+      {/* New Thread Button */}
+      <button
+        type="button"
+        onClick={handleNew}
+        className="w-full flex items-center gap-space-md px-space-md py-space-sm bg-primary text-on-primary rounded-lg font-medium cursor-pointer hover:bg-primary-hover transition-colors"
+      >
+        <span className="material-symbols-outlined text-[20px]">add</span>
+        <span>New Thread</span>
+      </button>
+
+      {/* Navigation Items */}
+      <nav className="flex flex-col gap-space-xs">
+        <button
+          type="button"
+          onClick={() => handleNav('/history')}
+          className="w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-graphite hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-[20px]">history</span>
+          <span>Library</span>
+        </button>
+      </nav>
+
+      {/* Recent Conversations */}
+      {conversations.length > 0 && (
+        <div className="flex flex-col gap-space-xs">
+          <span className="px-space-md font-label-xs text-label-xs text-ash uppercase tracking-wider">
+            Recent
+          </span>
+          {conversations.slice(0, 10).map((conv) => (
+            <button
+              key={conv.id}
+              type="button"
+              onClick={() => handleNav(`/chat/${conv.id}`)}
+              className="w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-graphite hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md cursor-pointer text-left"
+            >
+              <span className="material-symbols-outlined text-[20px]">chat</span>
+              <span className="truncate">{conv.title || 'Untitled'}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+
+  {/* Fixed bottom: Settings + Profile (always visible) */}
+  <div className="flex flex-col gap-space-xs p-space-lg border-t border-warm-mist bg-surface-container-low pb-safe">
+    <button
+      type="button"
+      onClick={() => handleNav('/settings')}
+      className="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-graphite hover:bg-surface-container-high hover:text-on-surface font-label-md text-label-md text-left cursor-pointer"
+    >
+      <span className="material-symbols-outlined text-[20px]">settings</span>
+      <span>Settings</span>
+    </button>
+
+    <div className="flex items-center justify-between px-space-md py-space-sm rounded-lg bg-soft-paper border border-warm-mist mt-space-xs">
+      <div
+        onClick={() => handleNav('/settings')}
+        className="flex items-center gap-space-sm cursor-pointer truncate flex-1"
+      >
+        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
+          <span className="material-symbols-outlined text-on-primary text-[18px]">person</span>
+        </div>
+        <div className="flex flex-col truncate">
+          <span className="font-label-sm text-label-sm text-ink font-medium truncate">
+            {student?.display_name || 'Guest'}
+          </span>
+          <span className="font-label-xs text-label-xs text-ash">
+            {isAuthenticated ? 'Free Plan' : 'Sign In'}
+          </span>
+        </div>
+      </div>
+      {isAuthenticated ? (
+        <button
+          type="button"
+          onClick={() => { void logout(); onClose(); }}
+          className="text-xs text-error font-medium hover:underline p-1 shrink-0"
+        >
+          Exit
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => handleNav('/login')}
+          className="text-xs text-primary font-medium hover:underline p-1 shrink-0"
+        >
+          Sign In
+        </button>
+      )}
+    </div>
+  </div>
+</div>
+```
+
+**Key changes:**
+1. Changed `h-full` → `h-dvh` (dynamic viewport height, respects browser chrome)
+2. Removed `justify-between` from outer container
+3. Added `flex-1 overflow-y-auto` to scrollable content area
+4. Moved Settings + Profile to fixed bottom section (always visible)
+5. Added `pb-safe` to respect device home indicator
+6. Fixed English text: "Scholar Pro" → "Guest", kept "Settings", "Free Plan", "Exit" (will fix in Issue #7)
+
+### Step 4.3: Add Safe Area CSS
+
+**File:** `frontend/src/styles/global.css` (or equivalent)
+
+**Add:**
+```css
+/* Safe area padding for notched devices */
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pl-safe { padding-left: env(safe-area-inset-left); }
+.pr-safe { padding-right: env(safe-area-inset-right); }
+```
+
+### Step 4.4: Test on Multiple Screen Heights
+
+**Manual testing checklist:**
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open Chrome DevTools → Device Mode → Test these heights:
+- [ ] 667px (iPhone SE)
+- [ ] 740px (iPhone 12 mini)
+- [ ] 844px (iPhone 12/13/14)
+- [ ] 915px (iPhone 14 Pro Max)
+- [ ] 600px (short Android device)
+
+**Verify:**
+- [ ] Settings button is always visible at bottom
+- [ ] Navigation items scroll if too many
+- [ ] No content cut off at bottom
+- [ ] Safe area padding respects device notch/home indicator
+
+### Step 4.5: Commit Fix #2
+
+```bash
+git add frontend/src/components/stitch/StitchMobileDrawer.tsx frontend/src/styles/global.css
+git commit -m "fix(ui): fix drawer overflow on short mobile screens
+
+- Change h-full to h-dvh for dynamic viewport height
+- Add flex-1 overflow-y-auto to scrollable content area
+- Move Settings + Profile to fixed bottom section (always visible)
+- Add pb-safe padding for device home indicator
+- Test on 667px, 740px, 844px, 915px, 600px heights
+- Closes: Settings button hidden on short devices"
+```
+
+==================================================
+SECTION 5: FIX #3 — REMOVE CONNECTORS BUTTON (P1)
+==================================================
+
+### Step 5.1: Inspect Current Code
+
+**File 1:** `frontend/src/components/stitch/StitchSidebar.tsx`
+
+**Current code:**
+```tsx
+{/* Workspace Section */}
+<div className="pt-space-md border-t border-warm-mist flex flex-col gap-space-xs">
+  <span className="px-space-md font-label-xs text-label-xs text-ash uppercase tracking-wider">
+    Workspace
+  </span>
+
+  <button
+    type="button"
+    onClick={() => navigate('/referrals')}
+    className="w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-graphite hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md cursor-pointer"
+  >
+    <span className="material-symbols-outlined text-[20px]">hub</span>
+    <span>Connectors</span>
+  </button>
+</div>
+```
+
+**File 2:** `frontend/src/components/stitch/StitchMobileDrawer.tsx`
+
+**Check if Connectors button exists here too.** If yes, remove it.
+
+### Step 5.2: Remove Connectors from StitchSidebar
+
+**Action:** Delete the entire "Workspace Section" div.
+
+**Updated code:**
+```tsx
+// DELETE this entire section:
+// <div className="pt-space-md border-t border-warm-mist flex flex-col gap-space-xs">
+//   <span>Workspace</span>
+//   <button onClick={() => navigate('/referrals')}>
+//     <span>Connectors</span>
+//   </button>
+// </div>
+```
+
+**If you want to keep referrals accessible, add it to Settings page instead (see Fix #4).**
+
+### Step 5.3: Remove Connectors from StitchMobileDrawer (if exists)
+
+**Search for:**
+```tsx
+<span>Connectors</span>
+```
+
+**If found, delete the entire button.**
+
+### Step 5.4: Test Navigation
+
+**Manual testing checklist:**
+
+- [ ] StitchSidebar no longer shows "Connectors" button
+- [ ] StitchMobileDrawer no longer shows "Connectors" button
+- [ ] `/referrals` route still works (if accessed via direct URL or settings page)
+- [ ] No broken links or 404 errors
+
+### Step 5.5: Commit Fix #3
+
+```bash
+git add frontend/src/components/stitch/StitchSidebar.tsx frontend/src/components/stitch/StitchMobileDrawer.tsx
+git commit -m "fix(ui): remove confusing Connectors button from navigation
+
+- Delete 'Connectors' button from StitchSidebar (Workspace section)
+- Delete 'Connectors' button from StitchMobileDrawer (if exists)
+- /referrals route still accessible via direct URL
+- Closes: unclear 'Connectors' terminology for referrals"
+```
+
+==================================================
+SECTION 6: FIX #4 — ADD LANGUAGE SELECTOR (P1)
+==================================================
+
+### Step 6.1: Create Language Context
+
+**File to create:** `frontend/src/contexts/LanguageContext.tsx`
+
+```tsx
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+type Language = 'ar' | 'en';
+
+interface LanguageContextType {
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: (key: string) => string;
+}
+
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+
+// Basic translations (expand as needed)
+const translations: Record<Language, Record<string, string>> = {
+  ar: {
+    'settings.title': 'الإعدادات',
+    'settings.profile': 'الملف الشخصي',
+    'settings.appearance': 'المظهر',
+    'settings.language': 'اللغة',
+    'settings.credits': 'الرصيد',
+    'settings.account': 'الحساب',
+    'settings.logout': 'تسجيل الخروج',
+    'settings.darkMode': 'الوضع الليلي',
+    'settings.lightMode': 'الوضع النهاري',
+    'language.arabic': 'العربية',
+    'language.english': 'English',
+    'nav.newThread': 'محادثة جديدة',
+    'nav.library': 'المكتبة',
+    'nav.settings': 'الإعدادات',
+    'nav.signOut': 'خروج',
+    'nav.signIn': 'تسجيل الدخول',
+  },
+  en: {
+    'settings.title': 'Settings',
+    'settings.profile': 'Profile',
+    'settings.appearance': 'Appearance',
+    'settings.language': 'Language',
+    'settings.credits': 'Credits',
+    'settings.account': 'Account',
+    'settings.logout': 'Sign Out',
+    'settings.darkMode': 'Dark Mode',
+    'settings.lightMode': 'Light Mode',
+    'language.arabic': 'العربية',
+    'language.english': 'English',
+    'nav.newThread': 'New Thread',
+    'nav.library': 'Library',
+    'nav.settings': 'Settings',
+    'nav.signOut': 'Sign Out',
+    'nav.signIn': 'Sign In',
+  },
+};
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<Language>(() => {
+    const stored = localStorage.getItem('spetser.language');
+    return (stored === 'ar' || stored === 'en') ? stored : 'ar';
+  });
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    localStorage.setItem('spetser.language', lang);
+    
+    // Update HTML attributes
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  };
+
+  const t = (key: string): string => {
+    return translations[language][key] || key;
+  };
+
+  useEffect(() => {
+    // Set initial HTML attributes
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+  }, [language]);
+
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+}
+
+export function useLanguage() {
+  const context = useContext(LanguageContext);
+  if (!context) {
+    throw new Error('useLanguage must be used within LanguageProvider');
+  }
+  return context;
+}
+```
+
+### Step 6.2: Wrap App with LanguageProvider
+
+**File:** `frontend/src/App.tsx` (or equivalent)
+
+```tsx
+import { LanguageProvider } from './contexts/LanguageContext';
+
+function App() {
+  return (
+    <LanguageProvider>
+      {/* ... existing app code ... */}
+    </LanguageProvider>
+  );
+}
+```
+
+### Step 6.3: Add Language Selector to SettingsPage
+
+**File:** `frontend/src/pages/SettingsPage.tsx`
+
+**Add after "Appearance" section:**
+
+```tsx
+import { useLanguage } from '../contexts/LanguageContext';
+
+export function SettingsPage() {
+  const { student, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const { balance, isLow } = useCredits();
+  const { language, setLanguage, t } = useLanguage();  // ← Add this
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  return (
+    <div className="fade-in settings">
+      <header className="settings__header">
+        <h1 className="settings__title">{t('settings.title')}</h1>
+        <p className="settings__desc">إدارة ملفك الشخصي وتفضيلاتك</p>
+      </header>
+
+      {/* ── Profile ─────────────────────────────────────────────────── */}
+      <section className="card settings__section" aria-labelledby="settings-profile">
+        <h2 id="settings-profile" className="settings__section-title">
+          {t('settings.profile')}
+        </h2>
+        <div className="field">
+          <span className="field__label">الاسم</span>
+          <div className="settings__value">{student?.display_name || '—'}</div>
+        </div>
+        <div className="field">
+          <span className="field__label">البريد الإلكتروني</span>
+          <div className="settings__value">{student?.email}</div>
+        </div>
+      </section>
+
+      {/* ── Appearance ──────────────────────────────────────────────── */}
+      <section className="card settings__section" aria-labelledby="settings-appearance">
+        <h2 id="settings-appearance" className="settings__section-title">
+          {t('settings.appearance')}
+        </h2>
+        <button
+          type="button"
+          className="btn btn--secondary btn--full"
+          onClick={toggleTheme}
+          aria-label={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}
+        >
+          {theme === 'light' ? (
+            <Moon size={16} aria-hidden="true" />
+          ) : (
+            <Sun size={16} aria-hidden="true" />
+          )}
+          <span>{theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}</span>
+        </button>
+      </section>
+
+      {/* ── Language ────────────────────────────────────────────────── */}
+      <section className="card settings__section" aria-labelledby="settings-language">
+        <h2 id="settings-language" className="settings__section-title">
+          {t('settings.language')}
+        </h2>
+        <select
+          className="input input--full"
+          value={language}
+          onChange={(e) => setLanguage(e.target.value as 'ar' | 'en')}
+          aria-label={t('settings.language')}
+        >
+          <option value="ar">{t('language.arabic')}</option>
+          <option value="en">{t('language.english')}</option>
+        </select>
+      </section>
+
+      {/* ── Credits ─────────────────────────────────────────────────── */}
+      <section className="card settings__section" aria-labelledby="settings-credits">
+        <h2 id="settings-credits" className="settings__section-title">
+          {t('settings.credits')}
+        </h2>
+        <div className="settings__credits">
+          <Zap size={18} aria-hidden="true" className="text-accent" />
+          <span className="settings__credits-value">{balance.toFixed(0)} نقطة</span>
+          {isLow && <span className="badge badge--error">رصيد منخفض</span>}
+        </div>
+        <p className="settings__note">سيتم تفعيل الرصيد اليومي المجاني في التحديث القادم.</p>
+      </section>
+
+      {/* ── Account ─────────────────────────────────────────────────── */}
+      <section className="card settings__section" aria-labelledby="settings-account">
+        <h2 id="settings-account" className="settings__section-title">
+          {t('settings.account')}
+        </h2>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            className="btn btn--danger btn--full"
+            onClick={handleLogout}
+          >
+            <LogOut size={16} aria-hidden="true" />
+            <span>{t('settings.logout')}</span>
+          </button>
+          <Link to="/" className="btn btn--ghost btn--full">العودة إلى الرئيسية</Link>
+        </div>
+      </section>
+    </div>
+  );
+}
+```
+
+**Key changes:**
+- Added `useLanguage()` hook
+- Added Language section with dropdown
+- Replaced hardcoded Arabic text with `t('key')` calls
+- Language change updates `document.documentElement.lang` and `.dir`
+
+### Step 6.4: Test Language Selector
+
+**Manual testing checklist:**
+
+```bash
+cd frontend
+npm run dev
+```
+
+- [ ] Settings page shows Language dropdown
+- [ ] Selecting "English" changes UI to English (where translations exist)
+- [ ] Selecting "العربية" changes UI back to Arabic
+- [ ] Language preference persists after page reload
+- [ ] `document.documentElement.lang` updates correctly
+- [ ] `document.documentElement.dir` updates (rtl/ltr)
+
+### Step 6.5: Commit Fix #4
+
+```bash
+git add frontend/src/contexts/LanguageContext.tsx frontend/src/App.tsx frontend/src/pages/SettingsPage.tsx
+git commit -m "feat(i18n): add language selector to settings page
+
+- Create LanguageContext with ar/en support and localStorage persistence
+- Add Language dropdown to SettingsPage
+- Update document.documentElement.lang and .dir on language change
+- Replace hardcoded Arabic text with t() translation function
+- Wrap App with LanguageProvider
+- Closes: missing language selector in Arabic-first platform"
+```
+
+==================================================
+SECTION 7: FIX #5 — UPDATE MODEL STRENGTH LABELS (P1)
+==================================================
+
+### Step 7.1: Update modelStrength.ts
+
+**File:** `frontend/src/lib/modelStrength.ts`
+
+**Current code:**
+```ts
+export type ModelStrength = 'fast' | 'balanced' | 'deep';
+
+export const MODEL_STRENGTHS: { value: ModelStrength; label: string }[] = [
+  { value: 'fast', label: 'سريع' },
+  { value: 'balanced', label: 'متوازن' },
+  { value: 'deep', label: 'عميق' },
+];
+```
+
+**Updated code:**
+```ts
+/**
+ * lib/modelStrength.ts — "AI model strength" selector state.
+ * 
+ * Phase 1 (frontend-only): the choice is persisted locally and NOT sent to
+ * the API. The backend phase maps these values onto the chat request.
+ */
+
+export type ModelStrength = 'flash' | 'think' | 'pro';
+
+export const MODEL_STRENGTHS: { value: ModelStrength; label: string; description: string }[] = [
+  { 
+    value: 'flash', 
+    label: 'Flash',
+    description: 'Fast responses for simple questions'
+  },
+  { 
+    value: 'think', 
+    label: 'Think',
+    description: 'Balanced analysis for most tasks'
+  },
+  { 
+    value: 'pro', 
+    label: 'Pro',
+    description: 'Deep reasoning for complex problems'
+  },
+];
+
+const STORAGE_KEY = 'spetser.modelStrength';
+
+export function getModelStrength(): ModelStrength {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'flash' || stored === 'think' || stored === 'pro') return stored;
+  } catch {
+    /* ignore */
+  }
+  return 'think'; // Default to 'think' instead of 'balanced'
+}
+
+export function setModelStrength(value: ModelStrength): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, value);
+  } catch {
+    /* ignore */
+  }
+  // TODO(backend): map this onto the chat request once the API supports it.
+}
+```
+
+**Key changes:**
+- Changed type from `'fast' | 'balanced' | 'deep'` to `'flash' | 'think' | 'pro'`
+- Added `description` field for tooltips
+- Changed default from `'balanced'` to `'think'`
+- Updated storage validation to match new values
+
+### Step 7.2: Update Composer Component
+
+**File:** `frontend/src/components/chat/Composer.tsx` (or wherever model strength selector is)
+
+**Find the dropdown and update labels:**
+
+```tsx
+import { MODEL_STRENGTHS, getModelStrength, setModelStrength } from '../../lib/modelStrength';
+
+export function Composer({ onSend }: { onSend: (message: string) => void }) {
+  const [strength, setStrength] = useState<ModelStrength>(getModelStrength());
+
+  const handleStrengthChange = (value: ModelStrength) => {
+    setStrength(value);
+    setModelStrength(value);
+  };
+
+  return (
+    <div className="composer">
+      {/* ... existing input ... */}
+      
+      {/* Model Strength Selector */}
+      <select
+        value={strength}
+        onChange={(e) => handleStrengthChange(e.target.value as ModelStrength)}
+        className="composer__strength-selector"
+        aria-label="Model strength"
+      >
+        {MODEL_STRENGTHS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+```
+
+### Step 7.3: Test Model Strength Selector
+
+**Manual testing checklist:**
+
+- [ ] Composer shows "Flash / Think / Pro" dropdown
+- [ ] Selecting each option updates localStorage
+- [ ] Selection persists after page reload
+- [ ] Default is "Think" (not "balanced")
+
+### Step 7.4: Commit Fix #5
+
+```bash
+git add frontend/src/lib/modelStrength.ts frontend/src/components/chat/Composer.tsx
+git commit -m "feat(ui): update model strength labels to Flash/Think/Pro
+
+- Change type from 'fast|balanced|deep' to 'flash|think|pro'
+- Add description field for tooltips
+- Change default from 'balanced' to 'think'
+- Update storage validation to match new values
+- Closes: unclear 'fast/balanced/deep' terminology"
+```
+
+==================================================
+SECTION 8: FIX #6 — BACKEND INTEGRATION (P2)
+==================================================
+
+### Step 8.1: Update Backend Schema
+
+**File:** `backend/app/schemas/chat.py`
+
+**Add `model_strength` field:**
 
 ```python
-from fastapi import BackgroundTasks
-from app.services.email_service import send_verification_email
+from pydantic import BaseModel, Field
+from typing import Literal
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register(
-    request: RegisterRequest,
-    background_tasks: BackgroundTasks,  # ← Add this parameter
+class ChatCompletionRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=10000)
+    conversation_id: str | None = None
+    skill_slug: str | None = None
+    stream: bool = True
+    model_strength: Literal["flash", "think", "pro"] = Field(
+        default="think",
+        description="Model strength: flash (fast), think (balanced), pro (deep reasoning)"
+    )
+```
+
+### Step 8.2: Update Chat Route
+
+**File:** `backend/app/api/v1/routes/chat.py`
+
+**Pass `model_strength` to LLM router:**
+
+```python
+@router.post("/completions")
+async def chat_completions(
+    request: ChatCompletionRequest,
+    student: Student = Depends(get_active_student),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Register a new user account.
+    # ... existing code ...
     
-    Creates the account in unverified state and sends OTP email
-    asynchronously (doesn't block the response).
-    """
-    # Check if email already exists
-    existing = await db.execute(select(Student).where(Student.email == request.email))
-    if existing.scalar_one_or_none():
-        raise ValidationError("هذا البريد الإلكتروني مسجل بالفعل.")
+    # Map model_strength to provider/model selection
+    model_config = map_strength_to_model(request.model_strength)
     
-    # Create user (unverified)
-    from app.services.settings_service import settings_service
-    settings = await settings_service.get_settings(db)
-    
-    student = Student(
-        email=request.email,
-        name=request.name,
-        hashed_password=hash_password(request.password),
-        is_verified=False,
-        credit_balance=settings.default_new_user_credits,
+    # Pass to LLM router
+    response = await llm_router.generate_response(
+        messages=messages,
+        model_config=model_config,  # ← Add this
+        # ... other params ...
     )
-    db.add(student)
-    await db.commit()
-    await db.refresh(student)
+```
+
+### Step 8.3: Create Strength-to-Model Mapper
+
+**File to create:** `backend/app/services/model_mapping.py`
+
+```python
+from typing import Literal
+
+def map_strength_to_model(strength: Literal["flash", "think", "pro"]) -> dict:
+    """
+    Map frontend model strength to backend provider/model configuration.
     
-    # Send verification email ASYNCHRONOUSLY
-    await verification_service.initiate_verification(
-        db, student, background_tasks=background_tasks
-    )
-    
-    return {
-        "message": "تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني.",
-        "email": student.email,
-        "requires_verification": True,
+    This allows the frontend to send abstract strength levels while the
+    backend decides which actual model to use based on cost/availability.
+    """
+    mapping = {
+        "flash": {
+            "provider": "openai",  # or "anthropic", "groq", etc.
+            "model": "gpt-4o-mini",  # Fast, cheap model
+            "temperature": 0.7,
+            "max_tokens": 2048,
+        },
+        "think": {
+            "provider": "openai",
+            "model": "gpt-4o",  # Balanced model
+            "temperature": 0.7,
+            "max_tokens": 4096,
+        },
+        "pro": {
+            "provider": "anthropic",
+            "model": "claude-3-5-sonnet",  # Deep reasoning model
+            "temperature": 0.5,
+            "max_tokens": 8192,
+        },
     }
+    return mapping.get(strength, mapping["think"])
 ```
 
-**Update the verification service to accept background_tasks:**
+### Step 8.4: Update Frontend to Send model_strength
 
-**File:** `backend/app/services/verification_service.py`
+**File:** `frontend/src/lib/streaming.ts` (or wherever chat requests are made)
 
-```python
-from fastapi import BackgroundTasks
-from app.services.email_service import send_verification_email
+**Add `model_strength` to request body:**
 
-async def initiate_verification(
-    self,
-    db: AsyncSession,
-    user: Student,
-    background_tasks: Optional[BackgroundTasks] = None,  # ← Add parameter
-) -> None:
-    """Generate OTP, store hash, send email (optionally async)."""
-    otp = self.generate_otp()
-    
-    user.verification_code = self._hash_code(otp)
-    user.verification_expires_at = datetime.now(timezone.utc) + timedelta(minutes=self.OTP_TTL_MINUTES)
-    user.verification_attempts = 0
-    user.is_verified = False
-    
-    await db.commit()
-    
-    # Send email (async if background_tasks provided)
-    await send_verification_email(
-        to_email=user.email,
-        code=otp,
-        background_tasks=background_tasks,
-    )
+```ts
+import { getModelStrength } from './modelStrength';
+
+export async function* streamChat(message: string, conversationId?: string) {
+  const response = await fetch('/api/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message,
+      conversation_id: conversationId,
+      stream: true,
+      model_strength: getModelStrength(),  // ← Add this
+    }),
+  });
+
+  // ... existing streaming logic ...
+}
 ```
 
-**Do the same for the resend-code endpoint:**
+### Step 8.5: Test Backend Integration
 
-```python
-@router.post("/resend-code")
-async def resend_code(
-    request: ResendCodeRequest,
-    background_tasks: BackgroundTasks,  # ← Add this
-    db: AsyncSession = Depends(get_db),
-):
-    """Resend verification code."""
-    result = await db.execute(select(Student).where(Student.email == request.email))
-    user = result.scalar_one_or_none()
-    
-    if not user:
-        raise NotFoundError("المستخدم غير موجود.")
-    
-    await verification_service.resend_code(db, user, background_tasks=background_tasks)
-    
-    return {"message": "تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني."}
-```
-
-**And update the resend_code method in verification_service.py:**
-
-```python
-async def resend_code(
-    self,
-    db: AsyncSession,
-    user: Student,
-    background_tasks: Optional[BackgroundTasks] = None,
-) -> None:
-    """Resend a new verification code."""
-    if user.is_verified:
-        raise ValidationError("الحساب مفعّل بالفعل.")
-    await self.initiate_verification(db, user, background_tasks=background_tasks)
-```
-
-**Do the same for forgot-password endpoints:**
-
-```python
-@router.post("/forgot-password")
-async def forgot_password(
-    request: ForgotPasswordRequest,
-    background_tasks: BackgroundTasks,  # ← Add this
-    db: AsyncSession = Depends(get_db),
-):
-    """Send password reset code."""
-    result = await db.execute(select(Student).where(Student.email == request.email))
-    user = result.scalar_one_or_none()
-    
-    # Security: Don't reveal if email exists
-    if not user:
-        return {"message": "إذا كان هذا البريد مسجلاً، فسيصلك رمز التحقق."}
-    
-    await password_reset_service.initiate_reset(
-        db, user, background_tasks=background_tasks
-    )
-    return {"message": "إذا كان هذا البريد مسجلاً، فسيصلك رمز التحقق."}
-```
-
-### Step 4.3: Test Async Email Sending
-
-**File to create:** `backend/tests/integration/test_email_background.py`
-
-```python
-"""
-Email Background Task Tests
-────────────────────────────
-Verifies that emails are sent asynchronously and don't block responses.
-"""
-import pytest
-from httpx import AsyncClient
-from unittest.mock import patch, AsyncMock
-import asyncio
-
-
-@pytest.mark.asyncio
-async def test_register_returns_before_email_sent(client: AsyncClient):
-    """Register should return 201 immediately, email sent in background."""
-    with patch('app.services.email_service._send_email_task', new_callable=AsyncMock) as mock_send:
-        # Make the mock slow to prove async behavior
-        async def slow_send(*args, **kwargs):
-            await asyncio.sleep(2)  # Simulate slow email
-        
-        mock_send.side_effect = slow_send
-        
-        # Register should return quickly (< 500ms)
-        import time
-        start = time.time()
-        response = await client.post("/api/v1/auth/register", json={
-            "name": "Test User",
-            "email": "async-test@example.com",
-            "password": "SecurePass123!",
-        })
-        elapsed = time.time() - start
-        
-        assert response.status_code == 201
-        assert elapsed < 1.0, f"Register took {elapsed}s — email should be async"
-        
-        # Give background task time to complete
-        await asyncio.sleep(0.5)
-        
-        # Verify email was queued
-        assert mock_send.called
-
-
-@pytest.mark.asyncio
-async def test_email_failure_doesnt_fail_registration(client: AsyncClient):
-    """If email sending fails, registration should still succeed."""
-    with patch('app.services.email_service._send_email_task', new_callable=AsyncMock) as mock_send:
-        # Simulate SMTP failure
-        mock_send.side_effect = Exception("SMTP connection failed")
-        
-        response = await client.post("/api/v1/auth/register", json={
-            "name": "Fail Test",
-            "email": "fail-test@example.com",
-            "password": "SecurePass123!",
-        })
-        
-        # Registration should still succeed
-        assert response.status_code == 201
-        
-        # User should be created (unverified)
-        from app.models.student import Student
-        from sqlalchemy import select
-        from app.db.session import get_db
-        
-        async for db in get_db():
-            result = await db.execute(
-                select(Student).where(Student.email == "fail-test@example.com")
-            )
-            user = result.scalar_one_or_none()
-            assert user is not None
-            assert user.is_verified is False
-            break
-
-
-@pytest.mark.asyncio
-async def test_development_mode_prints_to_console(client: AsyncClient, capsys):
-    """In dev mode, email should print to console instead of sending."""
-    # Ensure we're in development mode
-    from app.core.config import get_settings
-    settings = get_settings()
-    assert settings.app_env == "development"
-    
-    response = await client.post("/api/v1/auth/register", json={
-        "name": "Dev Test",
-        "email": "dev-test@example.com",
-        "password": "SecurePass123!",
-    })
-    
-    assert response.status_code == 201
-    
-    # Wait for background task
-    await asyncio.sleep(0.2)
-    
-    # Check logs for dev mode message
-    captured = capsys.readouterr()
-    # Note: This might not capture logs depending on logging config
-    # The real test is that it doesn't crash
-```
-
-**Run the tests:**
-```bash
-python -m pytest tests/integration/test_email_background.py -v
-```
-
-**Expected:** All tests PASS.
-
-### Step 4.4: Commit Fix #2
-
-```bash
-git add backend/app/services/email_service.py \
-        backend/app/services/verification_service.py \
-        backend/app/api/v1/routes/auth.py \
-        backend/tests/integration/test_email_background.py
-
-git commit -m "feat(email): send emails asynchronously via BackgroundTasks
-
-- Refactor email_service to use FastAPI BackgroundTasks
-- Register/resend/forgot-password endpoints return immediately
-- Email sending happens after HTTP response (non-blocking)
-- Email failures logged but don't fail registration
-- Development mode prints to console instead of sending
-- Production mode sends via configured SMTP with proper error handling
-- Add integration tests proving async behavior
-- Closes: slow registration due to synchronous email sending"
-```
-
-==================================================
-SECTION 5: DEPLOYMENT — RENDER ENVIRONMENT VARIABLES
-==================================================
-
-### Step 5.1: Document Required Environment Variables
-
-**File to update:** `docs/DEPLOYMENT.md`
-
-**Add new section:**
-
-```markdown
-## Email Configuration (Required for Production)
-
-Spetser AI requires SMTP credentials to send verification and password reset emails.
-
-### Required Environment Variables
-
-Add these to your Render dashboard (Environment tab):
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SMTP_HOST` | SMTP server hostname | `smtp.gmail.com` |
-| `SMTP_PORT` | SMTP server port | `587` (TLS) or `465` (SSL) |
-| `SMTP_USER` | SMTP username (your email) | `your-email@gmail.com` |
-| `SMTP_PASSWORD` | SMTP password or app password | `your-app-password` |
-| `SMTP_FROM` | Sender email address | `noreply@spetser.ai` |
-| `APP_ENV` | Must be `production` | `production` |
-
-### Gmail Setup (Recommended for Development)
-
-1. Enable 2-factor authentication on your Gmail account
-2. Generate an **App Password**: https://myaccount.google.com/apppasswords
-3. Use the 16-character app password as `SMTP_PASSWORD`
-
-**Example Render environment:**
-```env
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=abcd1234efgh5678
-SMTP_FROM=noreply@spetser.ai
-APP_ENV=production
-```
-
-### Production Startup Validation
-
-If SMTP variables are missing in production, the app will **refuse to start** with a clear error:
-
-```
-ValidationError: smtp_user is required in production. Set SMTP_USER environment variable.
-```
-
-This prevents silent email failures in production.
-
-### Recommended SMTP Providers
-
-| Provider | Free Tier | Notes |
-|----------|-----------|-------|
-| **Gmail** | 500 emails/day | Use app password, not regular password |
-| **SendGrid** | 100 emails/day forever | Best for production |
-| **Mailgun** | 100 emails/day for 3 months | Good API |
-| **Amazon SES** | $0.10 per 1000 emails | Cheapest at scale |
-| **Postmark** | 100 emails/month forever | Excellent deliverability |
-
-### Testing Email Configuration
-
-After deploying, test email sending:
-
-```bash
-# Check Render logs for email sending
-render logs --service spetser-backend --tail 100 | grep -i email
-
-# You should see: "Email sent successfully to user@example.com"
-# NOT: "[DEV MODE] Email would be sent to..."
-```
-
-If you see `[DEV MODE]` messages, SMTP is not configured correctly.
-```
-
-### Step 5.2: Create Render Setup Script
-
-**File to create:** `scripts/setup-render-env.sh`
-
-```bash
-#!/bin/bash
-# Render Environment Setup Helper
-# ─────────────────────────────────
-# Run this locally to verify your environment variables before deploying.
-
-set -e
-
-echo "🔍 Checking required environment variables for Spetser AI..."
-echo ""
-
-# Required variables
-REQUIRED_VARS=(
-  "APP_ENV"
-  "APP_SECRET_KEY"
-  "SESSION_SECRET_KEY"
-  "DATABASE_URL"
-  "SMTP_HOST"
-  "SMTP_PORT"
-  "SMTP_USER"
-  "SMTP_PASSWORD"
-  "SMTP_FROM"
-)
-
-# Optional variables (with defaults)
-OPTIONAL_VARS=(
-  "REDIS_URL"
-  "RATE_LIMIT_BACKEND"
-  "LOG_LEVEL"
-)
-
-missing=()
-
-for var in "${REQUIRED_VARS[@]}"; do
-  if [ -z "${!var}" ]; then
-    missing+=("$var")
-    echo "❌ Missing: $var"
-  else
-    # Mask sensitive values
-    if [[ "$var" == *"SECRET"* ]] || [[ "$var" == *"PASSWORD"* ]]; then
-      echo "✅ $var = [REDACTED]"
-    else
-      echo "✅ $var = ${!var}"
-    fi
-  fi
-done
-
-echo ""
-
-if [ ${#missing[@]} -eq 0 ]; then
-  echo "✨ All required variables are set!"
-  echo ""
-  echo "You can now deploy to Render with these environment variables."
-  exit 0
-else
-  echo "⚠️  Missing ${#missing[@]} required variables:"
-  printf '  - %s\n' "${missing[@]}"
-  echo ""
-  echo "Add these to your Render dashboard or export them locally."
-  exit 1
-fi
-```
-
-**Make it executable:**
-```bash
-chmod +x scripts/setup-render-env.sh
-```
-
-### Step 5.3: Commit Deployment Docs
-
-```bash
-git add docs/DEPLOYMENT.md scripts/setup-render-env.sh
-git commit -m "docs(deployment): add SMTP configuration guide for Render
-
-- Document all required SMTP environment variables
-- Provide Gmail app password setup instructions
-- List recommended SMTP providers (SendGrid, Mailgun, SES)
-- Explain production startup validation (fails fast without SMTP)
-- Add setup-render-env.sh script to verify env vars locally
-- Closes: silent email skip due to missing SMTP config"
-```
-
-==================================================
-SECTION 6: VERIFICATION & TESTING
-==================================================
-
-### Step 6.1: Run Full Test Suite
+**Backend tests:**
 
 ```bash
 cd backend
+python -m pytest tests/integration/test_chat_endpoint.py -v
+```
 
-# Run all tests
+**Add test:**
+```python
+@pytest.mark.asyncio
+async def test_chat_with_model_strength(client: AsyncClient, authenticated_headers):
+    response = await client.post(
+        "/api/v1/chat/completions",
+        json={
+            "message": "Hello",
+            "model_strength": "pro",
+            "stream": False,
+        },
+        headers=authenticated_headers,
+    )
+    assert response.status_code == 200
+    # Verify correct model was used (check logs or response metadata)
+```
+
+### Step 8.6: Commit Fix #6
+
+```bash
+git add backend/app/schemas/chat.py backend/app/api/v1/routes/chat.py backend/app/services/model_mapping.py frontend/src/lib/streaming.ts backend/tests/integration/test_chat_endpoint.py
+git commit -m "feat(chat): integrate model strength with backend
+
+- Add model_strength field to ChatCompletionRequest schema (flash/think/pro)
+- Create model_mapping.py to map strength to provider/model
+- Update chat route to use model_strength for provider selection
+- Update frontend streaming.ts to send model_strength in request
+- Add integration test for model_strength parameter
+- Closes: model strength selection was localStorage-only"
+```
+
+==================================================
+SECTION 9: FIX #7 — UNIFY NAVIGATION TEXT (P2)
+==================================================
+
+### Step 9.1: Create Navigation Constants
+
+**File to create:** `frontend/src/lib/navigation.ts`
+
+```ts
+/**
+ * Centralized navigation items to ensure consistency across:
+ * - StitchSidebar (desktop)
+ * - StitchMobileDrawer (mobile)
+ * - Any other navigation components
+ */
+
+export interface NavItem {
+  path: string;
+  icon: string;
+  labelKey: string; // i18n key
+}
+
+export const mainNavItems: NavItem[] = [
+  { path: '/', icon: 'add', labelKey: 'nav.newThread' },
+  { path: '/history', icon: 'history', labelKey: 'nav.library' },
+];
+
+export const bottomNavItems: NavItem[] = [
+  { path: '/settings', icon: 'settings', labelKey: 'nav.settings' },
+];
+```
+
+### Step 9.2: Update StitchSidebar
+
+**File:** `frontend/src/components/stitch/StitchSidebar.tsx`
+
+**Replace hardcoded English text with i18n:**
+
+```tsx
+import { useLanguage } from '../../contexts/LanguageContext';
+import { mainNavItems, bottomNavItems } from '../../lib/navigation';
+
+export function StitchSidebar({ onNewThread }: StitchSidebarProps) {
+  const { t } = useLanguage();  // ← Add this
+  
+  // ... existing code ...
+
+  return (
+    <aside className="fixed left-0 top-0 h-full w-64 bg-surface-container-low border-r border-warm-mist z-50 flex flex-col justify-between p-space-lg select-none">
+      <div className="flex flex-col gap-space-lg">
+        {/* Brand */}
+        <div onClick={() => navigate('/')} className="...">
+          <img src={BRAND.iconSvg} alt="" className="w-6 h-6" />
+          <span className="...">{BRAND.nameEn}</span>
+        </div>
+
+        {/* Main Navigation */}
+        <nav className="flex flex-col gap-space-xs">
+          {mainNavItems.map((item) => (
+            <button
+              key={item.path}
+              type="button"
+              onClick={() => item.path === '/' ? handleNewThread() : navigate(item.path)}
+              className={`w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors font-label-md text-label-md cursor-pointer ${
+                isCurrent(item.path)
+                  ? 'bg-primary-container text-on-primary'
+                  : 'text-graphite hover:bg-surface-container-high hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+              <span>{t(item.labelKey)}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Bottom: Settings + User profile */}
+      <div className="flex flex-col gap-space-xs pt-space-md border-t border-warm-mist">
+        {bottomNavItems.map((item) => (
+          <button
+            key={item.path}
+            type="button"
+            onClick={() => navigate(item.path)}
+            className={`w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors font-label-md text-label-md cursor-pointer ${
+              isCurrent(item.path)
+                ? 'bg-surface-container-high text-on-surface font-medium'
+                : 'text-graphite hover:bg-surface-container-high hover:text-on-surface'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+            <span>{t(item.labelKey)}</span>
+          </button>
+        ))}
+      </div>
+    </aside>
+  );
+}
+```
+
+### Step 9.3: Update StitchMobileDrawer
+
+**File:** `frontend/src/components/stitch/StitchMobileDrawer.tsx`
+
+**Replace hardcoded English text:**
+
+```tsx
+import { useLanguage } from '../../contexts/LanguageContext';
+import { mainNavItems, bottomNavItems } from '../../lib/navigation';
+
+export function StitchMobileDrawer({ isOpen, onClose, onNewThread }: StitchMobileDrawerProps) {
+  const { t } = useLanguage();  // ← Add this
+  
+  // ... existing code ...
+
+  return (
+    <div className="fixed inset-0 z-50 flex select-none">
+      {/* Backdrop */}
+      <div onClick={onClose} className="..." />
+
+      {/* Drawer content */}
+      <div className="relative w-72 max-w-[80vw] h-dvh bg-surface-container-low border-r border-warm-mist shadow-xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto p-space-lg pb-safe">
+          <div className="flex flex-col gap-space-lg">
+            {/* Brand */}
+            <div onClick={() => { navigate('/'); onClose(); }} className="...">
+              <img src={BRAND.iconSvg} alt="" className="w-6 h-6" />
+              <span className="...">{BRAND.nameEn}</span>
+            </div>
+
+            {/* Navigation Items */}
+            <nav className="flex flex-col gap-space-xs">
+              {mainNavItems.map((item) => (
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => {
+                    item.path === '/' ? handleNew() : handleNav(item.path);
+                  }}
+                  className="w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-graphite hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                  <span>{t(item.labelKey)}</span>
+                </button>
+              ))}
+            </nav>
+
+            {/* Recent Conversations */}
+            {conversations.length > 0 && (
+              <div className="flex flex-col gap-space-xs">
+                <span className="px-space-md font-label-xs text-label-xs text-ash uppercase tracking-wider">
+                  Recent
+                </span>
+                {conversations.slice(0, 10).map((conv) => (
+                  <button
+                    key={conv.id}
+                    type="button"
+                    onClick={() => handleNav(`/chat/${conv.id}`)}
+                    className="..."
+                  >
+                    <span className="material-symbols-outlined text-[20px]">chat</span>
+                    <span className="truncate">{conv.title || 'Untitled'}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Fixed bottom */}
+        <div className="flex flex-col gap-space-xs p-space-lg border-t border-warm-mist bg-surface-container-low pb-safe">
+          {bottomNavItems.map((item) => (
+            <button
+              key={item.path}
+              type="button"
+              onClick={() => handleNav(item.path)}
+              className="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-graphite hover:bg-surface-container-high hover:text-on-surface font-label-md text-label-md text-left cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+              <span>{t(item.labelKey)}</span>
+            </button>
+          ))}
+
+          {/* Profile box */}
+          <div className="flex items-center justify-between px-space-md py-space-sm rounded-lg bg-soft-paper border border-warm-mist mt-space-xs">
+            <div onClick={() => handleNav('/settings')} className="flex items-center gap-space-sm cursor-pointer truncate flex-1">
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-on-primary text-[18px]">person</span>
+              </div>
+              <div className="flex flex-col truncate">
+                <span className="font-label-sm text-label-sm text-ink font-medium truncate">
+                  {student?.display_name || 'Guest'}
+                </span>
+                <span className="font-label-xs text-label-xs text-ash">
+                  {isAuthenticated ? 'Free Plan' : t('nav.signIn')}
+                </span>
+              </div>
+            </div>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => { void logout(); onClose(); }}
+                className="text-xs text-error font-medium hover:underline p-1 shrink-0"
+              >
+                {t('nav.signOut')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleNav('/login')}
+                className="text-xs text-primary font-medium hover:underline p-1 shrink-0"
+              >
+                {t('nav.signIn')}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+**Key changes:**
+- Replaced "Settings" → `t('nav.settings')`
+- Replaced "New Thread" → `t('nav.newThread')`
+- Replaced "Library" → `t('nav.library')`
+- Replaced "Exit" → `t('nav.signOut')`
+- Replaced "Sign In" → `t('nav.signIn')`
+
+### Step 9.4: Test Navigation Consistency
+
+**Manual testing checklist:**
+
+- [ ] StitchSidebar shows Arabic text when language = 'ar'
+- [ ] StitchSidebar shows English text when language = 'en'
+- [ ] StitchMobileDrawer shows Arabic text when language = 'ar'
+- [ ] StitchMobileDrawer shows English text when language = 'en'
+- [ ] Both components show identical navigation items
+- [ ] No hardcoded English text remains in navigation
+
+### Step 9.5: Commit Fix #7
+
+```bash
+git add frontend/src/lib/navigation.ts frontend/src/components/stitch/StitchSidebar.tsx frontend/src/components/stitch/StitchMobileDrawer.tsx
+git commit -m "fix(i18n): unify navigation text across desktop and mobile
+
+- Create navigation.ts with centralized nav items and i18n keys
+- Update StitchSidebar to use t() for all labels
+- Update StitchMobileDrawer to use t() for all labels
+- Replace hardcoded English: Settings, New Thread, Library, Exit, Sign In
+- Ensure both components show identical navigation structure
+- Closes: mixed English/Arabic text in navigation"
+```
+
+==================================================
+SECTION 10: FINAL VERIFICATION
+==================================================
+
+### Step 10.1: Run All Tests
+
+```bash
+# Backend
+cd backend
 python -m pytest tests/ -v --tb=short
 
-# Specifically check email-related tests
-python -m pytest tests/unit/test_smtp_config.py -v
-python -m pytest tests/integration/test_email_background.py -v
-python -m pytest tests/integration/test_verification.py -v
+# Frontend
+cd ../frontend
+npm run build
+npm run lint
+npm run test
 ```
 
-**Expected:** All tests PASS.
+**Expected:** All tests pass.
 
-### Step 6.2: Manual Testing Checklist
+### Step 10.2: Manual Testing Checklist
 
-**Test in development mode:**
+**Visual checks:**
+- [ ] No fake status bar icons on mobile
+- [ ] Drawer Settings button visible on all screen heights
+- [ ] No "Connectors" button in navigation
+- [ ] Language selector works in Settings
+- [ ] Model strength shows "Flash / Think / Pro"
+- [ ] Navigation text consistent between desktop/mobile
+- [ ] Language change updates all UI text
 
-```bash
-cd backend
-python -m uvicorn app.main:app --reload
-```
+**Functional checks:**
+- [ ] Model strength sent to backend
+- [ ] Language preference persists
+- [ ] All navigation links work
+- [ ] No console errors
 
-- [ ] Start server without SMTP vars → should work (dev mode)
-- [ ] Register new user → should see `[DEV MODE] Email would be sent...` in logs
-- [ ] Verify email with code from logs → should work
-- [ ] Resend code → should see new code in logs
-- [ ] Forgot password → should see reset code in logs
-
-**Test in production mode (simulate):**
-
-```bash
-# Set APP_ENV=production without SMTP vars
-APP_ENV=production python -m uvicorn app.main:app
-
-# Expected: Server refuses to start with clear error:
-# ValidationError: smtp_user is required in production
-```
-
-**Test with real SMTP (if you have credentials):**
-
-```bash
-# Set all SMTP vars
-export SMTP_HOST=smtp.gmail.com
-export SMTP_PORT=587
-export SMTP_USER=your-email@gmail.com
-export SMTP_PASSWORD=your-app-password
-export SMTP_FROM=noreply@spetser.ai
-export APP_ENV=production
-
-python -m uvicorn app.main:app
-
-# Register with real email → should receive actual email
-```
-
-### Step 6.3: Update ERROR_LOG.md
-
-**Append to `docs/ERROR_LOG.md`:**
-
-```markdown
-## E-EMAIL-001 — Silent Email Skip in Production
-
-| Field | Detail |
-|---|---|
-| **Date** | 2026-10-19 |
-| **Severity** | P0 |
-| **Phase** | Email Delivery |
-| **Error** | Users register successfully but never receive verification emails. UI shows "Code sent" but no email arrives. |
-| **Root Cause** | `email_service.py` line 51 silently returns when `SMTP_USER` is empty, even in production. No error is raised, no warning logged. |
-| **Fix** | 1. Add Pydantic `field_validator` in `config.py` to reject empty SMTP vars in production (fail fast on startup). 2. Refactor `email_service.py` to use FastAPI `BackgroundTasks` for async sending. 3. Add proper error logging for SMTP failures. |
-| **Verification** | - Config validation tests (5/5 pass) - Async email tests (3/3 pass) - Manual test: server refuses to start in production without SMTP vars |
-| **Prevention** | - Production config validation prevents deployment without SMTP - Background tasks prevent registration slowdown - Error logging makes failures visible |
-| **Commits** | - `fix(config): fail fast in production without SMTP configuration` - `feat(email): send emails asynchronously via BackgroundTasks` |
-```
-
-### Step 6.4: Update PROJECT_STATUS.md
+### Step 10.3: Update Documentation
 
 **Append to `docs/PROJECT_STATUS.md`:**
 
 ```markdown
-## Email Delivery Fix — COMPLETE
+## UI/UX Polish — COMPLETE
 
-**Date:** 2026-10-19  
-**Severity:** P0 (Production Blocker)  
-**Status:** ✅ FIXED
+**Date:** [TODAY]
+**Status:** ✅ ALL 7 FIXES COMPLETE
 
-### Problem
-- Users could register but never received verification emails
-- Server silently skipped email sending when SMTP not configured
-- No error or warning — silent failure in production
-
-### Root Cause
-- `email_service.py` returned early without error when `SMTP_USER` was empty
-- `config.py` had empty defaults for SMTP settings
-- Production server (Render) had no SMTP credentials → all emails skipped
-
-### Solution
-1. **Fail fast in production**: Pydantic validator rejects empty SMTP vars at startup
-2. **Async email sending**: Use FastAPI BackgroundTasks (non-blocking)
-3. **Proper error handling**: Log SMTP failures instead of silent skip
-4. **Deployment docs**: Clear guide for configuring SMTP in Render
+### Fixes Applied
+1. ✅ Removed fake status bar simulation (P0)
+2. ✅ Fixed drawer overflow on short screens (P0)
+3. ✅ Removed confusing Connectors button (P1)
+4. ✅ Added language selector to Settings (P1)
+5. ✅ Updated model strength to Flash/Think/Pro (P1)
+6. ✅ Integrated model strength with backend (P2)
+7. ✅ Unified navigation text (P2)
 
 ### Files Modified
-- `backend/app/core/config.py` — SMTP validation
-- `backend/app/services/email_service.py` — async sending
-- `backend/app/services/verification_service.py` — background task support
-- `backend/app/api/v1/routes/auth.py` — inject BackgroundTasks
-- `docs/DEPLOYMENT.md` — SMTP configuration guide
-- `scripts/setup-render-env.sh` — env var verification script
+- `frontend/src/components/stitch/StitchMobileHome.tsx`
+- `frontend/src/components/stitch/StitchMobileDrawer.tsx`
+- `frontend/src/components/stitch/StitchSidebar.tsx`
+- `frontend/src/lib/modelStrength.ts`
+- `frontend/src/lib/navigation.ts`
+- `frontend/src/lib/streaming.ts`
+- `frontend/src/contexts/LanguageContext.tsx`
+- `frontend/src/pages/SettingsPage.tsx`
+- `frontend/src/styles/global.css`
+- `backend/app/schemas/chat.py`
+- `backend/app/api/v1/routes/chat.py`
+- `backend/app/services/model_mapping.py`
 
-### Tests Added
-- `tests/unit/test_smtp_config.py` (5 tests)
-- `tests/integration/test_email_background.py` (3 tests)
-
-### Deployment Checklist for Render
-- [ ] Set `SMTP_HOST=smtp.gmail.com` (or your provider)
-- [ ] Set `SMTP_PORT=587`
-- [ ] Set `SMTP_USER=your-email@gmail.com`
-- [ ] Set `SMTP_PASSWORD=your-app-password`
-- [ ] Set `SMTP_FROM=noreply@spetser.ai`
-- [ ] Set `APP_ENV=production`
-- [ ] Deploy and verify emails are sent (check Render logs)
+### Tests
+- Backend: [X/Y] passed
+- Frontend: build + lint + test all pass
+- Visual: verified on 5 screen heights
 
 ### Status
-✅ Config validation: PASS (server refuses to start without SMTP in production)  
-✅ Async sending: PASS (registration returns immediately, email sent in background)  
-✅ Error logging: PASS (SMTP failures logged, not silent)  
-✅ Tests: 8/8 PASS
+✅ All 7 issues resolved
+✅ No regressions
+✅ Ready for deployment
 ```
 
-### Step 6.5: Final Commit
+**Append to `docs/ERROR_LOG.md`:**
+
+```markdown
+## E-UIUX-001 through E-UIUX-007
+
+[Document each fix with root cause, solution, and prevention]
+```
+
+### Step 10.4: Final Commit
 
 ```bash
 git add -A
-git commit -m "docs: update ERROR_LOG and PROJECT_STATUS with email fix evidence
+git commit -m "docs: update PROJECT_STATUS and ERROR_LOG with UI/UX polish evidence
 
-- Append E-EMAIL-001 to ERROR_LOG with root cause and prevention
-- Add Email Delivery Fix section to PROJECT_STATUS
-- Include Render deployment checklist
-- Reference all commits and test results"
+- Document all 7 fixes with root causes and solutions
+- Add test results and visual verification checklist
+- Reference all commits from this session"
 ```
 
 ==================================================
-SECTION 7: RENDER DEPLOYMENT CHECKLIST
+SECTION 11: ACCEPTANCE CRITERIA
 ==================================================
 
-**Before deploying the fix, configure these in Render:**
+All fixes are COMPLETE only when:
 
-### Step 7.1: Set Environment Variables in Render Dashboard
-
-1. Go to your Render service → **Environment** tab
-2. Add these variables:
-
-```env
-# Required for email sending
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-16-char-app-password
-SMTP_FROM=noreply@spetser.ai
-
-# Must be production
-APP_ENV=production
-
-# Other required vars (should already be set)
-APP_SECRET_KEY=<your-secret-key-32+chars>
-SESSION_SECRET_KEY=<your-session-key-32+chars>
-DATABASE_URL=<your-postgres-url>
-```
-
-### Step 7.2: Generate Gmail App Password (if using Gmail)
-
-1. Go to https://myaccount.google.com/apppasswords
-2. Select app: "Mail"
-3. Select device: "Other" → name it "Spetser AI Render"
-4. Copy the 16-character password
-5. Use it as `SMTP_PASSWORD`
-
-### Step 7.3: Deploy and Verify
-
-```bash
-# Push your changes
-git push origin main
-
-# Render will auto-deploy
-
-# Check logs
-render logs --service spetser-backend --tail 200
-
-# Look for:
-# ✅ "Application startup complete" (not "smtp_user is required in production")
-# ✅ "Email sent successfully to user@example.com" (when someone registers)
-```
-
-### Step 7.4: Test End-to-End
-
-1. Open your deployed site: `https://spetser-ai.onrender.com`
-2. Register with a real email address
-3. Check your inbox → should receive verification email within 5 seconds
-4. Enter the code → account should be verified
-5. Login → should work
-
-### Step 7.5: Monitor Email Deliverability
-
-**Check Render logs regularly:**
-
-```bash
-# Successful sends
-render logs --service spetser-backend | grep "Email sent successfully"
-
-# Failed sends (if any)
-render logs --service spetser-backend | grep -i "smtp.*error"
-
-# Dev mode warnings (should NOT appear in production)
-render logs --service spetser-backend | grep "DEV MODE"
-```
+- [ ] Fix #1: No fake status bar icons on mobile
+- [ ] Fix #2: Settings button visible on 600px, 667px, 740px, 844px, 915px heights
+- [ ] Fix #3: No "Connectors" button in StitchSidebar or StitchMobileDrawer
+- [ ] Fix #4: Language selector in Settings changes UI language and persists
+- [ ] Fix #5: Model strength shows "Flash / Think / Pro" (not "fast / balanced / deep")
+- [ ] Fix #6: `model_strength` sent in chat request body, backend receives it
+- [ ] Fix #7: StitchSidebar and StitchMobileDrawer show identical text (Arabic or English)
+- [ ] All backend tests pass
+- [ ] Frontend build + lint + test pass
+- [ ] No console errors in browser
+- [ ] `docs/PROJECT_STATUS.md` updated with evidence
+- [ ] `docs/ERROR_LOG.md` has 7 new entries
 
 ==================================================
-SECTION 8: ACCEPTANCE CRITERIA
-==================================================
-
-The email delivery fix is COMPLETE only when:
-
-- [ ] `test_smtp_config.py`: 5/5 tests PASS
-- [ ] `test_email_background.py`: 3/3 tests PASS
-- [ ] Server refuses to start in production without SMTP vars
-- [ ] Register endpoint returns < 500ms (async email)
-- [ ] Email failures are logged (not silent)
-- [ ] Render environment variables configured (SMTP_*)
-- [ ] Real email received after registration
-- [ ] `docs/DEPLOYMENT.md` updated with SMTP guide
-- [ ] `docs/ERROR_LOG.md` has E-EMAIL-001 entry
-- [ ] `docs/PROJECT_STATUS.md` updated with fix evidence
-- [ ] All commits pushed to main branch
-
-==================================================
-SECTION 9: START COMMAND
+SECTION 12: START COMMAND
 ==================================================
 
 **Awaiting user instruction:**
-- Say **"Execute Email Fix"** to run all steps
-- Say **"Config Only"** to just add validation (Fix #1)
-- Say **"Async Only"** to just add background tasks (Fix #2)
-- Say **"Deploy Guide"** to just update deployment docs
+- Say **"Execute All Fixes"** to run all 7 fixes sequentially
+- Say **"Execute P0 Only"** to run fixes #1 and #2 (critical UX)
+- Say **"Execute P1 Only"** to run fixes #3, #4, #5 (important features)
+- Say **"Execute P2 Only"** to run fixes #6, #7 (polish)
 
 GO.
 ```
 
 ---
 
-## ملخص ما يفعله هذا البرومت
+## ملخص التقييم والبرومت
 
-| الخطوة | الوصف | النتيجة |
-|--------|--------|---------|
-| **Fix #1** | إضافة Pydantic validator يرفض التشغيل في production بدون SMTP | الخادم يرفض البدء بدلاً من الفشل الصامت |
-| **Fix #2** | استخدام FastAPI BackgroundTasks للإرسال غير المتزامن | التسجيل يرجع فوراً، البريد يُرسل في الخلفية |
-| **الاختبارات** | 8 اختبارات جديدة تغطي كل السيناريوهات | ضمان عدم رجوع المشكلة |
-| **التوثيق** | تحديث DEPLOYMENT.md مع دليل إعداد SMTP | سهولة النشر على Render |
-| **Render Setup** | قائمة المتغيرات المطلوبة + Gmail App Password | نشر ناجح |
+### ✅ تقييمي لتقرير الأداة الأخرى: **دقيق 95%**
 
-## المتغيرات المطلوبة في Render
+**ما وافقت عليه تماماً:**
+1. ✅ Status bar simulation في `StitchMobileHome.tsx` (سطور 56-73)
+2. ✅ Overflow issue في `StitchMobileDrawer.tsx` (لا يوجد `overflow-y-auto`)
+3. ✅ Connectors button في `StitchSidebar.tsx` يوجه لـ `/referrals`
+4. ✅ `modelStrength.ts` يحتوي على `fast/balanced/deep` مع TODO للـ backend
+5. ✅ `SettingsPage.tsx` لا تحتوي على خيار اللغة
+6. ✅ نصوص إنجليزية مختلطة في StitchMobileDrawer
 
-```env
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-16-char-app-password
-SMTP_FROM=noreply@spetser.ai
-APP_ENV=production
-```
+**ما أضفته:**
+- نصوص إنجليزية إضافية في `StitchSidebar.tsx`: "New Thread", "Discover", "Spaces", "Library", "Workspace"
+- ضرورة فحص `StitchMobileDrawer.tsx` بالكامل للبحث عن Connectors
+- أهمية فحص backend schemas للتأكد من دعم `model_strength`
 
-## كيف تحصل على Gmail App Password
+### 📋 البرومت المفصل يغطي:
 
-1. فعّل المصادقة الثنائية على حساب Gmail
-2. اذهب إلى https://myaccount.google.com/apppasswords
-3. أنشئ كلمة مرور تطبيق جديدة
-4. استخدم الـ 16 حرف في `SMTP_PASSWORD`
+| الأولوية | المشكلة | الحل | الملفات المتأثرة |
+|----------|---------|------|-------------------|
+| **P0** | Status bar simulation | حذف الأيقونات الوهمية | `StitchMobileHome.tsx` |
+| **P0** | Drawer overflow | إضافة `overflow-y-auto` + `pb-safe` | `StitchMobileDrawer.tsx`, `global.css` |
+| **P1** | Connectors button | حذف الزر من القائمتين | `StitchSidebar.tsx`, `StitchMobileDrawer.tsx` |
+| **P1** | Missing language selector | إنشاء LanguageContext + dropdown | `LanguageContext.tsx`, `SettingsPage.tsx` |
+| **P1** | Model strength labels | تغيير إلى Flash/Think/Pro | `modelStrength.ts`, `Composer.tsx` |
+| **P2** | Backend integration | إرسال `model_strength` في request | `chat.py`, `model_mapping.py`, `streaming.ts` |
+| **P2** | Inconsistent navigation | توحيد النصوص باستخدام i18n | `navigation.ts`, `StitchSidebar.tsx`, `StitchMobileDrawer.tsx` |
 
-## التحقق بعد النشر
+### 🎯 التوصية
 
-```bash
-# افحص سجلات Render
-render logs --service spetser-backend --tail 200
-
-# يجب أن ترى:
-# ✅ "Email sent successfully to user@example.com"
-# ❌ NOT: "[DEV MODE] Email would be sent..."
-```
+ابدأ بـ **"Execute P0 Only"** لإصلاح المشاكل الحرجة أولاً (Status bar + Drawer overflow)، ثم انتقل إلى P1 و P2 حسب الأولوية.
 

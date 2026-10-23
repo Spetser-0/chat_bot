@@ -412,3 +412,30 @@ class TestRegenerate:
             },
         )
         assert resp.status_code in (400, 422)
+
+    @pytest.mark.asyncio
+    async def test_chat_with_model_strength(
+        self, authenticated_client, provider, mock_llm
+    ):
+        resp = await authenticated_client.post(
+            "/api/v1/chat/completions",
+            json={
+                "message": "Hello from flash test",
+                "model_strength": "flash",
+                "stream": False,
+            },
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert data["text"] == "أهلاً بك!"
+
+        # Invalid strength should fail validation
+        bad_resp = await authenticated_client.post(
+            "/api/v1/chat/completions",
+            json={
+                "message": "Hello",
+                "model_strength": "ultra_mega",
+                "stream": False,
+            },
+        )
+        assert bad_resp.status_code == 422

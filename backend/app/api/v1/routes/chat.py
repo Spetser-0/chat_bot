@@ -44,6 +44,7 @@ from app.schemas.chat import (
     UsageInfo,
 )
 from app.services.llm.router import LLMRouter
+from app.services.model_mapping import map_strength_to_model
 from app.services.skill_resolver import SkillService
 
 logger = structlog.get_logger(__name__)
@@ -207,8 +208,9 @@ async def create_completion(
             await credits.assert_enough_credits(floor)
 
     router = LLMRouter(db)
-    max_tokens = skill.max_tokens if skill else None
-    temperature = float(skill.temperature) if skill else None
+    model_config = map_strength_to_model(body.model_strength)
+    max_tokens = skill.max_tokens if (skill and skill.max_tokens) else model_config.get("max_tokens")
+    temperature = float(skill.temperature) if (skill and skill.temperature is not None) else model_config.get("temperature")
 
     if body.stream:
         return StreamingResponse(
